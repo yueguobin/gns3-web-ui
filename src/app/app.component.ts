@@ -1,5 +1,5 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component, HostBinding, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, ChangeDetectionStrategy, ElementRef } from '@angular/core';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
@@ -32,6 +32,7 @@ export class AppComponent implements OnInit {
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private progressService = inject(ProgressService);
+  private elementRef = inject(ElementRef);
 
   constructor() {
     this.iconReg.addSvgIcon('gns3', this.sanitizer.bypassSecurityTrustResourceUrl('./assets/gns3_icon.svg'));
@@ -40,9 +41,14 @@ export class AppComponent implements OnInit {
     this.router.events.subscribe((value) => {
       this.checkEvent(value);
     });
-  }
 
-  @HostBinding('class') componentCssClass = computed(() => this.themeService.savedTheme + '-theme');
+    // Use effect to handle HostBinding for component class
+    effect(() => {
+      const theme = this.themeService.savedTheme;
+      const hostElement = this.elementRef.nativeElement as HTMLElement;
+      hostElement.className = theme + '-theme';
+    });
+  }
 
   ngOnInit(): void {
     this.applyTheme(this.themeService.savedTheme + '-theme');
