@@ -70,9 +70,9 @@
 // (window as any).__Zone_enable_cross_context_check = true;
 
 /***************************************************************************************************
- * Zone JS is required by default for Angular itself.
+ * Zone JS has been removed for zoneless change detection.
+ * Zoneless mode is enabled via provideZonelessChangeDetection() in main.ts
  */
-import 'zone.js';
 
 /***************************************************************************************************
  * APPLICATION IMPORTS

@@ -1,13 +1,19 @@
-import 'zone.js/testing';
-import { getTestBed } from '@angular/core/testing';
+import { getTestBed, provideZonelessChangeDetection } from '@angular/core/testing';
 import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
 
 declare const require: any;
 
-// First, initialize the Angular testing environment.
-getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
-    teardown: { destroyAfterEach: false }
-});
+// First, initialize the Angular testing environment with zoneless change detection.
+getTestBed().initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting(),
+  {
+    teardown: { destroyAfterEach: false },
+    providers: [
+      provideZonelessChangeDetection(),
+    ]
+  }
+);
 // Then we find all the tests.
 const context = require.context('./', true, /\.spec\.ts$/);
 // And load the modules.

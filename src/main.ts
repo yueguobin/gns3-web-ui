@@ -1,5 +1,5 @@
 import '@angular/compiler';
-import { importProvidersFrom, enableProdMode } from '@angular/core';
+import { importProvidersFrom, enableProdMode, provideZonelessChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { enableDebugTools } from '@angular/platform-browser';
 import { AppModule } from './app/app.module';
@@ -13,6 +13,7 @@ if (environment.production) {
 bootstrapApplication(AppComponent, {
   providers: [
     importProvidersFrom(AppModule),
+    provideZonelessChangeDetection(),
   ]
 }).then((appRef) => {
   // allows to run `ng.profiler.timeChangeDetection();`
