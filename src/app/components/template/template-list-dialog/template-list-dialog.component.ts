@@ -73,6 +73,10 @@ export class TemplateListDialogComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.configurationForm.valueChanges.subscribe(() => this.cd.markForCheck());
+    this.positionForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.templateService.list(this.controller).subscribe((listOfTemplates: Template[]) => {
       this.filteredTemplates = listOfTemplates;
       this.templates = listOfTemplates;
