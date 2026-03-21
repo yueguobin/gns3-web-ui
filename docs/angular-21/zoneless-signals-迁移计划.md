@@ -329,25 +329,25 @@ export class MyComponent {
 
 ---
 
-### 阶段 4: 表单组件迁移 (预计 3-4 天) - 0/100 完成
+### 阶段 4: 表单组件迁移 (预计 3-4 天) - 14/100 完成
 
 #### 迁移进度
 | 模块 | 数量 | 已完成 | 待迁移 |
 |------|------|--------|--------|
 | preferences | 33 | 0 | 33 |
 | project-map | 28 | 0 | 28 |
-| projects | 7 | 0 | 7 |
-| user-management | 6 | 0 | 6 |
-| group-management + group-details | 5 | 0 | 5 |
+| projects | 7 | 5 | 2 |
+| user-management | 6 | 6 | 0 |
+| group-management + group-details | 5 | 2 | 3 |
 | role-management | 3 | 0 | 3 |
 | acl-management | 3 | 0 | 3 |
-| controllers | 2 | 0 | 2 |
+| controllers | 2 | 1 | 1 |
 | template | 2 | 0 | 2 |
 | snapshots | 2 | 0 | 2 |
 | settings | 2 | 0 | 2 |
 | resource-pools-management | 2 | 0 | 2 |
 | 其他 | 5 | 0 | 5 |
-| **总计** | **100** | **0** | **100** |
+| **总计** | **100** | **14** | **86** |
 
 #### 目标
 迁移 Reactive Forms 到 Signal Forms（如果可用）或确保与 Zoneless 兼容。
