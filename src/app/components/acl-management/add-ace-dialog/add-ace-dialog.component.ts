@@ -97,6 +97,9 @@ export class AddAceDialogComponent implements OnInit {
       role_id: new UntypedFormControl(),
       propagate: new UntypedFormControl(true)
     });
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.addAceForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.groupService.getGroups(this.controller)
       .subscribe((groups: Group[]) => {
         this.groups = groups;
