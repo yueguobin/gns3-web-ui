@@ -44,6 +44,9 @@ export class ScreenshotDialogComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.nameForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.cd.markForCheck();
   }
 
