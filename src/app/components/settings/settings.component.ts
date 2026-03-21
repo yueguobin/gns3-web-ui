@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -17,6 +17,7 @@ import { UpdatesService } from '@services/updates.service';
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatExpansionModule, MatCheckboxModule, MatButtonModule, MatRadioModule]
 })
 export class SettingsComponent implements OnInit {
@@ -27,26 +28,26 @@ export class SettingsComponent implements OnInit {
   public updatesService = inject(UpdatesService);
 
   settings: Settings;
-  integrateLinksLabelsToLinks: boolean;
-  openReadme: boolean;
-  openConsolesInWidget: boolean;
-  mapTheme: string;
+  integrateLinksLabelsToLinks = signal<boolean>(false);
+  openReadme = signal<boolean>(false);
+  openConsolesInWidget = signal<boolean>(false);
+  mapTheme = signal<string>('auto');
 
   ngOnInit() {
     this.settings = this.settingsService.getAll();
-    this.integrateLinksLabelsToLinks = this.mapSettingsService.integrateLinkLabelsToLinks;
-    this.openReadme = this.mapSettingsService.openReadme;
-    this.openConsolesInWidget = this.mapSettingsService.openConsolesInWidget;
-    this.mapTheme = this.themeService.savedMapTheme;
+    this.integrateLinksLabelsToLinks.set(this.mapSettingsService.integrateLinkLabelsToLinks);
+    this.openReadme.set(this.mapSettingsService.openReadme);
+    this.openConsolesInWidget.set(this.mapSettingsService.openConsolesInWidget);
+    this.mapTheme.set(this.themeService.savedMapTheme);
   }
 
   save() {
     this.settingsService.setAll(this.settings);
     this.toaster.success('Settings have been saved.');
 
-    this.mapSettingsService.toggleIntegrateInterfaceLabels(this.integrateLinksLabelsToLinks);
-    this.mapSettingsService.toggleOpenReadme(this.openReadme);
-    this.mapSettingsService.toggleOpenConsolesInWidget(this.openConsolesInWidget);
+    this.mapSettingsService.toggleIntegrateInterfaceLabels(this.integrateLinksLabelsToLinks());
+    this.mapSettingsService.toggleOpenReadme(this.openReadme());
+    this.mapSettingsService.toggleOpenConsolesInWidget(this.openConsolesInWidget());
   }
 
   setDarkMode(value: boolean) {
@@ -54,7 +55,7 @@ export class SettingsComponent implements OnInit {
   }
 
     setMapTheme(theme: 'light' | 'dark' | 'auto') {
-    this.mapTheme = theme;
+    this.mapTheme.set(theme);
     this.themeService.setMapTheme(theme);
   }
  

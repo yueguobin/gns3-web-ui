@@ -11,10 +11,10 @@
 
           <div>
             <mat-checkbox [(ngModel)]="settings.crash_reports">Send anonymous crash reports</mat-checkbox><br/>
-            <mat-checkbox [(ngModel)]="integrateLinksLabelsToLinks">Integrate link labels to links</mat-checkbox><br/>
-            <mat-checkbox [(ngModel)]="openReadme">Automatically open project README files</mat-checkbox><br/>
+            <mat-checkbox [ngModel]="integrateLinksLabelsToLinks()" (ngModelChange)="integrateLinksLabelsToLinks.set($event)">Integrate link labels to links</mat-checkbox><br/>
+            <mat-checkbox [ngModel]="openReadme()" (ngModelChange)="openReadme.set($event)">Automatically open project README files</mat-checkbox><br/>
             <mat-checkbox [(ngModel)]="settings.anonymous_statistics">Send anonymous usage statistics</mat-checkbox><br />
-            <mat-checkbox [(ngModel)]="openConsolesInWidget">Open consoles in the widget instead of in new tabs after clicking start consoles for all nodes</mat-checkbox>
+            <mat-checkbox [ngModel]="openConsolesInWidget()" (ngModelChange)="openConsolesInWidget.set($event)">Open consoles in the widget instead of in new tabs after clicking start consoles for all nodes</mat-checkbox>
           </div>
         </mat-expansion-panel>
 
@@ -31,7 +31,7 @@
  
           <div class="theme-panel theme-panel--map">
             <label class="theme-panel__label">Project map background</label>
-            <mat-radio-group [value]="mapTheme" (change)="setMapTheme($event.value)" class="theme-panel__radio-group">
+            <mat-radio-group [value]="mapTheme()" (change)="setMapTheme($event.value)" class="theme-panel__radio-group">
               <mat-radio-button value="auto">Follow global theme</mat-radio-button>
               <mat-radio-button value="light">Always light</mat-radio-button>
               <mat-radio-button value="dark">Always dark</mat-radio-button>
