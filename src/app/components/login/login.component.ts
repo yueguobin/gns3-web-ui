@@ -1,4 +1,4 @@
-import { Component, DoCheck, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -25,6 +25,7 @@ import { VersionService } from '@services/version.service';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -38,7 +39,7 @@ import { VersionService } from '@services/version.service';
     MatError
   ]
 })
-export class LoginComponent implements OnInit, DoCheck {
+export class LoginComponent implements OnInit {
   private loginService = inject(LoginService);
   private controllerService = inject(ControllerService);
   private controllerDatabase = inject(ControllerDatabase);
@@ -47,6 +48,7 @@ export class LoginComponent implements OnInit, DoCheck {
   private toasterService = inject(ToasterService);
   private versionService = inject(VersionService);
   private themeService = inject(ThemeService);
+  private cdr = inject(ChangeDetectorRef);
 
   private controller: Controller;
   public version: string;
@@ -61,13 +63,19 @@ export class LoginComponent implements OnInit, DoCheck {
     password: new UntypedFormControl('', [Validators.required]),
   });
 
-  constructor() {}
+  constructor() {
+    // Subscribe to form value changes to trigger change detection for OnPush
+    this.loginForm.valueChanges.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
 
   async ngOnInit() {
     const controller_id = this.route.snapshot.paramMap.get('controller_id');
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
     this.controllerService.get(parseInt(controller_id, 10)).then((controller: Controller ) => {
       this.controller = controller;
+      this.cdr.markForCheck();
 
       if (controller.authToken) {
         this.router.navigate(['/controller', this.controller.id, 'projects']);
@@ -75,6 +83,7 @@ export class LoginComponent implements OnInit, DoCheck {
 
       this.versionService.get(this.controller).subscribe((version: Version) => {
         this.version = version.version;
+        this.cdr.markForCheck();
       });
     });
 
@@ -134,12 +143,6 @@ export class LoginComponent implements OnInit, DoCheck {
       localStorage.removeItem(`isRememberMe`);
       this.loginForm.reset();
       this.isRememberMe = ev.checked;
-    }
-  }
-
-  ngDoCheck() {
-    if (this.loginForm.get('username').valid && this.loginForm.get('password').valid) {
-      this.isRememberMe = true;
     }
   }
 }
