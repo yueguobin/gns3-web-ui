@@ -1,5 +1,5 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component, HostBinding, OnInit, inject } from '@angular/core';
+import { Component, HostBinding, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { GlobalUploadIndicatorComponent } from './components/global-upload-indic
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterModule,
@@ -22,7 +23,7 @@ import { GlobalUploadIndicatorComponent } from './components/global-upload-indic
   ]
 })
 export class AppComponent implements OnInit {
-  public darkThemeEnabled: boolean = false;
+  public darkThemeEnabled = signal<boolean>(false);
 
   private overlayContainer = inject(OverlayContainer);
   private iconReg = inject(MatIconRegistry);
@@ -41,7 +42,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  @HostBinding('class') componentCssClass;
+  @HostBinding('class') componentCssClass = computed(() => this.themeService.savedTheme + '-theme');
 
   ngOnInit(): void {
     this.applyTheme(this.themeService.savedTheme + '-theme');
@@ -52,15 +53,14 @@ export class AppComponent implements OnInit {
 
   applyTheme(theme: string) {
     if (theme === 'dark-theme') {
-      this.darkThemeEnabled = true;
+      this.darkThemeEnabled.set(true);
     } else {
-      this.darkThemeEnabled = false;
+      this.darkThemeEnabled.set(false);
     }
     const classList = this.overlayContainer.getContainerElement().classList;
     classList.remove('dark-theme', 'light-theme', 'dark', 'light');
     classList.add(theme);
     classList.add(theme === 'dark-theme' ? 'dark' : 'light');
-    this.componentCssClass = theme;
   }
 
   checkEvent(routerEvent): void {
