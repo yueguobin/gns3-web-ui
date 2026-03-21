@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
 import {User} from "@models/users/user";
@@ -16,12 +16,14 @@ import {matchingPassword} from "@components/user-management/ConfirmPasswordValid
   selector: 'app-change-user-password',
   templateUrl: './change-user-password.component.html',
   styleUrls: ['./change-user-password.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule]
 })
 export class ChangeUserPasswordComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<ChangeUserPasswordComponent>);
   private userService = inject(UserService);
   private toasterService = inject(ToasterService);
+  private cd = inject(ChangeDetectorRef);
 
   @Inject(MAT_DIALOG_DATA) public data: { user: User, controller: Controller, self_update: boolean };
 
@@ -40,7 +42,9 @@ export class ChangeUserPasswordComponent implements OnInit {
         [Validators.minLength(6), Validators.maxLength(100), Validators.pattern(password_regex), Validators.required] ),
     },{
       validators: [matchingPassword]
-    })
+    });
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.editPasswordForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get passwordForm() {
