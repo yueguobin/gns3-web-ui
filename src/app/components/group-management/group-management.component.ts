@@ -10,7 +10,7 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import {Component, OnInit, QueryList, ViewChild, ViewChildren, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, QueryList, ViewChild, ViewChildren, inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from "@angular/router";
@@ -40,6 +40,7 @@ import { DeleteGroupDialogComponent } from "@components/group-management/delete-
   selector: 'app-group-management',
   templateUrl: './group-management.component.html',
   styleUrls: ['./group-management.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterModule, MatSort, MatDialogModule, MatTableModule, MatPaginator, MatCheckboxModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatCardModule]
 })
 export class GroupManagementComponent implements OnInit {
@@ -48,6 +49,7 @@ export class GroupManagementComponent implements OnInit {
   private toasterService = inject(ToasterService);
   public groupService = inject(GroupService);
   public dialog = inject(MatDialog);
+  private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
 
@@ -108,6 +110,8 @@ export class GroupManagementComponent implements OnInit {
       .open(AddGroupDialogComponent, {width: '600px', height: '500px', data: {controller: this.controller}})
       .afterClosed()
       .subscribe((added: boolean) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (added) {
           this.refresh();
         }
@@ -120,6 +124,8 @@ export class GroupManagementComponent implements OnInit {
       this.groups = groups;
       this.dataSource.data = groups;
       this.selection.clear();
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
   }
 
@@ -128,6 +134,8 @@ export class GroupManagementComponent implements OnInit {
       .open(DeleteGroupDialogComponent, {width: '500px', height: '250px', data: {groups: groupsToDelete}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           const observables = groupsToDelete.map((group: Group) => this.groupService.delete(this.controller, group.user_group_id));
           forkJoin(observables)
