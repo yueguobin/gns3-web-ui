@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnInit, inject, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
-import { MatDialog, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -35,6 +35,11 @@ export class AddBlankProjectDialogComponent implements OnInit {
   private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
+
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { controller: Controller }) {
+    this.controller = data.controller;
+  }
+
   projectNameForm: UntypedFormGroup;
   uuid: string;
   onAddProject = new EventEmitter<string>();

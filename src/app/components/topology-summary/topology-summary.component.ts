@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, OnDestroy, OnInit, inject, ChangeDetectorRef, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSelectModule } from '@angular/material/select';
@@ -22,7 +22,7 @@ import { ThemeService } from '@services/theme.service';
   selector: 'app-topology-summary',
   templateUrl: './topology-summary.component.html',
   styleUrls: ['./topology-summary.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Default,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatTabsModule, MatSelectModule, MatOptionModule, MatDividerModule]
 })
 export class TopologySummaryComponent implements OnInit, OnDestroy {
@@ -31,11 +31,12 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
   private computeService = inject(ComputeService);
   private linksDataSource = inject(LinksDataSource);
   private themeService = inject(ThemeService);
+  private cdr = inject(ChangeDetectorRef);
 
-  @Input() controller: Controller;
-  @Input() project: Project;
+  controller = input<Controller | null>(null);
+  project = input<Project | null>(null);
 
-  @Output() closeTopologySummary = new EventEmitter<boolean>();
+  closeTopologySummary = output<boolean>();
 
   public style = {};
   public styleInside = { height: `280px` };
@@ -66,7 +67,7 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
         this.nodes = nodes;
         this.nodes.forEach((n) => {
           if (n.console_host === '0.0.0.0' || n.console_host === '0:0:0:0:0:0:0:0' || n.console_host === '::') {
-            n.console_host = this.controller.host;
+            n.console_host = this.controller().host;
           }
         });
         if (this.sortingOrder === 'asc') {
@@ -74,15 +75,18 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
         } else {
           this.filteredNodes = nodes.sort(this.compareDesc);
         }
+        this.cdr.markForCheck();
       })
     );
 
-    this.projectService.getStatistics(this.controller, this.project.project_id).subscribe((stats) => {
+    this.projectService.getStatistics(this.controller(), this.project().project_id).subscribe((stats) => {
       this.projectsStatistics = stats;
+      this.cdr.markForCheck();
     });
 
-    this.computeService.getComputes(this.controller).subscribe((computes) => {
+    this.computeService.getComputes(this.controller()).subscribe((computes) => {
       this.computes = computes;
+      this.cdr.markForCheck();
     });
 
     this.revertPosition();

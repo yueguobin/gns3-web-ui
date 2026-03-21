@@ -10,6 +10,8 @@ import {
   ViewContainerRef,
   ViewEncapsulation,
   inject,
+  signal,
+  inputBinding,
 } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
@@ -163,6 +165,10 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public project: Project;
   public controller: Controller;
   public projectws: WebSocket;
+
+  // Signals specifically for dynamic component inputs
+  private topologyController = signal<Controller | null>(null);
+  private topologyProject = signal<Project | null>(null);
   public ws: WebSocket;
   public isProjectMapMenuVisible: boolean = false;
   public isConsoleVisible: boolean = true;
@@ -297,12 +303,14 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   async lazyLoadTopologySummary() {
     if (this.isTopologySummaryVisible) {
       const { TopologySummaryComponent } = await import('../topology-summary/topology-summary.component');
-      this.instance = this.viewContainerRef.createComponent(TopologySummaryComponent);
-
-      // const componentFactory = this.cfr.resolveComponentFactory(TopologySummaryComponent);
-      // this.instance = this.topologySummaryContainer.createComponent(componentFactory, null, this.injector);
-      this.instance.instance.controller = this.controller;
-      this.instance.instance.project = this.project;
+      this.topologyController.set(this.controller);
+      this.topologyProject.set(this.project);
+      this.instance = this.viewContainerRef.createComponent(TopologySummaryComponent, {
+        bindings: [
+          inputBinding('controller', this.topologyController),
+          inputBinding('project', this.topologyProject),
+        ],
+      });
     } else if (this.instance) {
       if (this.instance.instance) {
         this.instance.instance.ngOnDestroy();
@@ -931,9 +939,10 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+      },
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
   }
 
   saveProject() {
@@ -941,10 +950,11 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+        project: this.project,
+      },
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
   }
 
   editProject() {
@@ -952,10 +962,11 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       width: '600px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+        project: this.project,
+      },
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
   }
 
   importProject() {
@@ -964,9 +975,10 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+      },
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
     const subscription = dialogRef.componentInstance.onImportProject.subscribe((projectId: string) => {
       uuid = projectId;
     });
@@ -1089,10 +1101,11 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       height: '650px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+        project: this.project,
+      },
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
   }
 
   /**
