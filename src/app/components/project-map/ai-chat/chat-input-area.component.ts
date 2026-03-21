@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, Input, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,7 @@ import { OverlayContainer } from '@angular/cdk/overlay';
 @Component({
   standalone: true,
   selector: 'app-chat-input-area',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatIconModule, MatRippleModule, MatMenuModule, MatDividerModule],
   template: `
     <div class="chat-input-area">
@@ -480,6 +481,8 @@ export class ChatInputAreaComponent implements OnInit, OnDestroy {
       if (this.menuTrigger && this.menuTrigger.menuOpen) {
         this.menuTrigger.closeMenu();
       }
+      // Zoneless compatible: ensure theme change triggers change detection
+      this.cdr.markForCheck();
     });
   }
 
