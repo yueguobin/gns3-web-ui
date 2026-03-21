@@ -331,8 +331,11 @@ export class D3MapComponent implements OnInit, OnDestroy {
     // Recalculate after setNodes/Drawings so graphDataManager has current positions.
     this.context.size = this.getSize();
     this.graphLayout.draw(this.svg, this.context);
-    this.textEditor.activateTextEditingForDrawings();
-    this.textEditor.activateTextEditingForNodeLabels();
+    // Safe check for textEditor - may not be initialized yet in zoneless mode
+    if (this.textEditor) {
+      this.textEditor.activateTextEditingForDrawings();
+      this.textEditor.activateTextEditingForNodeLabels();
+    }
     this.mapSettingsService.mapRenderedEmitter.emit(true);
   }
 
