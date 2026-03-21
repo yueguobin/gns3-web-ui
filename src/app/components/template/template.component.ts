@@ -1,5 +1,5 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component, EventEmitter, input, output, OnDestroy, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, input, output, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
   private themeService = inject(ThemeService);
   private overlayContainer = inject(OverlayContainer);
   private context = inject(Context);
+  private cd = inject(ChangeDetectorRef);
 
   controller = input<Controller>();
   project = input<Project>();
@@ -75,18 +76,24 @@ export class TemplateComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.subscription = this.templateService.newTemplateCreated.subscribe((template: Template) => {
       this.templates.push(template);
+      // Zoneless compatible: ensure subscription triggers change detection
+      this.cd.markForCheck();
     });
 
     this.templateService.list(this.controller()).subscribe((listOfTemplates: Template[]) => {
       this.filteredTemplates = listOfTemplates;
       this.sortTemplates();
       this.templates = listOfTemplates;
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
     this.symbolService.list(this.controller());
     if (this.themeService.getActualTheme()  === 'light') this.isLightThemeEnabled = true;
     this.themeSubscription = this.themeService.themeChanged.subscribe((value: string) => {
       if (value === 'light-theme') this.isLightThemeEnabled = true;
       this.toggleTheme();
+      // Zoneless compatible: ensure theme change triggers change detection
+      this.cd.markForCheck();
     });
   }
 
