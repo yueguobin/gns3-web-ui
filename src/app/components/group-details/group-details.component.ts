@@ -10,7 +10,7 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import {Component, OnInit, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { Controller } from "@models/controller";
@@ -47,6 +47,7 @@ import { PaginatorPipe } from "@components/group-details/paginator.pipe";
   selector: 'app-group-details',
   templateUrl: './group-details.component.html',
   styleUrls: ['./group-details.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterModule,
@@ -84,6 +85,7 @@ export class GroupDetailsComponent implements OnInit {
   private toastService = inject(ToasterService);
   private aclService = inject(AclService);
   private roleService = inject(RoleService);
+  private cd = inject(ChangeDetectorRef);
 
   constructor() {
 
@@ -98,7 +100,10 @@ export class GroupDetailsComponent implements OnInit {
       this.editGroupForm = new UntypedFormGroup({
         groupname: new UntypedFormControl(this.group.name, [Validators.required]),
       });
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
+
 
 
   }
@@ -110,7 +115,9 @@ export class GroupDetailsComponent implements OnInit {
           const endpoint = endps.filter((endp: Endpoint) => endp.endpoint === ace.path)[0]
           const role = roles.filter((r: Role) => r.role_id === ace.role_id)[0]
           return {...ace, endpoint_name: endpoint.name, role_name: role.name}
-        })
+        });
+        // Zoneless compatible: ensure data load triggers change detection
+        this.cd.markForCheck();
       })
     })
 
@@ -122,9 +129,13 @@ export class GroupDetailsComponent implements OnInit {
     this.groupService.update(this.controller, this.group)
       .subscribe(() => {
         this.toastService.success(`group updated`);
+        // Zoneless compatible: ensure update triggers change detection
+        this.cd.markForCheck();
       }, (error) => {
         this.toastService.error('Error: Cannot update group');
         console.log(error);
+        // Zoneless compatible: ensure error triggers change detection
+        this.cd.markForCheck();
       });
   }
 
@@ -137,6 +148,8 @@ export class GroupDetailsComponent implements OnInit {
         })
       .afterClosed()
       .subscribe(() => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         this.reloadMembers();
       });
   }
@@ -146,6 +159,8 @@ export class GroupDetailsComponent implements OnInit {
         {width: '500px', height: '200px', data: {name: user.username}})
       .afterClosed()
       .subscribe((confirm: boolean) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (confirm) {
           this.groupService.removeUser(this.controller, this.group, user)
             .subscribe(() => {
@@ -166,6 +181,8 @@ export class GroupDetailsComponent implements OnInit {
     this.groupService.getGroupMember(this.controller, this.group.user_group_id)
       .subscribe((members: User[]) => {
         this.members = members;
+        // Zoneless compatible: ensure data load triggers change detection
+        this.cd.markForCheck();
       });
   }
 
