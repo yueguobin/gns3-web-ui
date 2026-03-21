@@ -68,6 +68,9 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
   }
 
   ngOnInit() {
+      // Zoneless compatible: ensure form value changes trigger change detection
+      this.generalSettingsForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
       this.nodeService.getNode(this.controller, this.node).subscribe((node: Node) => {
           this.node = node;
           this.name = node.name;
