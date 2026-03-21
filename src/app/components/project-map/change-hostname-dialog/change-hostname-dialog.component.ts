@@ -52,7 +52,8 @@ export class ChangeHostnameDialogComponent implements OnInit {
       this.name = this.node.name;
       this.inputForm.get('name')?.setValue(this.node.name);
     }
-    this.cd.markForCheck();
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.inputForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   onSaveClick() {
