@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { UntypedFormControl, UntypedFormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,6 +13,7 @@ import { ToasterService } from '@services/toaster.service';
   selector: 'app-console',
   templateUrl: './console.component.html',
   styleUrls: ['./console.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatInputModule],
 })
 export class ConsoleComponent implements OnInit {
@@ -23,10 +24,13 @@ export class ConsoleComponent implements OnInit {
   private router = inject(Router);
   private consoleService = inject(ConsoleService);
   private toasterService = inject(ToasterService);
+  private cd = inject(ChangeDetectorRef);
 
   ngOnInit() {
     const commandControl = this.consoleForm.get('command');
     commandControl.setValue(this.consoleService.command);
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.consoleForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   goBack() {
