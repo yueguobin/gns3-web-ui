@@ -10,7 +10,7 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import {Component, Inject, OnInit, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {BehaviorSubject, forkJoin, timer} from "rxjs";
@@ -33,6 +33,7 @@ import {RoleService} from "@services/role.service";
   selector: 'app-add-role-to-group',
   templateUrl: './add-role-to-group.component.html',
   styleUrls: ['./add-role-to-group.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatIconModule, MatProgressSpinnerModule]
 })
 export class AddRoleToGroupComponent implements OnInit {
@@ -40,6 +41,7 @@ export class AddRoleToGroupComponent implements OnInit {
   private groupService = inject(GroupService);
   private roleService = inject(RoleService);
   private toastService = inject(ToasterService);
+  private cd = inject(ChangeDetectorRef);
 
   roles = new BehaviorSubject<Role[]>([]);
   displayedRoles = new BehaviorSubject<Role[]>([]);
@@ -63,6 +65,8 @@ export class AddRoleToGroupComponent implements OnInit {
         });
 
         this.displayedRoles.next(displayedUsers);
+        // Zoneless compatible: ensure search results trigger change detection
+        this.cd.markForCheck();
       });
   }
 
@@ -78,6 +82,8 @@ export class AddRoleToGroupComponent implements OnInit {
 
       this.roles.next(roles);
       this.displayedRoles.next(roles);
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
 
     });
 
@@ -91,10 +97,14 @@ export class AddRoleToGroupComponent implements OnInit {
         this.toastService.success(`role ${role.name} was added`);
         this.getRoles();
         this.loading = false;
+        // Zoneless compatible: ensure state change triggers change detection
+        this.cd.markForCheck();
       }, (err) => {
         console.log(err);
         this.toastService.error(`error while adding role ${role.name} to group ${this.data.group.name}`);
         this.loading = false;
+        // Zoneless compatible: ensure error state triggers change detection
+        this.cd.markForCheck();
       });
   }
 }
