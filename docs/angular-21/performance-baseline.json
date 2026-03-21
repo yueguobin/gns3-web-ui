@@ -1,0 +1,134 @@
+{
+  "baseline_date": "2026-03-21",
+  "branch": "feature/zoneless-signals-migration",
+  "angular_version": "21.0.0",
+  "zonejs_version": "0.15.1",
+  "project_name": "gns3-web-ui",
+
+  "build_stats": {
+    "vendor.js": "8.55 MB",
+    "main.js": "6.02 MB",
+    "styles.css": "631.85 kB",
+    "polyfills.js": "120.59 kB",
+    "runtime.js": "6.79 kB",
+    "initial_total": "15.32 MB",
+    "build_time": "17283ms"
+  },
+
+  "code_analysis": {
+    "total_components": 253,
+    "total_services": 71,
+    "ngzone_usage": 5,
+    "input_decorator_usage": 97,
+    "onpush_components": 90,
+    "default_strategy_components": 1,
+    "no_strategy_components": 162
+  },
+
+  "ngzone_files": [
+    "src/app/services/toaster.service.ts",
+    "src/app/services/xterm-context-menu.service.ts",
+    "src/app/components/project-map/project-map.component.ts",
+    "src/app/components/controllers/controllers.component.ts",
+    "src/app/cartography/components/text-editor/text-editor.component.ts"
+  ],
+
+  "default_strategy_files": [
+    "src/app/components/topology-summary/topology-summary.component.ts"
+  ],
+
+  "package_dependencies": {
+    "@angular/core": "^21.0.0",
+    "zone.js": "^0.15.1"
+  },
+
+  "expected_improvements": {
+    "bundle_size_reduction": "80-120 KB",
+    "polyfills_size_after": "~20 KB",
+    "performance_improvement": "5-10%",
+    "fid_improvement": "20-30%",
+    "lcp_improvement": "10-15%"
+  },
+
+  "test_baseline": {
+    "test_suite_run": "PENDING",
+    "passing_tests": "TBD",
+    "failing_tests": "TBD",
+    "test_execution_time": "TBD"
+  },
+
+  "lighthouse_baseline": {
+    "performance": "PENDING",
+    "accessibility": "PENDING",
+    "best_practices": "PENDING",
+    "seo": "PENDING",
+    "fid": "PENDING",
+    "lcp": "PENDING",
+    "cls": "PENDING"
+  },
+
+  "migration_phases": [
+    {
+      "phase": 0,
+      "name": "Preparation",
+      "status": "in_progress",
+      "estimated_days": "2-3"
+    },
+    {
+      "phase": 1,
+      "name": "Remove NgZone Dependencies",
+      "status": "pending",
+      "estimated_days": "3-5"
+    },
+    {
+      "phase": 2,
+      "name": "Enable Zoneless",
+      "status": "pending",
+      "estimated_days": "1-2"
+    },
+    {
+      "phase": 3,
+      "name": "Migrate Core Components to Signals",
+      "status": "pending",
+      "estimated_days": "5-7"
+    },
+    {
+      "phase": 4,
+      "name": "Migrate Form Components",
+      "status": "pending",
+      "estimated_days": "3-4"
+    },
+    {
+      "phase": 5,
+      "name": "Migrate Service Layer",
+      "status": "pending",
+      "estimated_days": "4-5"
+    },
+    {
+      "phase": 6,
+      "name": "Add OnPush Strategy",
+      "status": "pending",
+      "estimated_days": "3-4"
+    },
+    {
+      "phase": 7,
+      "name": "Optimization and Debugging",
+      "status": "pending",
+      "estimated_days": "2-3"
+    },
+    {
+      "phase": 8,
+      "name": "Testing and Validation",
+      "status": "pending",
+      "estimated_days": "2-3"
+    }
+  ],
+
+  "notes": [
+    "All 253 components have been migrated to standalone (100%)",
+    "Zone.js is currently active in src/polyfills.ts line 75",
+    "Most components use @Input/@Output decorators (97 components)",
+    "Only 1 component uses ChangeDetectionStrategy.Default",
+    "5 files use NgZone and need cleanup before zoneless enablement"
+  ]
+}
