@@ -78,6 +78,10 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.formGroup.valueChanges.subscribe(() => this.cd.markForCheck());
+    this.variableFormGroup.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.formGroup.controls['projectName'].setValue(this.project.name);
     this.formGroup.controls['width'].setValue(this.project.scene_width);
     this.formGroup.controls['height'].setValue(this.project.scene_height);
