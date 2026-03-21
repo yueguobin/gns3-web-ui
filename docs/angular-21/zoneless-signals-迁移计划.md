@@ -329,16 +329,34 @@ export class MyComponent {
 
 ---
 
-### 阶段 4: 表单组件迁移 (预计 3-4 天)
+### 阶段 4: 表单组件迁移 (预计 3-4 天) - 0/100 完成
+
+#### 迁移进度
+| 模块 | 数量 | 已完成 | 待迁移 |
+|------|------|--------|--------|
+| preferences | 33 | 0 | 33 |
+| project-map | 28 | 0 | 28 |
+| projects | 7 | 0 | 7 |
+| user-management | 6 | 0 | 6 |
+| group-management + group-details | 5 | 0 | 5 |
+| role-management | 3 | 0 | 3 |
+| acl-management | 3 | 0 | 3 |
+| controllers | 2 | 0 | 2 |
+| template | 2 | 0 | 2 |
+| snapshots | 2 | 0 | 2 |
+| settings | 2 | 0 | 2 |
+| resource-pools-management | 2 | 0 | 2 |
+| 其他 | 5 | 0 | 5 |
+| **总计** | **100** | **0** | **100** |
 
 #### 目标
 迁移 Reactive Forms 到 Signal Forms（如果可用）或确保与 Zoneless 兼容。
 
 #### 需要修改的文件
 
-##### 带表单的组件 (136 个文件)
+##### 带表单的组件 (100 个文件)
 
-重点迁移（常用表单）：
+重点迁移（按优先级排序）：
 
 1. **src/app/components/login/login.component.ts**
    - 确保表单更新触发变更检测
@@ -588,15 +606,22 @@ HTTP 服务:
 - `src/app/services/acl.service.ts`
 - ... (约 70 个其他服务)
 
-#### 表单组件 (136 个)
+#### 表单组件 (100 个)
 所有包含 `ReactiveFormsModule` 或 `FormsModule` 的组件，主要分布在:
-- `src/app/components/preferences/` - 约 40 个
-- `src/app/components/project-map/node-editors/` - 约 30 个
-- `src/app/components/user-management/` - 约 10 个
-- `src/app/components/group-management/` - 约 8 个
-- `src/app/components/role-management/` - 约 6 个
-- `src/app/components/projects/` - 约 10 个
-- 其他对话框和表单组件
+- `src/app/components/preferences/` - 33 个
+- `src/app/components/project-map/` - 28 个 (包含 node-editors, drawings-editors, dialogs 等)
+- `src/app/components/projects/` - 7 个
+- `src/app/components/user-management/` - 6 个
+- `src/app/components/group-details/` - 3 个
+- `src/app/components/role-management/` - 3 个
+- `src/app/components/acl-management/` - 3 个
+- `src/app/components/group-management/` - 2 个
+- `src/app/components/controllers/` - 2 个
+- `src/app/components/template/` - 2 个
+- `src/app/components/snapshots/` - 2 个
+- `src/app/components/settings/` - 2 个
+- `src/app/components/resource-pools-management/` - 2 个
+- 其他 (login, image-manager, export-portable-project, direct-link, resource-pool-details) - 5 个
 
 #### 使用 @Input/@Output 的组件 (111 个)
 所有使用 `@Input()` 或 `@Output()` 装饰器的组件需要迁移
