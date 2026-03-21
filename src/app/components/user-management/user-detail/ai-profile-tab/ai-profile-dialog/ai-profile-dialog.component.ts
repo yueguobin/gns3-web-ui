@@ -203,6 +203,9 @@ export class AiProfileDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.form.valueChanges.subscribe(() => this.cd.markForCheck());
+
     if (this.mode === 'edit' && this.data.config) {
       const config = this.data.config;
 
