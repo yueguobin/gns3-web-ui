@@ -71,6 +71,11 @@ export class ConfiguratorDialogAtmSwitchComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.nameForm.valueChanges.subscribe(() => this.cd.markForCheck());
+    this.inputForm.valueChanges.subscribe(() => this.cd.markForCheck());
+    this.abstractForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.nodeService.getNode(this.controller, this.node).subscribe((node: Node) => {
       this.node = node;
       this.name = node.name;
