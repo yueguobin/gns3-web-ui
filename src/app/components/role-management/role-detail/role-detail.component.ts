@@ -10,7 +10,7 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import {Component, OnInit, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule, ReactiveFormsModule, FormBuilder, FormGroup} from '@angular/forms';
 import {RouterModule} from '@angular/router';
@@ -38,6 +38,7 @@ import { PrivilegeComponent } from "@components/role-management/role-detail/priv
   selector: 'app-role-detail',
   templateUrl: './role-detail.component.html',
   styleUrls: ['./role-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatCheckboxModule, MatDividerModule, PrivilegeComponent]
 })
 export class RoleDetailComponent implements OnInit {
@@ -46,6 +47,7 @@ export class RoleDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private privilegeService = inject(PrivilegeService);
   private fb = inject(FormBuilder);
+  private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
   $role: BehaviorSubject<Role> = new BehaviorSubject<Role>({role_id: "", description: "", updated_at: "", is_builtin: false, privileges: [], name: "", created_at:""});
@@ -63,6 +65,8 @@ export class RoleDetailComponent implements OnInit {
         rolename: [role.name],
         description: [role.description],
       });
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
   }
 
@@ -71,7 +75,11 @@ export class RoleDetailComponent implements OnInit {
       this.controller = d.controller
       this.roleId = d.role.role_id;
       this.privileges = this.privilegeService.get(this.controller);
-      this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => this.$role.next(role))
+      this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => {
+        this.$role.next(role);
+        // Zoneless compatible: ensure data load triggers change detection
+        this.cd.markForCheck();
+      })
     });
   }
   onUpdate() {
@@ -81,11 +89,17 @@ export class RoleDetailComponent implements OnInit {
       this.roleService.update(this.controller, role)
         .subscribe(() => {
             this.toastService.success(`role: ${role.name} was updated`);
-            this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => this.$role.next(role))
+            this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => {
+              this.$role.next(role);
+              // Zoneless compatible: ensure update triggers change detection
+              this.cd.markForCheck();
+            })
           },
           (error: HttpErrorResponse) => {
             this.toastService.error(`${error.message}
         ${error.error.message}`);
+            // Zoneless compatible: ensure error triggers change detection
+            this.cd.markForCheck();
           });
 
   }
@@ -100,7 +114,11 @@ export class RoleDetailComponent implements OnInit {
     }
     forkJoin(tasks)
       .subscribe(() => {
-        this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => this.$role.next(role))
+        this.roleService.getById(this.controller, this.roleId).subscribe((role: Role) => {
+          this.$role.next(role);
+          // Zoneless compatible: ensure update triggers change detection
+          this.cd.markForCheck();
+        })
       });
 
   }
