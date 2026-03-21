@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, OnDestroy, HostListener, ChangeDetectorRef, ViewChildren, QueryList, AfterViewInit, inject } from '@angular/core';
+import { Component, EventEmitter, input, OnInit, output, OnDestroy, HostListener, ChangeDetectorRef, ViewChildren, QueryList, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, UntypedFormControl } from '@angular/forms';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -30,11 +30,11 @@ import { LogConsoleComponent } from '../log-console/log-console.component';
 export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
-  @Input() controller: Controller;
-  @Input() project: Project;
-  @Output() closeConsole = new EventEmitter<boolean>();
-  @Output() deviceSelected = new EventEmitter<string>();
-  @Output() consoleDeactivated = new EventEmitter<void>();
+  controller = input<Controller>();
+  project = input<Project>();
+  closeConsole = output<boolean>();
+  deviceSelected = output<string>();
+  consoleDeactivated = output<void>();
 
   filters: string[] = ['all', 'errors', 'warnings', 'info', 'map updates', 'controller requests'];
   selectedFilter: string = 'all';
