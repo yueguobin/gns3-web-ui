@@ -60,7 +60,8 @@ export class EditUserDialogComponent implements OnInit {
         [Validators.minLength(6), Validators.maxLength(100)]),
       is_active: new FormControl(this.data.user.is_active)
     });
-    this.cd.markForCheck();
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.editUserForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get form() {
