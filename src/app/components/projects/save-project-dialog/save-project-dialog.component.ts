@@ -46,7 +46,8 @@ export class SaveProjectDialogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.cd.markForCheck();
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.projectNameForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get form() {
