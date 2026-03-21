@@ -11,7 +11,7 @@
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
 
-import {Component, OnInit, QueryList, ViewChildren, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, QueryList, ViewChildren, inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -41,6 +41,7 @@ import { Endpoint } from "@models/api/endpoint";
   selector: 'app-acl-management',
   templateUrl: './acl-management.component.html',
   styleUrls: ['./acl-management.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterModule, MatTableModule, MatPaginator, MatSort, MatCheckboxModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatCardModule]
 })
 export class AclManagementComponent implements OnInit {
@@ -49,6 +50,7 @@ export class AclManagementComponent implements OnInit {
   private toasterService = inject(ToasterService);
   public aclService = inject(AclService);
   public dialog = inject(MatDialog);
+  private cd = inject(ChangeDetectorRef);
 
   @ViewChildren('acesPaginator') acesPaginator: QueryList<MatPaginator>;
   @ViewChildren('acesSort') acesSort: QueryList<MatSort>;
@@ -105,6 +107,8 @@ export class AclManagementComponent implements OnInit {
       this.aces = aces
       this.dataSource.data = aces;
       this.selection.clear();
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
   }
 
@@ -119,7 +123,11 @@ export class AclManagementComponent implements OnInit {
         controller: this.controller
       }
     });
-    dialogRef.afterClosed().subscribe(() => this.refresh());
+    dialogRef.afterClosed().subscribe(() => {
+      // Zoneless compatible: ensure dialog close triggers change detection
+      this.cd.markForCheck();
+      this.refresh();
+    });
   }
 
 
@@ -128,6 +136,8 @@ export class AclManagementComponent implements OnInit {
       .open(DeleteAceDialogComponent, {width: '500px', data: {aces: [ace]}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           this.aclService.delete(this.controller, ace.ace_id)
             .subscribe(() => {
@@ -156,6 +166,8 @@ export class AclManagementComponent implements OnInit {
       .open(DeleteAceDialogComponent, {width: '500px', data: {aces: this.selection.selected}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           this.selection.selected.forEach((ace: ACE) => {
             this.aclService.delete(this.controller, ace.ace_id)
