@@ -119,7 +119,11 @@ export class UserManagementComponent implements OnInit {
         controller: this.controller
       }
     });
-    dialogRef.afterClosed().subscribe(() => this.refresh());
+    // Zoneless compatible: ensure dialog close triggers change detection
+    dialogRef.afterClosed().subscribe(() => {
+      this.refresh();
+      this.cd.markForCheck();
+    });
   }
 
   onDelete(user: User) {
@@ -127,10 +131,12 @@ export class UserManagementComponent implements OnInit {
       .open(DeleteUserDialogComponent, {width: '500px', data: {users: [user]}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           this.userService.delete(this.controller, user.user_id)
             .subscribe(() => {
-              this.refresh()
+              this.refresh();
             }, (error) => {
               this.toasterService.error(`An error occur while trying to delete user ${user.username}`);
             });
@@ -157,15 +163,17 @@ export class UserManagementComponent implements OnInit {
       .open(DeleteUserDialogComponent, {width: '500px', data: {users: this.selection.selected}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           this.selection.selected.forEach((user: User) => {
             this.userService.delete(this.controller, user.user_id)
               .subscribe(() => {
-                this.refresh()
+                this.refresh();
               }, (error) => {
                 this.toasterService.error(`An error occur while trying to delete user ${user.username}`);
               });
-          })
+          });
           this.selection.clear();
         }
       });
