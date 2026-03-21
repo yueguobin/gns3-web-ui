@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnInit, inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
 import { RouterModule, ActivatedRoute, Router } from "@angular/router";
@@ -33,6 +33,7 @@ import { AiProfileTabComponent } from "@components/user-management/user-detail/a
   selector: 'app-user-detail',
   templateUrl: './user-detail.component.html',
   styleUrls: ['./user-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, MatDialogModule, MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatTabsModule, AiProfileTabComponent]
 })
 export class UserDetailComponent implements OnInit {
@@ -43,6 +44,7 @@ export class UserDetailComponent implements OnInit {
   public dialog = inject(MatDialog);
   private aclService = inject(AclService);
   private roleService = inject(RoleService);
+  private cd = inject(ChangeDetectorRef);
 
   editUserForm: UntypedFormGroup;
   groups: Group[];
@@ -74,7 +76,9 @@ export class UserDetailComponent implements OnInit {
             const endpoint = endps.filter((endp: Endpoint) => endp.endpoint === ace.path)[0]
             const role = roles.filter((r: Role) => r.role_id === ace.role_id)[0]
             return {...ace, endpoint_name: endpoint.name, role_name: role.name}
-          })
+          });
+          // Zoneless compatible: ensure data load triggers change detection
+          this.cd.markForCheck();
         })
       })
     });
@@ -94,6 +98,8 @@ export class UserDetailComponent implements OnInit {
         [userEmailAsyncValidator(this.controller, this.userService, this.user.email)]),
       is_active: new UntypedFormControl(this.user.is_active)
     });
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.editUserForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get form() {
