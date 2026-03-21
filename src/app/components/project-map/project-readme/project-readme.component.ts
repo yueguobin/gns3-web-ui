@@ -1,6 +1,6 @@
-import { Component, AfterViewInit, ViewChild, inject } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, inject, ChangeDetectionStrategy, ChangeDetectorRef, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Controller } from '@models/controller';
@@ -14,19 +14,24 @@ import { marked } from 'marked';
   selector: 'app-project-readme',
   templateUrl: './project-readme.component.html',
   styleUrls: ['./project-readme.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatDialogModule, MatButtonModule]
 })
 export class ProjectReadmeComponent implements AfterViewInit {
   private dialogRef = inject(MatDialogRef<ProjectReadmeComponent>);
   private projectService = inject(ProjectService);
   private sanitizer = inject(DomSanitizer);
+  private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
   project: Project;
   @ViewChild('text', {static: false}) text: ElementRef;
   readmeHtml: SafeHtml | string = '';
 
-  constructor() {}
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { controller: Controller; project: Project }) {
+    this.controller = data.controller;
+    this.project = data.project;
+  }
 
   ngAfterViewInit() {
     let markdown = ``;
@@ -36,6 +41,7 @@ export class ProjectReadmeComponent implements AfterViewInit {
             markdown = file;
             const markdownHtml = marked(markdown) as string;
             this.readmeHtml = this.sanitizer.bypassSecurityTrustHtml(markdownHtml);
+            this.cd.markForCheck();
         }
     });
   }

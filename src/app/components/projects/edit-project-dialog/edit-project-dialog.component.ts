@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, Injectable, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, Injectable, ViewChild, inject, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -60,7 +60,9 @@ export class EditProjectDialogComponent implements OnInit {
 
   auto_close: boolean;
 
-  constructor() {
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { controller: Controller; project: Project }) {
+    this.controller = data.controller;
+    this.project = data.project;
     this.formGroup = this.formBuilder.group({
       projectName: new UntypedFormControl('', [Validators.required]),
       width: new UntypedFormControl('', [Validators.required, this.nonNegativeValidator.get]),

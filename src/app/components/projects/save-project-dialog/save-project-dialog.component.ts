@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnInit, inject, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -34,7 +34,12 @@ export class SaveProjectDialogComponent implements OnInit {
   projectNameForm: UntypedFormGroup;
   onAddProject = new EventEmitter<string>();
 
-  constructor(private projectNameValidator: ProjectNameValidator) {
+  constructor(
+    private projectNameValidator: ProjectNameValidator,
+    @Inject(MAT_DIALOG_DATA) public data: { controller: Controller; project: Project }
+  ) {
+    this.controller = data.controller;
+    this.project = data.project;
     this.projectNameForm = this.formBuilder.group({
       projectName: new UntypedFormControl(null, [Validators.required, projectNameValidator.get]),
     });
