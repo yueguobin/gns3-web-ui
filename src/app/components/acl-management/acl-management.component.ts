@@ -114,10 +114,11 @@ export class AclManagementComponent implements OnInit {
       height: '500px',
       autoFocus: false,
       disableClose: true,
-      data: {endpoints: this.endpoints}
+      data: {
+        endpoints: this.endpoints,
+        controller: this.controller
+      }
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
     dialogRef.afterClosed().subscribe(() => this.refresh());
   }
 

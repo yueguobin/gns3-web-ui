@@ -51,7 +51,7 @@ export class ImportProjectDialogComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private cd = inject(ChangeDetectorRef);
 
-  @Inject(MAT_DIALOG_DATA) public data: any;
+  @Inject(MAT_DIALOG_DATA) public data: { controller: Controller };
 
   uploader: FileUploader;
   uploadProgress: number = 0;
@@ -67,6 +67,7 @@ export class ImportProjectDialogComponent implements OnInit {
   onImportProject = new EventEmitter<string>();
 
   constructor() {
+    this.controller = this.data.controller;
     this.projectNameForm = this.formBuilder.group({
       projectName: new UntypedFormControl(null, [Validators.required, this.projectNameValidator.get]),
     });

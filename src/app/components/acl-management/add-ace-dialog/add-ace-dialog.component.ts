@@ -82,8 +82,9 @@ export class AddAceDialogComponent implements OnInit {
   treeDataSource: ArrayDataSource<EndpointNode> ;
 
   constructor(
-              @Inject(MAT_DIALOG_DATA) public data: { endpoints: Endpoint[] }) {
+              @Inject(MAT_DIALOG_DATA) public data: { endpoints: Endpoint[]; controller: Controller }) {
     this.endpoints = data.endpoints
+    this.controller = data.controller
     const treeAdapter = new EndpointTreeAdapter(this.endpoints)
     const data_tree = treeAdapter.buildTreeFromEndpoints()
     this.treeDataSource  = new ArrayDataSource(data_tree);

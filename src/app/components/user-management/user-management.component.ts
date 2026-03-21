@@ -115,9 +115,10 @@ export class UserManagementComponent implements OnInit {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller
+      }
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
     dialogRef.afterClosed().subscribe(() => this.refresh());
   }
 

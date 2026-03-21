@@ -10,10 +10,10 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators} from "@angular/forms";
-import { MatDialogRef, MatDialogModule } from "@angular/material/dialog";
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -56,7 +56,9 @@ export class AddUserDialogComponent implements OnInit {
   autocompleteControl = new UntypedFormControl();
   filteredGroups: Observable<Group[]>;
 
-  constructor() { }
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { controller: Controller }) {
+    this.controller = data.controller;
+  }
 
   ngOnInit(): void {
     this.addUserForm = new UntypedFormGroup({

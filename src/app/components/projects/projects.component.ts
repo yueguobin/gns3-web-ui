@@ -168,9 +168,10 @@ export class ProjectsComponent implements OnInit {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller
+      }
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
   }
 
   importProject() {
@@ -179,9 +180,10 @@ export class ProjectsComponent implements OnInit {
       width: '400px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller
+      }
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
     const subscription = dialogRef.componentInstance.onImportProject.subscribe((projectId: string) => {
       uuid = projectId;
     });
