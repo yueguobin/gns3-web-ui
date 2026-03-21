@@ -10,7 +10,7 @@
 *
 * Author: Sylvain MATHIEU, Elise LEBEAU
 */
-import {Component, OnInit, QueryList, ViewChild, ViewChildren, inject} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, QueryList, ViewChild, ViewChildren, inject} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {Controller} from "@models/controller";
@@ -43,6 +43,7 @@ import {HttpErrorResponse} from "@angular/common/http";
   selector: 'app-role-management',
   templateUrl: './role-management.component.html',
   styleUrls: ['./role-management.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatTableModule, MatPaginator, MatSort, MatCheckboxModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatProgressSpinnerModule, RoleFilterPipe]
 })
 export class RoleManagementComponent implements OnInit {
@@ -53,6 +54,7 @@ export class RoleManagementComponent implements OnInit {
   private controllerService = inject(ControllerService);
   public dialog = inject(MatDialog);
   private toasterService = inject(ToasterService);
+  private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
   dataSource = new MatTableDataSource<Role>();
@@ -100,6 +102,8 @@ export class RoleManagementComponent implements OnInit {
       (roles: Role[]) => {
         this.isReady = true;
         this.dataSource.data = roles;
+        // Zoneless compatible: ensure data load triggers change detection
+        this.cd.markForCheck();
       },
       (error) => {
         this.progressService.setError(error);
@@ -116,6 +120,8 @@ export class RoleManagementComponent implements OnInit {
     })
       .afterClosed()
       .subscribe((role: { name: string; description: string }) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (role) {
           this.roleService.create(this.controller, role)
             .subscribe(() => {
@@ -145,6 +151,8 @@ export class RoleManagementComponent implements OnInit {
       .open(DeleteRoleDialogComponent, {width: '500px', height: '250px', data: {roles: rolesToDelete}})
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
+        // Zoneless compatible: ensure dialog close triggers change detection
+        this.cd.markForCheck();
         if (isDeletedConfirm) {
           const observables = rolesToDelete.map((role: Role) => this.roleService.delete(this.controller, role.role_id));
           forkJoin(observables)
