@@ -1,6 +1,6 @@
 import { animate, state, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit, ViewChild, inject } from '@angular/core';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Inject, OnInit, ViewChild } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Sort } from '@angular/material/sort';
@@ -87,8 +87,8 @@ import { DataSourceFilter } from '../../../filters/dataSourceFilter';
   ]
 })
 export class NewTemplateDialogComponent implements OnInit {
-  @Input() controller: Controller;
-  @Input() project: Project;
+  controller: Controller;
+  project: Project;
 
   uploader: FileUploader;
   uploaderImage: FileUploader;
@@ -123,6 +123,7 @@ export class NewTemplateDialogComponent implements OnInit {
   @ViewChild('stepper', { static: true }) stepper: MatStepper;
 
   public dialogRef = inject<MatDialogRef<NewTemplateDialogComponent>>(MatDialogRef);
+  private data = inject(MAT_DIALOG_DATA);
   private applianceService = inject(ApplianceService);
   private changeDetector = inject(ChangeDetectorRef);
   private toasterService = inject(ToasterService);
@@ -139,6 +140,8 @@ export class NewTemplateDialogComponent implements OnInit {
   private uploadServiceService = inject(UploadServiceService);
 
   ngOnInit() {
+    this.controller = this.data.controller;
+    this.project = this.data.project;
     this.applianceService.getAppliances(this.controller).subscribe((appliances) => {
       this.appliances = appliances;
       this.appliances.forEach((appliance) => {

@@ -1076,10 +1076,11 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       maxHeight: '700px',
       autoFocus: false,
       disableClose: true,
+      data: {
+        controller: this.controller,
+        project: this.project,
+      }
     });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
   }
 
   public showReadme() {
