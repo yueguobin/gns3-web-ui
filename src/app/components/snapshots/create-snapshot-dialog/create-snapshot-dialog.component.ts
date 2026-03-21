@@ -55,6 +55,9 @@ export class CreateSnapshotDialogComponent {
       snapshotName: new UntypedFormControl('', Validators.required),
     });
 
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.inputForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     if (this.project && this.project.project_id) {
       this.snapshotService.list(this.controller, this.project.project_id).subscribe((snapshots: Snapshot[]) => {
         snapshots.forEach((snapshot: Snapshot) => {
