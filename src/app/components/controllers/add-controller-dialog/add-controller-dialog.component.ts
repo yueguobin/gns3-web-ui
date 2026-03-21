@@ -76,6 +76,9 @@ export class AddControllerDialogComponent implements OnInit {
   async ngOnInit() {
     this.locations = await this.getLocations();
 
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.controllerForm.valueChanges.subscribe(() => this.changeDetector.markForCheck());
+
     this.controllerForm.get('location').valueChanges.subscribe((location: string) => {
       const pathControl = this.controllerForm.get('path');
       const ubridgePathControl = this.controllerForm.get('ubridge_path');
