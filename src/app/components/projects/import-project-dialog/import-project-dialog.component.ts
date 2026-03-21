@@ -74,6 +74,9 @@ export class ImportProjectDialogComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.projectNameForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.uploader = new FileUploader({url: ''});
     this.uploader.onAfterAddingFile = (file) => {
       file.withCredentials = false;
