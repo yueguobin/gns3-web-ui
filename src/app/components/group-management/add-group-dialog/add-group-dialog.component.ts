@@ -71,6 +71,9 @@ export class AddGroupDialogComponent implements OnInit {
         [groupNameAsyncValidator(this.data.controller, this.groupService)]
       ),
     });
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.groupNameForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.userService.list(this.controller)
       .subscribe((users: User[]) => {
         this.users = users;
@@ -78,6 +81,8 @@ export class AddGroupDialogComponent implements OnInit {
           startWith(''),
           map(value => this._filter(value)),
         );
+        // Zoneless compatible: ensure autocomplete changes trigger change detection
+        this.autocompleteControl.valueChanges.subscribe(() => this.cd.markForCheck());
         this.cd.markForCheck();
       })
   }
