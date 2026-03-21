@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -23,6 +23,7 @@ import { NameFilter } from '@filters/nameFilter.pipe';
   selector: 'app-list-of-snapshots',
   templateUrl: './list-of-snapshots.component.html',
   styleUrls: ['./list-of-snapshots.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatTableModule, MatSortModule, MatButtonModule, MatIconModule, MatTooltipModule, MatInputModule, MatCardModule, NameFilter]
 })
 export class ListOfSnapshotsComponent implements OnInit {
@@ -30,6 +31,7 @@ export class ListOfSnapshotsComponent implements OnInit {
   private snapshotService = inject(SnapshotService);
   private progressDialogService = inject(ProgressDialogService);
   private toaster = inject(ToasterService);
+  private cd = inject(ChangeDetectorRef);
   controller: Controller;
   projectId: string;
   snapshots: Snapshot[];
@@ -47,6 +49,8 @@ export class ListOfSnapshotsComponent implements OnInit {
   getSnapshots() {
     this.snapshotService.list(this.controller, this.projectId).subscribe((snapshots: Snapshot[]) => {
       this.snapshots = snapshots;
+      // Zoneless compatible: ensure data load triggers change detection
+      this.cd.markForCheck();
     });
   }
 
@@ -56,6 +60,8 @@ export class ListOfSnapshotsComponent implements OnInit {
     const subscription = restoring.subscribe((project: Project) => {
       this.toaster.success(`Snapshot ${snapshot.name} has been restored.`);
       progress.close();
+      // Zoneless compatible: ensure restore triggers change detection
+      this.cd.markForCheck();
     });
 
     progress.afterClosed().subscribe((result) => {
@@ -69,6 +75,8 @@ export class ListOfSnapshotsComponent implements OnInit {
     this.snapshotService.delete(this.controller, this.projectId, snapshot.snapshot_id.toString()).subscribe(() => {
       this.getSnapshots();
       this.toaster.success(`Snapshot ${snapshot.name} has been deleted.`);
+      // Zoneless compatible: ensure delete triggers change detection
+      this.cd.markForCheck();
     });
   }
 
