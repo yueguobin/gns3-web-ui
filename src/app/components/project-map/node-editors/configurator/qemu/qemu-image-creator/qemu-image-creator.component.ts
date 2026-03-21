@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UntypedFormBuilder, UntypedFormControl, UntypedFormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -20,6 +20,7 @@ import { ToasterService } from '@services/toaster.service';
   selector: 'app-qemu-image-creator',
   templateUrl: './qemu-image-creator.component.html',
   styleUrls: ['../../configurator.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -104,6 +105,7 @@ export class QemuImageCreatorComponent implements OnInit {
   private toasterService = inject(ToasterService);
   private formBuilder = inject(UntypedFormBuilder);
   private qemuService = inject(QemuService);
+  private cd = inject(ChangeDetectorRef);
 
   constructor() {
     this.inputForm = this.formBuilder.group({
@@ -114,6 +116,9 @@ export class QemuImageCreatorComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.inputForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.qemuImg = {} as QemuImg;
   }
 
