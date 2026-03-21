@@ -1,5 +1,5 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, input, output, OnDestroy, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -27,6 +27,7 @@ import { Context } from '../../cartography/models/context';
   selector: 'app-template',
   templateUrl: './template.component.html',
   styleUrls: ['./template.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatDialogModule, MatIconModule, MatButtonModule, MatMenuModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatOptionModule, MatListModule]
 })
 export class TemplateComponent implements OnInit, OnDestroy {
@@ -38,9 +39,9 @@ export class TemplateComponent implements OnInit, OnDestroy {
   private overlayContainer = inject(OverlayContainer);
   private context = inject(Context);
 
-  @Input() controller: Controller;
-  @Input() project: Project;
-  @Output() onNodeCreation = new EventEmitter<any>();
+  controller = input<Controller>();
+  project = input<Project>();
+  onNodeCreation = output<any>();
   overlay;
   templates: Template[] = [];
   filteredTemplates: Template[] = [];
@@ -76,12 +77,12 @@ export class TemplateComponent implements OnInit, OnDestroy {
       this.templates.push(template);
     });
 
-    this.templateService.list(this.controller).subscribe((listOfTemplates: Template[]) => {
+    this.templateService.list(this.controller()).subscribe((listOfTemplates: Template[]) => {
       this.filteredTemplates = listOfTemplates;
       this.sortTemplates();
       this.templates = listOfTemplates;
     });
-    this.symbolService.list(this.controller);
+    this.symbolService.list(this.controller());
     if (this.themeService.getActualTheme()  === 'light') this.isLightThemeEnabled = true;
     this.themeSubscription = this.themeService.themeChanged.subscribe((value: string) => {
       if (value === 'light-theme') this.isLightThemeEnabled = true;
@@ -126,15 +127,15 @@ export class TemplateComponent implements OnInit, OnDestroy {
   }
 
   dragEnd(ev, template: Template) {
-    this.symbolService.raw(this.controller, template.symbol.substring(1)).subscribe((symbolSvg: string) => {
+    this.symbolService.raw(this.controller(), template.symbol.substring(1)).subscribe((symbolSvg: string) => {
       let width = +symbolSvg.split('width="')[1].split('"')[0] ? +symbolSvg.split('width="')[1].split('"')[0] : 0;
-      
+
       // mwlDraggable's DragEndEvent.x/y are displacement deltas, not absolute
       // coordinates. Add to the captured start position to get the final
       // screen position, then convert to canvas coordinates.
       const dropClientX = this.startX + ev.x;
       const dropClientY = this.startY + ev.y;
- 
+
       const svgElement = document.getElementById('map');
       const svgRect = svgElement ? svgElement.getBoundingClientRect() : { left: 0, top: 0 };
       const k = this.context.transformation.k;
@@ -155,8 +156,8 @@ export class TemplateComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(TemplateListDialogComponent, {
       width: '600px',
       data: {
-        controller: this.controller,
-        project: this.project,
+        controller: this.controller(),
+        project: this.project(),
       },
       autoFocus: false,
       disableClose: true,
@@ -170,7 +171,7 @@ export class TemplateComponent implements OnInit, OnDestroy {
   }
 
   getImageSourceForTemplate(template: Template) {
-    return this.symbolService.getSymbolFromTemplate(this.controller, template);
+    return this.symbolService.getSymbolFromTemplate(this.controller(), template);
     // let symbol = this.symbolService.getSymbolFromTemplate(template);
     // if (symbol) return this.domSanitizer.bypassSecurityTrustUrl(`data:image/svg+xml;base64,${btoa(symbol.raw)}`);
     // return this.domSanitizer.bypassSecurityTrustUrl('data:image/svg+xml;base64,');
