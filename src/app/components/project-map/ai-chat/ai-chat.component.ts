@@ -1,4 +1,4 @@
-import { Component, Input, Output, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewEncapsulation, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, inject } from '@angular/core';
+import { Component, input, output, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewEncapsulation, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil, tap } from 'rxjs/operators';
@@ -47,10 +47,10 @@ import { ChatInputAreaComponent } from './chat-input-area.component';
   ]
 })
 export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
-  @Input() project!: Project;
-  @Input() controller!: Controller;
+  project = input<Project>();
+  controller = input<Controller>();
 
-  @Output() closed = new EventEmitter<void>();
+  closed = output<void>();
 
   // UI state
   sidebarCollapsed = true;
@@ -156,7 +156,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * Initialize chat
    */
   private initializeChat(): void {
-    if (!this.project || !this.controller) {
+    if (!this.project() || !this.controller()) {
       return;
     }
 
@@ -164,7 +164,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
     this.aiChatService.resetCurrentSession();
 
     // Set current project
-    this.aiChatStore.setCurrentProjectId(this.project.project_id);
+    this.aiChatStore.setCurrentProjectId(this.project().project_id);
 
     // Load saved panel state
     this.loadPanelState();
@@ -304,14 +304,12 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * Load sessions list
    */
   private loadSessions(): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      this.controller = freshController;
-
-      this.aiChatService.getSessions(this.controller, this.project.project_id).pipe(
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
+      this.aiChatService.getSessions(freshController, this.project().project_id).pipe(
         tap(sessions => {
           this.aiChatStore.setSessions(sessions);
         }),
@@ -331,14 +329,12 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param sessionId Session ID
    */
   private loadSessionMessages(sessionId: string): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      this.controller = freshController;
-
-      this.aiChatService.getSessionHistory(this.controller, this.project.project_id, sessionId).pipe(
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
+      this.aiChatService.getSessionHistory(freshController, this.project().project_id, sessionId).pipe(
         tap(history => {
           // Convert legacy role:tool messages to assistant.tool_result format
           const convertedMessages = this.convertLegacyToolMessages(history.messages);
@@ -380,16 +376,14 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param event Rename event
    */
   onSessionRenamed(event: { sessionId: string; title: string }): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      this.controller = freshController;
-
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
       this.aiChatService.renameSession(
-        this.controller,
-        this.project.project_id,
+        freshController,
+        this.project().project_id,
         event.sessionId,
         event.title
       ).pipe(
@@ -425,16 +419,14 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param sessionId Session ID
    */
   onSessionPinned(sessionId: string): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      this.controller = freshController;
-
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
       this.aiChatService.pinSession(
-        this.controller,
-        this.project.project_id,
+        freshController,
+        this.project().project_id,
         sessionId
       ).pipe(
         tap(updatedSession => {
@@ -455,16 +447,14 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param sessionId Session ID
    */
   onSessionUnpinned(sessionId: string): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      this.controller = freshController;
-
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
       this.aiChatService.unpinSession(
-        this.controller,
-        this.project.project_id,
+        freshController,
+        this.project().project_id,
         sessionId
       ).pipe(
         tap(updatedSession => {
@@ -485,7 +475,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param message Message content
    */
   onMessageSent(message: string): void {
-    if (!this.controller || this.isStreaming) {
+    if (!this.controller() || this.isStreaming) {
       return;
     }
 
@@ -537,7 +527,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param sessionId Session ID (optional)
    */
   private startChatStream(message: string, sessionId?: string): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
@@ -545,14 +535,11 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
     this.currentAssistantMessage = null;
 
     // Get fresh controller from localStorage to ensure we have the latest authToken
-    this.controllerService.get(this.controller.id).then((freshController: Controller) => {
-      // Update the controller reference
-      this.controller = freshController;
-
+    this.controllerService.get(this.controller().id).then((freshController: Controller) => {
       this.aiChatStore.setStreamingState(true);
       this.aiChatStore.clearError();
 
-      this.aiChatService.streamChat(this.controller, this.project.project_id, {
+      this.aiChatService.streamChat(freshController, this.project().project_id, {
         message,
         session_id: sessionId,
         stream: true
@@ -1232,7 +1219,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * Load user's LLM model configurations
    */
   private loadModelConfigs(): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
@@ -1240,14 +1227,14 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
     this.cdr.markForCheck();
 
     // Get current user
-    this.loginService.getLoggedUser(this.controller).then((user: any) => {
+    this.loginService.getLoggedUser(this.controller()).then((user: any) => {
       if (!user) {
         this.isLoadingModels = false;
         this.cdr.markForCheck();
         return;
       }
 
-      this.aiProfilesService.getConfigs(this.controller, user.user_id).pipe(
+      this.aiProfilesService.getConfigs(this.controller(), user.user_id).pipe(
         takeUntil(this.destroy$)
       ).subscribe({
         next: (response) => {
@@ -1278,19 +1265,19 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param config Selected model configuration
    */
   onModelSelected(config: LLMModelConfigWithSource): void {
-    if (!this.controller) {
+    if (!this.controller()) {
       return;
     }
 
     // Get current user
-    this.loginService.getLoggedUser(this.controller).then((user: any) => {
+    this.loginService.getLoggedUser(this.controller()).then((user: any) => {
       if (!user) {
         this.showError('Failed to get user information');
         return;
       }
 
       this.aiProfilesService.setDefaultConfig(
-        this.controller,
+        this.controller(),
         user.user_id,
         config.config_id
       ).pipe(
@@ -1326,12 +1313,12 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
    * @param mode Selected copilot mode
    */
   onCopilotModeSelected(mode: CopilotMode): void {
-    if (!this.controller || !this.currentModelId) {
+    if (!this.controller() || !this.currentModelId) {
       return;
     }
 
     // Get current user
-    this.loginService.getLoggedUser(this.controller).then((user: any) => {
+    this.loginService.getLoggedUser(this.controller()).then((user: any) => {
       if (!user) {
         this.showError('Failed to get user information');
         return;
@@ -1339,7 +1326,7 @@ export class AiChatComponent implements OnInit, OnDestroy, OnChanges {
 
       // Update the current default config with new copilot mode
       this.aiProfilesService.updateConfig(
-        this.controller,
+        this.controller(),
         user.user_id,
         this.currentModelId,
         { copilot_mode: mode }

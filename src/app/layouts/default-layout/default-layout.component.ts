@@ -1,4 +1,4 @@
-import { Component, HostListener, OnDestroy, OnInit, ViewEncapsulation, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, ViewEncapsulation, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { ProjectService } from '@services/project.service';
@@ -27,6 +27,7 @@ import { CommonModule } from '@angular/common';
   encapsulation: ViewEncapsulation.None,
   templateUrl: './default-layout.component.html',
   styleUrls: ['./default-layout.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterModule,
