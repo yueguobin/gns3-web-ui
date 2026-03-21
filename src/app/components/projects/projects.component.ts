@@ -1,5 +1,5 @@
 import { DataSource, SelectionModel } from '@angular/cdk/collections';
-import { Component, OnInit, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
@@ -74,6 +74,7 @@ export class ProjectsComponent implements OnInit {
   private bottomSheet = inject(MatBottomSheet);
   private toasterService = inject(ToasterService);
   private recentlyOpenedProjectService = inject(RecentlyOpenedProjectService);
+  private cd = inject(ChangeDetectorRef);
 
   constructor() {}
 
@@ -97,6 +98,8 @@ export class ProjectsComponent implements OnInit {
     this.projectService.list(this.controller).subscribe(
       (projects: Project[]) => {
         this.projectDatabase.addProjects(projects);
+        // Zoneless compatible: ensure data load triggers change detection
+        this.cd.markForCheck();
       },
       (error) => {
         this.progressService.setError(error);
@@ -159,6 +162,8 @@ export class ProjectsComponent implements OnInit {
     instance.controller = this.controller;
     instance.project = project;
     dialogRef.afterClosed().subscribe(() => {
+      // Zoneless compatible: ensure dialog close triggers change detection
+      this.cd.markForCheck();
       this.refresh();
     });
   }
