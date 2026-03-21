@@ -79,6 +79,10 @@ export class AddUserDialogComponent implements OnInit {
     },{
       validators: [matchingPassword]
     });
+
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.addUserForm.valueChanges.subscribe(() => this.cd.markForCheck());
+
     this.groupService.getGroups(this.controller)
       .subscribe((groups: Group[]) => {
       this.groups = groups;
@@ -86,6 +90,8 @@ export class AddUserDialogComponent implements OnInit {
         startWith(''),
         map(value => this._filter(value)),
       );
+      // Zoneless compatible: ensure autocomplete changes trigger change detection
+      this.autocompleteControl.valueChanges.subscribe(() => this.cd.markForCheck());
       this.cd.markForCheck();
     })
 
