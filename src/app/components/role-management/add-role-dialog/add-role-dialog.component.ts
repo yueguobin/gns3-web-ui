@@ -46,7 +46,8 @@ export class AddRoleDialogComponent implements OnInit {
       name: new UntypedFormControl(),
       description: new UntypedFormControl()
     });
-    this.cd.markForCheck();
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.roleNameForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get form() {
