@@ -52,6 +52,8 @@ export class AddBlankProjectDialogComponent implements OnInit {
         [projectNameAsyncValidator(this.controller, this.projectService)]
       ),
     });
+    // Zoneless compatible: ensure form value changes trigger change detection
+    this.projectNameForm.valueChanges.subscribe(() => this.cd.markForCheck());
   }
 
   get form() {
