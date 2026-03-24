@@ -3,13 +3,27 @@ import { DOCUMENT } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 /**
- * Available prebuilt themes
- * - deeppurple-amber: Light theme (deeppurple primary, amber accent)
- * - indigo-pink: Light theme (indigo primary, pink accent)
- * - pink-bluegrey: Dark theme (pink primary, bluegrey accent)
- * - purple-green: Dark theme (purple primary, green accent)
+ * Available prebuilt themes (all 8 official Angular Material themes)
+ * Light themes:
+ * - deeppurple-amber: Deep Purple primary, Amber accent
+ * - indigo-pink: Indigo primary, Pink accent
+ * - rose-red: Rose primary, Red accent
+ * - azure-blue: Azure primary, Blue accent
+ * Dark themes:
+ * - pink-bluegrey: Pink primary, Bluegrey accent
+ * - purple-green: Purple primary, Green accent
+ * - cyan-orange: Cyan primary, Orange accent
+ * - magenta-violet: Magenta primary, Violet accent
  */
-export type PrebuiltTheme = 'deeppurple-amber' | 'indigo-pink' | 'pink-bluegrey' | 'purple-green';
+export type PrebuiltTheme =
+  | 'deeppurple-amber'
+  | 'indigo-pink'
+  | 'rose-red'
+  | 'azure-blue'
+  | 'pink-bluegrey'
+  | 'purple-green'
+  | 'cyan-orange'
+  | 'magenta-violet';
 
 /**
  * Theme type for internal use (maps to light/dark)
@@ -32,12 +46,7 @@ export const DEFAULT_THEME_TOKEN = new InjectionToken<PrebuiltTheme>('DEFAULT_TH
 /**
  * GNS3 Theme Service
  *
- * Manages application theming using Angular Material prebuilt themes:
- * - deeppurple-amber: Light theme
- * - indigo-pink: Light theme
- * - pink-bluegrey: Dark theme
- * - purple-green: Dark theme
- *
+ * Manages application theming using all 8 Angular Material prebuilt themes
  * Supports persistent theme preferences via localStorage
  */
 @Injectable({ providedIn: 'root' })
@@ -64,16 +73,24 @@ export class ThemeService {
   readonly availableThemes: { key: PrebuiltTheme; label: string; type: ThemeType }[] = [
     { key: 'deeppurple-amber', label: 'Deep Purple & Amber', type: 'light' },
     { key: 'indigo-pink', label: 'Indigo & Pink', type: 'light' },
+    { key: 'rose-red', label: 'Rose & Red', type: 'light' },
+    { key: 'azure-blue', label: 'Azure & Blue', type: 'light' },
     { key: 'pink-bluegrey', label: 'Pink & Bluegrey', type: 'dark' },
     { key: 'purple-green', label: 'Purple & Green', type: 'dark' },
+    { key: 'cyan-orange', label: 'Cyan & Orange', type: 'dark' },
+    { key: 'magenta-violet', label: 'Magenta & Violet', type: 'dark' },
   ];
 
-  // Prebuilt theme paths
+  // Prebuilt theme paths (using official Angular Material themes from node_modules)
   private readonly prebuiltThemes: Record<PrebuiltTheme, string> = {
-    'deeppurple-amber': 'assets/material-themes/deeppurple-amber.css',
-    'indigo-pink': 'assets/material-themes/indigo-pink.css',
-    'pink-bluegrey': 'assets/material-themes/pink-bluegrey.css',
-    'purple-green': 'assets/material-themes/purple-green.css',
+    'deeppurple-amber': 'node_modules/@angular/material/prebuilt-themes/deeppurple-amber.css',
+    'indigo-pink': 'node_modules/@angular/material/prebuilt-themes/indigo-pink.css',
+    'rose-red': 'node_modules/@angular/material/prebuilt-themes/rose-red.css',
+    'azure-blue': 'node_modules/@angular/material/prebuilt-themes/azure-blue.css',
+    'pink-bluegrey': 'node_modules/@angular/material/prebuilt-themes/pink-bluegrey.css',
+    'purple-green': 'node_modules/@angular/material/prebuilt-themes/purple-green.css',
+    'cyan-orange': 'node_modules/@angular/material/prebuilt-themes/cyan-orange.css',
+    'magenta-violet': 'node_modules/@angular/material/prebuilt-themes/magenta-violet.css',
   };
 
   constructor(
@@ -130,7 +147,8 @@ export class ThemeService {
    * Check if a theme is a dark theme
    */
   private isDarkTheme(theme: PrebuiltTheme): boolean {
-    return theme === 'pink-bluegrey' || theme === 'purple-green';
+    return theme === 'pink-bluegrey' || theme === 'purple-green' ||
+           theme === 'cyan-orange' || theme === 'magenta-violet';
   }
 
   /**
@@ -223,7 +241,16 @@ export class ThemeService {
     // Remove all theme-related classes from html
     const htmlElement = this.document.documentElement;
 
-    htmlElement.classList.remove('theme-deeppurple-amber', 'theme-indigo-pink', 'theme-pink-bluegrey', 'theme-purple-green');
+    htmlElement.classList.remove(
+      'theme-deeppurple-amber',
+      'theme-indigo-pink',
+      'theme-rose-red',
+      'theme-azure-blue',
+      'theme-pink-bluegrey',
+      'theme-purple-green',
+      'theme-cyan-orange',
+      'theme-magenta-violet'
+    );
 
     // Add theme class to html
     htmlElement.classList.add(`theme-${theme}`);
