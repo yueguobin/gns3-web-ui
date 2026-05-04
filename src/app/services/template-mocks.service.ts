@@ -254,6 +254,7 @@ export class TemplateMocksService {
       default_name_format: '{name}-{0}',
       environment: '',
       extra_hosts: '',
+      extra_volumes: [],
       image: '',
       name: '',
       start_command: '',
