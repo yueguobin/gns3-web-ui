@@ -96,7 +96,7 @@ export class Properties {
   console_resolution?: string;
   console_http_port?: number;
   console_http_path?: string;
-  extra_volumes?: string;
+  extra_volumes?: string[];
 }
 
 export class Node {

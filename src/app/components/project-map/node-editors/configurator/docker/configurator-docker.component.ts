@@ -129,7 +129,7 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
           consoleHttpPath: node.properties.console_http_path || '',
           environment: node.properties.environment || '',
           extra_hosts: node.properties.extra_hosts || '',
-          extra_volumes: node.properties.extra_volumes || '',
+          extra_volumes: (node.properties.extra_volumes || []).join('\n'),
           usage: node.properties.usage || '',
         });
 
@@ -186,7 +186,9 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
       this.node.properties.console_http_path = formValues.consoleHttpPath;
       this.node.properties.environment = formValues.environment;
       this.node.properties.extra_hosts = formValues.extra_hosts;
-      this.node.properties.extra_volumes = formValues.extra_volumes;
+      this.node.properties.extra_volumes = formValues.extra_volumes
+        ? formValues.extra_volumes.split('\n').filter((v: string) => v.trim() !== '')
+        : [];
       this.node.properties.usage = formValues.usage;
 
       this.nodeService.updateNode(this.controller, this.node).subscribe({
