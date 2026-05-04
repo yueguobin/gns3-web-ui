@@ -84,6 +84,7 @@ export class DockerTemplateDetailsComponent implements OnInit {
   consoleHttpPath = model('');
   environment = model('');
   extraHosts = model('');
+  extraVolumes = model('');
   usage = model('');
 
   constructor() {}
@@ -117,6 +118,7 @@ export class DockerTemplateDetailsComponent implements OnInit {
             this.consoleHttpPath.set(dockerTemplate.console_http_path || '');
             this.environment.set(dockerTemplate.environment || '');
             this.extraHosts.set(dockerTemplate.extra_hosts || '');
+            this.extraVolumes.set((dockerTemplate.extra_volumes || []).join('\n'));
             this.usage.set(dockerTemplate.usage || '');
             this.cd.markForCheck();
           },
@@ -178,6 +180,9 @@ export class DockerTemplateDetailsComponent implements OnInit {
     this.dockerTemplate.console_http_path = this.consoleHttpPath();
     this.dockerTemplate.environment = this.environment();
     this.dockerTemplate.extra_hosts = this.extraHosts();
+    this.dockerTemplate.extra_volumes = this.extraVolumes()
+      ? this.extraVolumes().split('\n').filter((v: string) => v.trim() !== '')
+      : [];
     this.dockerTemplate.usage = this.usage();
 
     this.dockerService.saveTemplate(this.controller, this.dockerTemplate).subscribe({

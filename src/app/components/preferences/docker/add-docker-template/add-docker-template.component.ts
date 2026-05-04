@@ -72,6 +72,7 @@ export class AddDockerTemplateComponent implements OnInit {
   consoleType = model('');
   auxConsoleType = model('');
   environment = model('');
+  extraVolumes = model('');
 
   ngOnInit() {
     const controller_id = this.route.snapshot.paramMap.get('controller_id');
@@ -149,6 +150,9 @@ export class AddDockerTemplateComponent implements OnInit {
       this.dockerTemplate.console_type = this.consoleType() || 'none';
       this.dockerTemplate.aux_type = this.auxConsoleType() || 'none';
       this.dockerTemplate.environment = this.environment();
+      this.dockerTemplate.extra_volumes = this.extraVolumes()
+        ? this.extraVolumes().split('\n').filter((v: string) => v.trim() !== '')
+        : [];
 
       this.dockerService.addTemplate(this.controller, this.dockerTemplate).subscribe({
         next: (template: DockerTemplate) => {

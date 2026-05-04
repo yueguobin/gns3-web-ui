@@ -166,6 +166,21 @@
             </mat-form-field>
           </div>
         </mat-step>
+
+        <mat-step label="Additional volumes">
+          <div class="docker-add__step-content">
+            <mat-form-field appearance="fill" class="docker-add__field">
+              <mat-label>Additional volumes</mat-label>
+              <textarea
+                matInput
+                type="text"
+                [value]="extraVolumes()"
+                (input)="extraVolumes.set($event.target.value)"
+                placeholder="/data&#10;/config&#10;/logs"
+              ></textarea>
+            </mat-form-field>
+          </div>
+        </mat-step>
       </mat-vertical-stepper>
     </section>
 

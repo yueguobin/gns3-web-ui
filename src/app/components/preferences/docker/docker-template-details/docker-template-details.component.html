@@ -203,6 +203,17 @@
             placeholder="myhost=192.168.1.10&#10;database=172.17.0.5"
           ></textarea>
         </mat-form-field>
+        <h6 class="docker-details__section-subtitle">Additional volumes</h6>
+        <mat-form-field appearance="fill" class="docker-details__field docker-details__field--full">
+          <mat-label>Additional volumes</mat-label>
+          <textarea
+            matInput
+            [value]="extraVolumes()"
+            (input)="extraVolumes.set($event.target.value)"
+            type="text"
+            placeholder="/data&#10;/config&#10;/logs"
+          ></textarea>
+        </mat-form-field>
       </div>
       }
     </section>
