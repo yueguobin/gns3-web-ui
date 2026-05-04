@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -22,6 +22,7 @@ import { DockerService } from '@services/docker.service';
 import { ControllerService } from '@services/controller.service';
 import { TemplateMocksService } from '@services/template-mocks.service';
 import { ToasterService } from '@services/toaster.service';
+import { DockerValidationService } from '@services/docker-validation.service';
 
 @Component({
   standalone: true,
@@ -53,6 +54,7 @@ export class AddDockerTemplateComponent implements OnInit {
   private templateMocksService = inject(TemplateMocksService);
   private configurationService = inject(DockerConfigurationService);
   private computeService = inject(ComputeService);
+  private validationService = inject(DockerValidationService);
   private cd = inject(ChangeDetectorRef);
 
   controller: Controller;
@@ -73,6 +75,9 @@ export class AddDockerTemplateComponent implements OnInit {
   auxConsoleType = model('');
   environment = model('');
   extraVolumes = model('');
+
+  // Validation errors
+  environmentError = signal('');
 
   ngOnInit() {
     const controller_id = this.route.snapshot.paramMap.get('controller_id');
@@ -126,11 +131,35 @@ export class AddDockerTemplateComponent implements OnInit {
     this.newImageSelected = value === 'newImage';
   }
 
+  onEnvironmentChange(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.environment.set(value);
+    const error = this.validationService.validateEnvironment(value);
+    this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
+  }
+
+  private validateEnvironment(value: string): boolean {
+    const error = this.validationService.validateEnvironment(value);
+    if (error) {
+      this.environmentError.set(this.validationService.getErrorMessage(error));
+      return false;
+    }
+    this.environmentError.set('');
+    return true;
+  }
+
   goBack() {
     this.router.navigate(['/controller', this.controller.id, 'preferences', 'docker', 'templates']);
   }
 
   addTemplate() {
+    // Validate environment before adding template
+    if (!this.validateEnvironment(this.environment())) {
+      this.toasterService.error('Please fix environment variable format errors');
+      this.cd.markForCheck();
+      return;
+    }
+
     if (
       (!this.newImageSelected && this.selectedImage) ||
       (this.newImageSelected && this.filename() && this.templateName() && this.adapters())

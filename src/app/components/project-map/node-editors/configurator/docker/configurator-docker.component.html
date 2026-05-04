@@ -117,6 +117,11 @@
               <mat-form-field class="form-field">
                 <mat-label>Environment variables</mat-label>
                 <textarea matInput formControlName="environment" placeholder="KEY1=value1&#10;KEY2=value2"></textarea>
+                @if (generalSettingsForm.get('environment').errors?.invalidEnvironmentFormat) {
+                <mat-error>
+                  {{ generalSettingsForm.get('environment').errors.invalidEnvironmentFormat.message }}
+                </mat-error>
+                }
               </mat-form-field>
 
               <h6>Extra hosts</h6>

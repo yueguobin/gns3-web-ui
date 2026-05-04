@@ -160,9 +160,12 @@
                 matInput
                 type="text"
                 [value]="environment()"
-                (input)="environment.set($event.target.value)"
+                (input)="onEnvironmentChange($event)"
                 placeholder="KEY1=value1&#10;KEY2=value2"
               ></textarea>
+              @if (environmentError()) {
+              <mat-error>{{ environmentError() }}</mat-error>
+              }
             </mat-form-field>
           </div>
         </mat-step>

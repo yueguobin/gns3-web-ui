@@ -27,6 +27,7 @@ import { ToasterService } from '@services/toaster.service';
 import { ConfigureCustomAdaptersDialogComponent } from './configure-custom-adapters/configure-custom-adapters.component';
 import { EditNetworkConfigurationDialogComponent } from './edit-network-configuration/edit-network-configuration.component';
 import { NonNegativeValidator } from '../../../../../validators/non-negative-validator';
+import { EnvironmentValidator } from '../../../../../validators/docker-environment-validator';
 
 @Component({
   standalone: true,
@@ -57,6 +58,7 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
   private formBuilder = inject(UntypedFormBuilder);
   private dockerConfigurationService = inject(DockerConfigurationService);
   private nonNegativeValidator = inject(NonNegativeValidator);
+  private environmentValidator = inject(EnvironmentValidator);
   private dialog = inject(MatDialog);
   private cd = inject(ChangeDetectorRef);
 
@@ -100,7 +102,7 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
       console_resolution: new UntypedFormControl(''),
       consoleHttpPort: new UntypedFormControl('', Validators.required),
       consoleHttpPath: new UntypedFormControl('', Validators.required),
-      environment: new UntypedFormControl(''),
+      environment: new UntypedFormControl('', this.environmentValidator.get),
       extra_hosts: new UntypedFormControl(''),
       extra_volumes: new UntypedFormControl(''),
       usage: new UntypedFormControl(''),

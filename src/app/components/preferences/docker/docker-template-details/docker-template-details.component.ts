@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -18,6 +18,7 @@ import { DockerConfigurationService } from '@services/docker-configuration.servi
 import { DockerService } from '@services/docker.service';
 import { ControllerService } from '@services/controller.service';
 import { ToasterService } from '@services/toaster.service';
+import { DockerValidationService } from '@services/docker-validation.service';
 import { TemplateSymbolDialogComponent } from '@components/project-map/template-symbol-dialog/template-symbol-dialog.component';
 import { DialogConfigService } from '@services/dialog-config.service';
 
@@ -46,6 +47,7 @@ export class DockerTemplateDetailsComponent implements OnInit {
   private dockerService = inject(DockerService);
   private toasterService = inject(ToasterService);
   private configurationService = inject(DockerConfigurationService);
+  private validationService = inject(DockerValidationService);
   private router = inject(Router);
   private cd = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
@@ -86,6 +88,9 @@ export class DockerTemplateDetailsComponent implements OnInit {
   extraHosts = model('');
   extraVolumes = model('');
   usage = model('');
+
+  // Validation errors
+  environmentError = signal('');
 
   constructor() {}
 
@@ -162,7 +167,31 @@ export class DockerTemplateDetailsComponent implements OnInit {
     }
   }
 
+  onEnvironmentChange(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.environment.set(value);
+    const error = this.validationService.validateEnvironment(value);
+    this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
+  }
+
+  private validateEnvironment(value: string): boolean {
+    const error = this.validationService.validateEnvironment(value);
+    if (error) {
+      this.environmentError.set(this.validationService.getErrorMessage(error));
+      return false;
+    }
+    this.environmentError.set('');
+    return true;
+  }
+
   onSave() {
+    // Validate before saving
+    if (!this.validateEnvironment(this.environment())) {
+      this.toasterService.error('Please fix environment variable format errors');
+      this.cd.markForCheck();
+      return;
+    }
+
     // Update dockerTemplate from model signals
     this.dockerTemplate.name = this.name();
     this.dockerTemplate.default_name_format = this.defaultNameFormat();
