@@ -1203,3 +1203,22 @@ h2[mat-dialog-title] {
     padding: 12px 16px;
   }
 }
+
+/* =============================================
+// Validation Error Styles - Enhanced error display
+// ============================================= */
+
+/* Enhanced error display for mat-hint with mat-error class */
+.mat-mdc-form-field {
+  .mat-mdc-hint.mat-error {
+    color: var(--mat-sys-error);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 8px 12px;
+    margin-top: 4px;
+    background: color-mix(in srgb, var(--mat-sys-error-container) 15%, transparent);
+    border-left: 3px solid var(--mat-sys-error);
+    border-radius: 4px;
+  }
+}
