@@ -174,7 +174,6 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
 
   onEnvironmentChange(event: Event) {
     const value = (event.target as HTMLTextAreaElement).value;
-    this.generalSettingsForm.patchValue({ environment: value });
     const error = this.validationService.validateEnvironment(value);
     this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
     this.cd.markForCheck();

@@ -172,6 +172,7 @@ export class DockerTemplateDetailsComponent implements OnInit {
     this.environment.set(value);
     const error = this.validationService.validateEnvironment(value);
     this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
+    this.cd.markForCheck();
   }
 
   onSave() {
