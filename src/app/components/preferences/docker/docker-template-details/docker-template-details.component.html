@@ -170,17 +170,6 @@
             placeholder="HTTP path"
           />
         </mat-form-field>
-        <h6 class="docker-details__section-subtitle">Environment</h6>
-        <mat-form-field appearance="fill" class="docker-details__field docker-details__field--full">
-          <mat-label>Environment</mat-label>
-          <textarea
-            matInput
-            [value]="environment()"
-            (input)="environment.set($event.target.value)"
-            type="text"
-            placeholder="KEY1=value1&#10;KEY2=value2"
-          ></textarea>
-        </mat-form-field>
       </form>
       }
     </section>
@@ -192,6 +181,17 @@
       </div>
       @if (advancedExpanded) {
       <div class="docker-details__form">
+        <h6 class="docker-details__section-subtitle">Environment</h6>
+        <mat-form-field appearance="fill" class="docker-details__field docker-details__field--full">
+          <mat-label>Environment</mat-label>
+          <textarea
+            matInput
+            [value]="environment()"
+            (input)="environment.set($event.target.value)"
+            type="text"
+            placeholder="KEY1=value1&#10;KEY2=value2"
+          ></textarea>
+        </mat-form-field>
         <h6 class="docker-details__section-subtitle">Extra hosts</h6>
         <mat-form-field appearance="fill" class="docker-details__field docker-details__field--full">
           <mat-label>Extra hosts</mat-label>
