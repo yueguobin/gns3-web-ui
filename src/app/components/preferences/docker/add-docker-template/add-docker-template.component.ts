@@ -138,27 +138,22 @@ export class AddDockerTemplateComponent implements OnInit {
     this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
   }
 
-  private validateEnvironment(value: string): boolean {
-    const error = this.validationService.validateEnvironment(value);
-    if (error) {
-      this.environmentError.set(this.validationService.getErrorMessage(error));
-      return false;
-    }
-    this.environmentError.set('');
-    return true;
-  }
-
   goBack() {
     this.router.navigate(['/controller', this.controller.id, 'preferences', 'docker', 'templates']);
   }
 
   addTemplate() {
     // Validate environment before adding template
-    if (!this.validateEnvironment(this.environment())) {
-      this.toasterService.error('Please fix environment variable format errors');
+    const error = this.validationService.validateEnvironment(this.environment());
+    if (error) {
+      this.environmentError.set(this.validationService.getErrorMessage(error));
+      this.toasterService.error(this.validationService.getErrorMessage(error));
       this.cd.markForCheck();
       return;
     }
+
+    // Clear error on successful validation
+    this.environmentError.set('');
 
     if (
       (!this.newImageSelected && this.selectedImage) ||
