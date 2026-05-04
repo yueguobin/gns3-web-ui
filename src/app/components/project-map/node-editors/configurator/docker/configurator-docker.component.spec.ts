@@ -92,7 +92,7 @@ describe('ConfiguratorDialogDockerComponent', () => {
     console_resolution: '',
     console_http_port: 0,
     console_http_path: '',
-    extra_volumes: '',
+    extra_volumes: [],
   });
 
   const mockController = { id: 1 } as unknown as Controller;
@@ -350,7 +350,7 @@ describe('ConfiguratorDialogDockerComponent', () => {
       expect(component.node.properties.console_http_port).toBe('8080');
       expect(component.node.properties.console_http_path).toBe('/');
       expect(component.node.properties.extra_hosts).toBe('host1.local');
-      expect(component.node.properties.extra_volumes).toBe('/data:/data');
+      expect(component.node.properties.extra_volumes).toEqual(['/data:/data']);
       expect(component.node.properties.usage).toBe('Test usage');
     });
 

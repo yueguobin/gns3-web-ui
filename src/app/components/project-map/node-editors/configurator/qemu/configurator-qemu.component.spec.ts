@@ -110,7 +110,7 @@ describe('ConfiguratorDialogQemuComponent', () => {
     console_resolution: '',
     console_http_port: 0,
     console_http_path: '',
-    extra_volumes: '',
+    extra_volumes: [],
   });
 
   const createMockNode = (): Node =>
