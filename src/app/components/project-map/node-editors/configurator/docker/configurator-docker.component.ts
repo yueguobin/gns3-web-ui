@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule,
@@ -24,10 +24,10 @@ import { Controller } from '@models/controller';
 import { DockerConfigurationService } from '@services/docker-configuration.service';
 import { NodeService } from '@services/node.service';
 import { ToasterService } from '@services/toaster.service';
+import { DockerValidationService } from '@services/docker-validation.service';
 import { ConfigureCustomAdaptersDialogComponent } from './configure-custom-adapters/configure-custom-adapters.component';
 import { EditNetworkConfigurationDialogComponent } from './edit-network-configuration/edit-network-configuration.component';
 import { NonNegativeValidator } from '../../../../../validators/non-negative-validator';
-import { EnvironmentValidator } from '../../../../../validators/docker-environment-validator';
 
 @Component({
   standalone: true,
@@ -58,7 +58,7 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
   private formBuilder = inject(UntypedFormBuilder);
   private dockerConfigurationService = inject(DockerConfigurationService);
   private nonNegativeValidator = inject(NonNegativeValidator);
-  private environmentValidator = inject(EnvironmentValidator);
+  private validationService = inject(DockerValidationService);
   private dialog = inject(MatDialog);
   private cd = inject(ChangeDetectorRef);
 
@@ -81,6 +81,9 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
     '800x600',
     '640x480',
   ];
+
+  // Validation errors
+  environmentError = signal('');
   private conf = {
     autoFocus: false,
     panelClass: ['base-dialog-panel', 'docker-configurator-dialog-panel'],
@@ -102,7 +105,7 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
       console_resolution: new UntypedFormControl(''),
       consoleHttpPort: new UntypedFormControl('', Validators.required),
       consoleHttpPath: new UntypedFormControl('', Validators.required),
-      environment: new UntypedFormControl('', this.environmentValidator.get),
+      environment: new UntypedFormControl(''),
       extra_hosts: new UntypedFormControl(''),
       extra_volumes: new UntypedFormControl(''),
       usage: new UntypedFormControl(''),
@@ -169,7 +172,32 @@ export class ConfiguratorDialogDockerComponent implements OnInit {
     instance.node = this.node;
   }
 
+  onEnvironmentChange(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.generalSettingsForm.patchValue({ environment: value });
+    const error = this.validationService.validateEnvironment(value);
+    this.environmentError.set(error ? this.validationService.getErrorMessage(error) : '');
+    this.cd.markForCheck();
+  }
+
+  private validateEnvironment(value: string): boolean {
+    const error = this.validationService.validateEnvironment(value);
+    if (error) {
+      this.environmentError.set(this.validationService.getErrorMessage(error));
+      this.toasterService.error(this.validationService.getErrorMessage(error));
+      this.cd.markForCheck();
+      return false;
+    }
+    this.environmentError.set('');
+    return true;
+  }
+
   onSaveClick() {
+    // Validate environment before saving
+    if (!this.validateEnvironment(this.generalSettingsForm.value.environment)) {
+      return;
+    }
+
     if (this.generalSettingsForm.valid) {
       // Merge form values back into node
       const formValues = this.generalSettingsForm.value;
