@@ -195,10 +195,18 @@ body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.template-menu 
 /* =============================================
 // Console Wrapper Tabs - Material 3 Layout
 // ============================================= */
+
+// Override the default 48px tab container height to match the 40px console header
+.console-wrapper__tabs .mat-mdc-tab-header {
+  --mat-tab-container-height: 40px;
+}
+
 .console-wrapper__tabs .mat-mdc-tab {
-  min-width: 10rem;
+  // Minimum width: hostname + spacer + close-btn — 140px covers most short hostnames
+  min-width: 140px;
   flex: 0 0 auto;
-  padding-right: 4px;
+  // Horizontal padding on both sides
+  padding: 0 10px;
 }
 
 .console-wrapper__tabs .mdc-tab__content {
@@ -214,55 +222,48 @@ body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.template-menu 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  overflow: hidden;
+  // No overflow: hidden here — tabs have a fixed min-width so truncation is
+  // handled by the tab-label-text span's own text-overflow
 }
 
-.console-wrapper__tabs .mdc-tab__text-label .tab-label-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Active tab — M3 primary-container token: purpose-built for active-state backgrounds */
+.console-wrapper__tabs .mat-mdc-tab.mdc-tab--active {
+  background: var(--mat-sys-primary-container);
+  border-radius: 4px;
 }
 
-.console-wrapper__tabs .mdc-tab__text-label .mat-mdc-icon-button {
-  flex-shrink: 0;
-  margin-right: -4px;
+.console-wrapper__tabs .mat-mdc-tab.mdc-tab--active .tab-label-text {
+  color: var(--mat-sys-on-primary-container);
+}
+
+.console-wrapper__tabs .mat-mdc-tab.mdc-tab--active .tab-close-btn {
+  color: var(--mat-sys-on-primary-container);
 }
 
 /* =============================================
 // Console Header Actions
+// Fix: use .mat-mdc-icon-button (Angular Material 21 MDC class, not legacy .mat-icon-button)
+// Fix: use --mat-icon-button-state-layer-size (correct Angular Material 21 token)
 // ============================================= */
 .console-header-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   flex-shrink: 0;
-  padding-top: 4px;
 
-  .mat-icon-button {
-    width: 40px;
-    height: 40px;
+  .mat-mdc-icon-button {
+    --mat-icon-button-state-layer-size: 32px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    &:hover {
-      background-color: var(--mat-sys-hover-state-layer);
-
-      .mat-icon {
-        color: var(--mat-sys-primary);
-      }
-    }
-
-    &:active {
-      background-color: var(--mat-sys-focus-state-layer);
-    }
   }
 
   .mat-icon {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
     color: var(--mat-sys-on-surface);
   }
 }

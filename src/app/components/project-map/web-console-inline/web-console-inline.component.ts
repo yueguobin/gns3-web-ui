@@ -20,8 +20,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
-import { takeUntil, tap, switchMap } from 'rxjs/operators';
-import { fromEvent } from 'rxjs';
+import { takeUntil, tap, switchMap, auditTime } from 'rxjs/operators';
+import { fromEvent, animationFrameScheduler } from 'rxjs';
 import { ResizeEvent, ResizableDirective, ResizeHandleDirective } from 'angular-resizable-element';
 import { Node } from '../../../cartography/models/node';
 import { Project } from '@models/project';
@@ -104,9 +104,7 @@ export class WebConsoleInlineComponent implements OnInit, OnDestroy {
   readonly windowWrapper = viewChild<ElementRef>('windowWrapper');
 
   constructor() {
-    // Effect to sync with WindowManagementService minimize state
     effect(() => {
-      const node = this.node();
       const minimizedWindows = this.windowManagement.minimizedWindows();
       const windowId = this.getWindowId();
       const isInMinimizedList = minimizedWindows.some(w => w.id === windowId);
@@ -381,6 +379,7 @@ export class WebConsoleInlineComponent implements OnInit, OnDestroy {
         }),
         switchMap(() =>
           mouseMove$.pipe(
+            auditTime(0, animationFrameScheduler),
             takeUntil(
               mouseUp$.pipe(
                 tap(() => {

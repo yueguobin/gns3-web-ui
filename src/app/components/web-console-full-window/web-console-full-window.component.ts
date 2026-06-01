@@ -149,6 +149,11 @@ export class WebConsoleFullWindowComponent implements OnInit, OnDestroy {
         return true;
       });
 
+      // Apply appearance settings whenever they change
+      this.xtermService.settingsChanged$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.xtermService.applySettingsToTerminal(this.term, this.fitAddon, this.cdr);
+      });
+
       // Setup context menu for copy/paste
       this.contextMenuCleanup = this.contextMenuService.attachContextMenu(this.term, terminal.nativeElement);
     }, 0);
