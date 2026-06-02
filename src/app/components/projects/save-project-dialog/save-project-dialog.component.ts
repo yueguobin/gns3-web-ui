@@ -40,7 +40,6 @@ export class SaveProjectDialogComponent {
   project: Project;
 
   readonly projectName = model('');
-  readonly uuid = signal('');
   readonly isCheckingName = signal(false);
   readonly nameExistsError = signal(false);
 
@@ -110,8 +109,6 @@ export class SaveProjectDialogComponent {
   }
 
   private addProject(): void {
-    this.uuid.set(crypto.randomUUID());
-
     this.projectService
       .duplicate(this.controller, this.project.project_id, this.projectName().trim())
       .subscribe({
