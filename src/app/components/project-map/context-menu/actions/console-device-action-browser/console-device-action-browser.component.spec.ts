@@ -336,6 +336,27 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
       );
     });
 
+    it('should URL-encode query parameters in telnet URI', () => {
+      const mockNode = createMockNode({
+        console_host: '192.168.1.1',
+        console: 5000,
+        console_type: 'telnet',
+        name: 'Router 1 & Edge',
+        project_id: 'proj/1',
+        node_id: 'node?1',
+      });
+
+      fixture.componentRef.setInput('controller', mockController);
+      fixture.componentRef.setInput('node', mockNode);
+      fixture.detectChanges();
+
+      component.startConsole(false);
+
+      expect(mockProtocolHandlerService.open).toHaveBeenCalledWith(
+        'gns3+telnet://192.168.1.1:5000?name=Router%201%20%26%20Edge&project_id=proj%2F1&node_id=node%3F1'
+      );
+    });
+
     it('should show error when auxiliary port is undefined', () => {
       const mockNode = createMockNode({
         console_type: 'telnet',
