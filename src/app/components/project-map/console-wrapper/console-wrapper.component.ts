@@ -106,6 +106,8 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   public resizedWidth: number = this.DEFAULT_WIDTH;
   public resizedHeight: number = this.DEFAULT_HEIGHT;
 
+  private _resizeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   private consoleService = inject(NodeConsoleService);
   private themeService = inject(ThemeService);
   private mapSettingsService = inject(MapSettingsService);
@@ -777,7 +779,13 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   private notifyConsoleResized(height: number): void {
     const payload = { width: this.resizedWidth, height: height - this.CONSOLE_HEADER_HEIGHT };
     this.consoleService.consoleResized.next(payload);
-    setTimeout(() => this.consoleService.consoleResized.next(payload), 50);
+    if (this._resizeNotifyTimeoutId !== null) {
+      clearTimeout(this._resizeNotifyTimeoutId);
+    }
+    this._resizeNotifyTimeoutId = setTimeout(() => {
+      this._resizeNotifyTimeoutId = null;
+      this.consoleService.consoleResized.next({ width: this.resizedWidth, height: height - this.CONSOLE_HEADER_HEIGHT });
+    }, 50);
   }
 
   /**
