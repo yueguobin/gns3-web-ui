@@ -78,7 +78,7 @@ export class ConsoleDeviceActionBrowserComponent {
           } else {
             console_port = node.console;
           }
-          uri = `gns3+${node.console_type}://${host}:${console_port}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`;
+          uri = `gns3+${node.console_type}://${host}:${console_port}?name=${encodeURIComponent(node.name)}&project_id=${encodeURIComponent(node.project_id)}&node_id=${encodeURIComponent(node.node_id)}`;
         } else if (node.console_type === 'vnc') {
           // Open VNC console in standalone page via WebSocket API
           this.vncConsoleService.openVncConsole(this.controller(), node);
