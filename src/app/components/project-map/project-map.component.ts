@@ -465,6 +465,20 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
         if (value) this.applyScalingOfNodeSymbols();
       })
     );
+
+    this.projectMapSubscription.add(
+      this.projectWebServiceHandler.nodeNotificationEmitter.subscribe((message) => {
+        if (message.action !== 'node.updated') return;
+        const node = message.event as Node;
+        if (node.status !== 'started' || !node.console_auto_start || node.console_type === 'none') return;
+        if (node.console_type === 'vnc') {
+          setTimeout(() => this.onOpenWebConsoleInline({ node, controller: this.controller, project: this.project }), 500);
+        } else {
+          this.mapSettingsService.logConsoleSubject.next(true);
+          setTimeout(() => this.nodeConsoleService.openConsoleForNode(node), 500);
+        }
+      })
+    );
   }
 
   applyScalingOfNodeSymbols() {
