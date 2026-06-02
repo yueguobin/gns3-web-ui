@@ -141,4 +141,8 @@ export class LinkService {
   streamPcap(controller: Controller, link: Link) {
     return this.httpController.get(controller, `/projects/${link.project_id}/links/${link.link_id}/capture/stream`);
   }
+
+  downloadPcap(controller: Controller, link: Link) {
+    return this.httpController.getBlob(controller, `/projects/${link.project_id}/links/${link.link_id}/capture/file`);
+  }
 }

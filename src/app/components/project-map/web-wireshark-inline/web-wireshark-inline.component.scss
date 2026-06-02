@@ -101,7 +101,8 @@
       }
     }
 
-    .restart-button {
+    .restart-button,
+    .download-button {
       width: 24px;
       height: 24px;
       padding: 0;
@@ -132,7 +133,8 @@
         cursor: not-allowed;
       }
 
-      .restart-icon.is-spinning {
+      .restart-icon.is-spinning,
+      mat-icon.is-downloading {
         animation: spin 1s linear infinite;
       }
     }

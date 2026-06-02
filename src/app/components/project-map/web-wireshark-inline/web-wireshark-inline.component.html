@@ -40,6 +40,15 @@
       <div class="web-wireshark-inline-header__actions">
         <button
           mat-icon-button
+          class="download-button"
+          (click)="downloadPcapFile()"
+          title="Download pcap file"
+          [disabled]="isDownloading()"
+        >
+          <mat-icon [class.is-downloading]="isDownloading()">download</mat-icon>
+        </button>
+        <button
+          mat-icon-button
           class="restart-button"
           (click)="restartWireshark()"
           title="Restart Web Wireshark"
