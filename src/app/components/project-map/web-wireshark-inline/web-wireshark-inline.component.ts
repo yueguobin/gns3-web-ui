@@ -83,12 +83,14 @@ export class WebWiresharkInlineComponent implements OnInit, OnDestroy {
   private isLoadingSignal = signal(true);
   private isMinimizedSignal = signal(false);
   private isRestartingSignal = signal(false);
+  private isDownloadingSignal = signal(false);
 
   public readonly isDragging = this.isDraggingSignal.asReadonly();
   public readonly isResizing = this.isResizingSignal.asReadonly();
   public readonly isLoading = this.isLoadingSignal.asReadonly();
   public readonly isMinimized = this.isMinimizedSignal.asReadonly();
   public readonly isRestarting = this.isRestartingSignal.asReadonly();
+  public readonly isDownloading = this.isDownloadingSignal.asReadonly();
 
   // Wireshark URL
   public wiresharkUrl: SafeResourceUrl = '';
@@ -215,6 +217,43 @@ export class WebWiresharkInlineComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.isRestartingSignal.set(false);
         this.toasterService.error(`Failed to restart Web Wireshark: ${error.message || error.detail || 'Unknown error'}`);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * Download pcap file
+   */
+  downloadPcapFile(): void {
+    if (this.isDownloadingSignal()) {
+      return;
+    }
+
+    this.isDownloadingSignal.set(true);
+    this.cdr.markForCheck();
+
+    this.linkService.downloadPcap(this.controller(), this.link()).subscribe({
+      next: (blob: Blob) => {
+        // Create download link and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const fileName = this.link().capture_file_name || 'capture';
+        a.download = fileName.endsWith('.pcap') ? fileName : `${fileName}.pcap`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        this.isDownloadingSignal.set(false);
+        this.toasterService.success('Pcap file downloaded successfully');
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        this.isDownloadingSignal.set(false);
+        const message = error.error?.message || error.message || 'Failed to download pcap file';
+        this.toasterService.error(`Failed to download pcap file: ${message}`);
         this.cdr.markForCheck();
       },
     });
