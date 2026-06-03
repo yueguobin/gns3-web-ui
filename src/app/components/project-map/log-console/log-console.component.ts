@@ -261,15 +261,15 @@ export class LogConsoleComponent implements OnInit, AfterViewInit, OnDestroy {
             }
             if (node.console_type === 'telnet' || node.console_type === 'ssh') {
               this.protocolHandlerService.open(
-                `gns3+${node.console_type}://${host}:${node.console}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`
+                `gns3+${node.console_type}://${host}:${node.console}?name=${encodeURIComponent(node.name)}&project_id=${node.project_id}&node_id=${node.node_id}`
               );
             } else if (node.console_type === 'vnc') {
               this.protocolHandlerService.open(
-                `gns3+vnc://${host}:${node.console}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`
+                `gns3+vnc://${host}:${node.console}?name=${encodeURIComponent(node.name)}&project_id=${node.project_id}&node_id=${node.node_id}`
               );
             } else if (node.console_type && node.console_type.startsWith('spice')) {
               this.protocolHandlerService.open(
-                `gns3+spice://${host}:${node.console}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`
+                `gns3+spice://${host}:${node.console}?name=${encodeURIComponent(node.name)}&project_id=${node.project_id}&node_id=${node.node_id}`
               );
             } else if (node.console_type && node.console_type.startsWith('http')) {
               window.open(`${node.console_type}://${host}:${node.console}`);
