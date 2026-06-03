@@ -6,7 +6,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
 import { ProjectService } from '@services/project.service';
@@ -32,7 +31,6 @@ import { ProjectNameValidator } from '../models/projectNameValidator';
 export class SaveProjectDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<SaveProjectDialogComponent>);
   private readonly projectService = inject(ProjectService);
-  private readonly nodesDataSource = inject(NodesDataSource);
   private readonly toasterService = inject(ToasterService);
   private readonly projectNameValidator = inject(ProjectNameValidator);
 
@@ -95,8 +93,6 @@ export class SaveProjectDialogComponent {
         if (existingProject) {
           this.nameExistsError.set(true);
           this.toasterService.error('Project with this name already exists.');
-        } else if (this.hasRunningNodes()) {
-          this.toasterService.error('Please stop all nodes in order to save project.');
         } else {
           this.addProject();
         }
@@ -127,16 +123,4 @@ export class SaveProjectDialogComponent {
       });
   }
 
-  private hasRunningNodes(): boolean {
-    return (
-      this.nodesDataSource
-        .getItems()
-        .filter(
-          (node) =>
-            (node.status === 'started' && node.node_type === 'vpcs') ||
-            (node.status === 'started' && node.node_type === 'virtualbox') ||
-            (node.status === 'started' && node.node_type === 'vmware')
-        ).length > 0
-    );
-  }
 }
