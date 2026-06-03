@@ -76,11 +76,11 @@ export class ConsoleDeviceActionBrowserComponent {
           } else {
             console_port = node.console;
           }
-          uri = `gns3+${node.console_type}://${host}:${console_port}?name=${encodeURIComponent(node.name)}&project_id=${encodeURIComponent(node.project_id)}&node_id=${encodeURIComponent(node.node_id)}`;
+          uri = `gns3+${node.console_type}://${host}:${console_port}?name=${encodeURIComponent(node.name)}&project_id=${node.project_id}&node_id=${node.node_id}`;
         } else if (node.console_type === 'vnc') {
           uri = `gns3+vnc://${host}:${node.console}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`;
         } else if (node.console_type && node.console_type.startsWith('spice')) {
-          uri = `gns3+spice://${host}:${node.console}?name=${node.name}&project_id=${node.project_id}&node_id=${node.node_id}`;
+          uri = `gns3+spice://${host}:${node.console}?name=${encodeURIComponent(node.name)}&project_id=${node.project_id}&node_id=${node.node_id}`;
         } else if (node.console_type && node.console_type.startsWith('http')) {
           uri = `${node.console_type}://${host}:${node.console}`;
           return window.open(uri); // open an http console directly in a new window/tab
