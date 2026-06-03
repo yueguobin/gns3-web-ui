@@ -299,8 +299,8 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
         console: 5000,
         console_type: 'telnet',
         name: 'Router1',
-        project_id: 'proj-1',
-        node_id: 'node-1',
+        project_id: '2cb4374b-ad11-49fc-a814-0da0a34e82f4',
+        node_id: '1034b8d1-27da-42cb-b3eb-1d3728230084',
       });
 
       fixture.componentRef.setInput('controller', mockController);
@@ -310,7 +310,7 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
       component.startConsole(false);
 
       expect(mockProtocolHandlerService.open).toHaveBeenCalledWith(
-        'gns3+telnet://192.168.1.1:5000?name=Router1&project_id=proj-1&node_id=node-1'
+        'gns3+telnet://192.168.1.1:5000?name=Router1&project_id=2cb4374b-ad11-49fc-a814-0da0a34e82f4&node_id=1034b8d1-27da-42cb-b3eb-1d3728230084'
       );
     });
 
@@ -320,8 +320,8 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
         console: 5000,
         console_type: 'telnet',
         name: 'Router1',
-        project_id: 'proj-1',
-        node_id: 'node-1',
+        project_id: '2cb4374b-ad11-49fc-a814-0da0a34e82f4',
+        node_id: '1034b8d1-27da-42cb-b3eb-1d3728230084',
         properties: { aux: 5002 } as any,
       });
 
@@ -332,7 +332,7 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
       component.startConsole(true);
 
       expect(mockProtocolHandlerService.open).toHaveBeenCalledWith(
-        'gns3+telnet://192.168.1.1:5002?name=Router1&project_id=proj-1&node_id=node-1'
+        'gns3+telnet://192.168.1.1:5002?name=Router1&project_id=2cb4374b-ad11-49fc-a814-0da0a34e82f4&node_id=1034b8d1-27da-42cb-b3eb-1d3728230084'
       );
     });
 
@@ -342,8 +342,8 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
         console: 5000,
         console_type: 'telnet',
         name: 'Router 1 & Edge',
-        project_id: 'proj/1',
-        node_id: 'node?1',
+        project_id: '2cb4374b-ad11-49fc-a814-0da0a34e82f4',
+        node_id: '1034b8d1-27da-42cb-b3eb-1d3728230084',
       });
 
       fixture.componentRef.setInput('controller', mockController);
@@ -353,7 +353,7 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
       component.startConsole(false);
 
       expect(mockProtocolHandlerService.open).toHaveBeenCalledWith(
-        'gns3+telnet://192.168.1.1:5000?name=Router%201%20%26%20Edge&project_id=proj%2F1&node_id=node%3F1'
+        'gns3+telnet://192.168.1.1:5000?name=Router%201%20%26%20Edge&project_id=2cb4374b-ad11-49fc-a814-0da0a34e82f4&node_id=1034b8d1-27da-42cb-b3eb-1d3728230084'
       );
     });
 
