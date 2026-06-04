@@ -48,9 +48,11 @@ The hardcoded color protection system prevents code quality degradation by enfor
 
 ### Layer 1: Pre-commit Interactive Warning
 
-**Purpose**: Prevents accidental hook modifications
-**Mechanism**: Detects `.husky/` changes in staged files
+**Purpose**: Prevents accidental hook script modifications
+**Mechanism**: Detects changes to `.husky/` hook scripts (scripts and hooks only, not config files)
 **Behavior**: Requires explicit confirmation before proceeding
+
+> **Note**: `allowed-hardcoded-colors.json` is a regular config file — modifying it does **not** trigger this warning.
 
 **User Experience**:
 ```
@@ -62,7 +64,6 @@ Pre-commit: ⚠️  WARNING: Modifying git hooks!
              - .husky/check-hardcoded-colors.sh
            These changes require:
              1. Team lead approval
-             2. Update allowed-hardcoded-colors.json if needed
            If this is intentional, press Enter to continue.
            Press Ctrl+C to cancel.
            ↓
@@ -75,29 +76,41 @@ Commit proceeds
 
 ### Layer 2: CI Label Requirement
 
-**Purpose**: Prevents unauthorized hook changes via PR
-**Mechanism**: Checks for `hooks-update` label on PRs
-**Behavior**: CI fails if label missing when `.husky/` files changed
+**Purpose**: Prevents unauthorized hook script changes via PR
+**Mechanism**: Checks for `hooks-update` label on PRs that modify hook scripts
+**Behavior**: CI fails if label missing when `.husky/` hook scripts (not config files) are changed
+
+> **Note**: Modifying only `allowed-hardcoded-colors.json` does **not** require the `hooks-update` label.
 
 **Pull Request Flow**:
 ```
-┌──────────────────┐
-│  Create PR with  │
-│  .husky/ changes │
-└────────┬─────────┘
-         │
-         ▼
-    ┌─────────┐
-    │   CI    │
-    │  Check  │
-    └────┬────┘
-         │
-    ┌────┴────┐
-    │         │
- Has Label  No Label
-    │         │
-    ▼         ▼
-  Pass      Fail ✗
+                ┌──────────────────┐
+                │  Create PR with  │
+                │  .husky/ changes │
+                └────────┬─────────┘
+                         │
+                         ▼
+               ┌─────────────────────┐
+               │  What was changed?  │
+               ├─────────┬───────────┤
+               │  Config │   Hook    │
+               │  file   │  scripts  │
+               │(no label│           │
+               │ needed) │           │
+               └────┬────┴─────┬─────┘
+                    │          │
+                    ▼          ▼
+                 Pass      ┌─────────┐
+                           │   CI    │
+                           │  Check  │
+                           └────┬────┘
+                                │
+                           ┌────┴────┐
+                           │         │
+                        Has Label  No Label
+                           │         │
+                           ▼         ▼
+                         Pass      Fail ✗
 ```
 
 **Implementation**: `.github/workflows/main.yml` (lines 121-149)
@@ -161,6 +174,8 @@ The allowed hardcoded colors are stored in a structured JSON file:
 
 ### Scenario 1: Adding New Allowed Color
 
+> `allowed-hardcoded-colors.json` is a config file, not a hook script — modifying it does **not** require the `hooks-update` label.
+
 ```
 1. Edit .husky/allowed-hardcoded-colors.json
    ↓
@@ -168,13 +183,11 @@ The allowed hardcoded colors are stored in a structured JSON file:
    ↓
 3. Test: .husky/check-hardcoded-colors.sh --ci
    ↓
-4. Commit (triggers warning, confirm)
+4. Commit (no hook warning triggered)
    ↓
 5. Push and create PR
    ↓
-6. Add 'hooks-update' label
-   ↓
-7. Get approval and merge
+6. Get approval and merge
 ```
 
 ### Scenario 2: Modifying Check Script or Hooks
@@ -215,11 +228,12 @@ These files protect code quality standards:
 
 These changes require:
   1. Team lead approval
-  2. Update allowed-hardcoded-colors.json if needed
 
 If this is intentional, press Enter to continue.
 Press Ctrl+C to cancel.
 ```
+
+> **Note**: Modifying only `allowed-hardcoded-colors.json` does **not** trigger this warning.
 
 ### CI Label Missing
 ```

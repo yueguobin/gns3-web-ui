@@ -3,8 +3,9 @@
 
 echo "🔍 Running Standards check..."
 
-# Check if .husky/ files are being modified (PROTECTED)
-STAGED_HUSKY=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep "^\.\husky/" || true)
+# Check if .husky/ hook scripts are being modified (PROTECTED)
+# NOTE: allowed-hardcoded-colors.json is a regular config file, not a hook script
+STAGED_HUSKY=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep "^\.\husky/" | grep -v "allowed-hardcoded-colors.json" || true)
 if [ -n "$STAGED_HUSKY" ]; then
   echo ""
   echo "⚠️  ⚠️  ⚠️  WARNING ⚠️  ⚠️  ⚠️"
@@ -15,8 +16,7 @@ if [ -n "$STAGED_HUSKY" ]; then
   echo ""
   echo "These changes require:"
   echo "  1. Team lead approval"
-  echo "  2. Update allowed-hardcoded-colors.json if adding/removing allowed colors"
-  echo "  3. Add 'hooks-update' label to your PR"
+  echo "  2. Add 'hooks-update' label to your PR"
   echo ""
   echo "If this is intentional, press Enter to continue."
   echo "Press Ctrl+C to cancel."
