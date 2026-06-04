@@ -533,7 +533,7 @@ export class AiProfileDialogComponent implements OnInit {
    */
   openCustomModeHelp(): void {
     this.dialog.open(ModelTypeHelpDialogComponent, {
-      panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
+      panelClass: ['base-dialog-panel', 'ai-profile-dialog-panel'],
     });
   }
 
