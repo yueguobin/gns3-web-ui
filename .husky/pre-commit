@@ -113,3 +113,4 @@ if [ -n "$STAGED_SCSS" ]; then
 fi
 
 echo "✅ Standards check passed"
+# Test comment for hooks warning
