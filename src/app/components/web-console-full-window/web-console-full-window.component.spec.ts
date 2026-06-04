@@ -65,6 +65,7 @@ describe('WebConsoleFullWindowComponent', () => {
   // Subjects for observable mocking
   let consoleResizedSubject: Subject<ConsoleResizedEvent>;
   let themeChangedSubject: Subject<void>;
+  let settingsChangedSubject: Subject<void>;
 
   const mockController: Controller = {
     id: 1,
@@ -121,6 +122,8 @@ describe('WebConsoleFullWindowComponent', () => {
     }),
     updateTerminalTheme: vi.fn(),
     initTerminal: vi.fn(),
+    settingsChanged$: new Subject<void>(),
+    applySettingsToTerminal: vi.fn(),
   };
 
   const mockToasterService = {
@@ -208,8 +211,11 @@ describe('WebConsoleFullWindowComponent', () => {
     mockXtermService.getDefaultTerminalOptions.mockClear();
     mockXtermService.updateTerminalTheme.mockClear();
     mockXtermService.initTerminal.mockClear();
+    mockXtermService.applySettingsToTerminal.mockClear();
     mockXtermContextMenuService.attachContextMenu.mockClear();
     mockTitle.setTitle.mockClear();
+    settingsChangedSubject = new Subject<void>();
+    (mockXtermService as any).settingsChanged$ = settingsChangedSubject.asObservable();
 
     TestBed.configureTestingModule({
       imports: [WebConsoleFullWindowComponent],
@@ -234,58 +240,8 @@ describe('WebConsoleFullWindowComponent', () => {
     setupTerminalMock();
   });
 
-  beforeEach(() => {
-    // Reset mock term
-    if (mockTermInstance) {
-      mockTermInstance.open.mockClear();
-      mockTermInstance.dispose.mockClear();
-      mockTermInstance.loadAddon.mockClear();
-      mockTermInstance.focus.mockClear();
-      mockTermInstance.write.mockClear();
-      mockTermInstance.attachCustomKeyEventHandler.mockClear();
-      mockTermInstance.options.theme = {};
-    }
-    if (mockFitAddonInstance) {
-      mockFitAddonInstance.fit.mockClear();
-      mockFitAddonInstance.activate.mockClear();
-      mockFitAddonInstance.load.mockClear();
-    }
-
-    // Reset service mocks to default state
-    mockControllerService.isServiceInitialized = true;
-
-    fixture = TestBed.createComponent(WebConsoleFullWindowComponent);
-    component = fixture.componentInstance;
-
-    // Setup terminal mock for most tests
-    setupTerminalMock();
-  });
-
-  beforeEach(() => {
-    // Reset mock term
-    if (mockTermInstance) {
-      mockTermInstance.open.mockClear();
-      mockTermInstance.dispose.mockClear();
-      mockTermInstance.loadAddon.mockClear();
-      mockTermInstance.focus.mockClear();
-      mockTermInstance.write.mockClear();
-      mockTermInstance.attachCustomKeyEventHandler.mockClear();
-      mockTermInstance.options.theme = {};
-    }
-    if (mockFitAddonInstance) {
-      mockFitAddonInstance.fit.mockClear();
-      mockFitAddonInstance.activate.mockClear();
-      mockFitAddonInstance.load.mockClear();
-    }
-
-    fixture = TestBed.createComponent(WebConsoleFullWindowComponent);
-    component = fixture.componentInstance;
-
-    // Setup terminal mock for most tests
-    setupTerminalMock();
-  });
-
   afterEach(() => {
+    settingsChangedSubject?.complete();
     if (fixture) {
       fixture.destroy();
     }
@@ -431,6 +387,15 @@ describe('WebConsoleFullWindowComponent', () => {
       expect(mockXtermContextMenuService.attachContextMenu).toHaveBeenCalled();
     });
 
+    it('should apply terminal settings when settingsChanged emits', async () => {
+      fixture.detectChanges();
+      await vi.runAllTimersAsync();
+
+      settingsChangedSubject.next();
+
+      expect(mockXtermService.applySettingsToTerminal).toHaveBeenCalled();
+    });
+
     it('should block Ctrl+Shift+C and Ctrl+Shift+V key events', async () => {
       fixture.detectChanges();
       await vi.runAllTimersAsync();
@@ -453,6 +418,17 @@ describe('WebConsoleFullWindowComponent', () => {
   });
 
   describe('ngOnDestroy', () => {
+    it('should ignore settingsChanged emits after destroy', async () => {
+      fixture.detectChanges();
+      await vi.runAllTimersAsync();
+      component.ngOnDestroy();
+      mockXtermService.applySettingsToTerminal.mockClear();
+
+      settingsChangedSubject.next();
+
+      expect(mockXtermService.applySettingsToTerminal).not.toHaveBeenCalled();
+    });
+
     it('should complete destroy$ subject', async () => {
       fixture.detectChanges();
       await vi.runAllTimersAsync();

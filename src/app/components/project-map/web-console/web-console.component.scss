@@ -12,6 +12,12 @@
   height: 100%;
 }
 
+/* [hidden] sets display:none via user-agent stylesheet, but :host{display:flex}
+   overrides it. This selector restores the correct behaviour. */
+:host([hidden]) {
+  display: none;
+}
+
 :host(.lightTheme) {
   background: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);

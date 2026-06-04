@@ -5,6 +5,33 @@
  */
 
 /* =============================================
+// Xterm Viewport — suppress horizontal overflow and hide the scrollbar.
+// The scrollbar track area is NOT part of the character grid, so selection
+// never fills it, creating a visible right-side gap. Hiding the scrollbar
+// (CSS-only) lets fit() use the full container width. Scroll-by-wheel and
+// keyboard still work; only the drag-handle is removed.
+// ============================================= */
+.xterm .xterm-viewport {
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
+/* =============================================
+// Xterm height fill — xterm sizes .xterm to content (rows × cellHeight),
+// leaving a gap of (containerHeight % cellHeight) px below the last row.
+// That gap is transparent, showing the consoleWrapper surface color as a
+// thin border. height: 100% makes .xterm fill its container so the
+// viewport's inline background-color covers the full area.
+// ============================================= */
+.xterm {
+  height: 100%;
+}
+
+/* =============================================
 // Xterm Context Menu Animation
 // ============================================= */
 @keyframes xtermContextMenuFadeIn {

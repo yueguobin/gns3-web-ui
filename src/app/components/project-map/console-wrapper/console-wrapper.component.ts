@@ -36,7 +36,13 @@ import { NodeConsoleService } from '@services/nodeConsole.service';
 import { ThemeService } from '@services/theme.service';
 import { WindowBoundaryService, WindowStyle } from '@services/window-boundary.service';
 import { WindowManagementService } from '@services/window-management.service';
-import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
+import {
+  XtermService,
+  ConsoleAppearanceSettings,
+  DEFAULT_FONT_SIZE,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
+} from '@services/xterm.service';
 import { ConsoleDevicesPanelComponent } from './console-devices-panel.component';
 import { WebConsoleComponent } from '../web-console/web-console.component';
 import { LogConsoleComponent } from '../log-console/log-console.component';
@@ -62,7 +68,7 @@ import { LogConsoleComponent } from '../log-console/log-console.component';
 })
 export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy {
   // Constants for magic numbers
-  private readonly CONSOLE_HEADER_HEIGHT = 53;
+  private readonly CONSOLE_HEADER_HEIGHT = 40;
   private readonly DEFAULT_WIDTH = 848;
   private readonly DEFAULT_HEIGHT = 600;
   private readonly DEFAULT_LEFT = '80px';
@@ -70,17 +76,14 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
 
   private destroy$ = new Subject<void>();
   private themeSubscription: Subscription | null = null;
-  readonly controller = input<Controller>(undefined);
-  readonly project = input<Project>(undefined);
+  readonly controller = input<Controller | undefined>(undefined);
+  readonly project = input<Project | undefined>(undefined);
   readonly zIndex = input<number>(1000);
   @Output() closeConsole = new EventEmitter<boolean>();
   @Output() deviceSelected = new EventEmitter<string>();
   @Output() consoleDeactivated = new EventEmitter<void>();
   @Output() windowFocused = new EventEmitter<void>();
   @Output() windowMinimized = new EventEmitter<boolean>(); // true = minimized, false = restored
-
-  filters: string[] = ['all', 'errors', 'warnings', 'info', 'map updates', 'controller requests'];
-  selectedFilter: string = 'all';
 
   // Window state (public, but only modified internally)
   public style: WindowStyle = {};
@@ -103,6 +106,8 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   public resizedWidth: number = this.DEFAULT_WIDTH;
   public resizedHeight: number = this.DEFAULT_HEIGHT;
 
+  private _resizeNotifyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   private consoleService = inject(NodeConsoleService);
   private themeService = inject(ThemeService);
   private mapSettingsService = inject(MapSettingsService);
@@ -110,6 +115,31 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   private windowManagement = inject(WindowManagementService);
   private cdr = inject(ChangeDetectorRef);
   private renderer = inject(Renderer2);
+  private xtermService = inject(XtermService);
+
+  // Settings panel state
+  private showSettingsPanelSignal = signal(false);
+  private settingsSignal = signal<ConsoleAppearanceSettings>(this.xtermService.settings);
+
+  readonly terminalFonts = this.xtermService.getInstalledFonts();
+  readonly defaultFontSize = DEFAULT_FONT_SIZE;
+  readonly minFontSize = MIN_FONT_SIZE;
+  readonly maxFontSize = MAX_FONT_SIZE;
+
+  public readonly showSettingsPanel = this.showSettingsPanelSignal.asReadonly();
+  public readonly currentSettings = this.settingsSignal.asReadonly();
+
+  readonly effectiveBgHex = computed(() => {
+    const bg = this.settingsSignal().backgroundColor;
+    if (bg) return bg;
+    return this.xtermService.getEffectiveBackgroundHex();
+  });
+
+  readonly effectiveFgHex = computed(() => {
+    const fg = this.settingsSignal().foregroundColor;
+    if (fg) return fg;
+    return this.xtermService.getEffectiveForegroundHex();
+  });
 
   // Drag state (RxJS managed)
   private dragStartX = 0;
@@ -137,8 +167,7 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   nodes: Node[] = [];
-  selected = new UntypedFormControl(0); // Will be reset to -1 when no devices
-  private isInitialized = false;
+  selected = new UntypedFormControl(0);
 
   readonly webConsoleComponents = viewChildren(WebConsoleComponent);
   readonly logConsoleComponent = viewChild(LogConsoleComponent);
@@ -165,8 +194,10 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
     });
 
     this.consoleService.closeNodeConsoleTrigger.pipe(takeUntil(this.destroy$)).subscribe((node) => {
-      let index = this.nodes.findIndex((n) => n.node_id === node.node_id);
-      this.removeTab(index);
+      const index = this.nodes.findIndex((n) => n.node_id === node.node_id);
+      if (index >= 0) {
+        this.removeTab(index);
+      }
     });
 
     // Listen to tab changes and emit deviceSelected event
@@ -260,18 +291,7 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
         width: `${this.resizedWidth}px`,
         height: `${newHeight}px`,
       });
-      // Notify resize
-      this.consoleService.consoleResized.next({
-        width: this.resizedWidth,
-        height: newHeight - this.CONSOLE_HEADER_HEIGHT,
-      });
-      // Also notify after a delay to ensure DOM has been updated
-      setTimeout(() => {
-        this.consoleService.consoleResized.next({
-          width: this.resizedWidth,
-          height: newHeight - this.CONSOLE_HEADER_HEIGHT,
-        });
-      }, 50);
+      this.notifyConsoleResized(newHeight);
     } else {
       // Restore to normal size - moved up from 20px to 100px to avoid bottom button overlap
       const currentLeft = this.style.left || this.DEFAULT_LEFT;
@@ -281,18 +301,7 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
         width: `${this.resizedWidth}px`,
         height: `${this.resizedHeight}px`,
       });
-      // Notify resize
-      this.consoleService.consoleResized.next({
-        width: this.resizedWidth,
-        height: this.resizedHeight - this.CONSOLE_HEADER_HEIGHT,
-      });
-      // Also notify after a delay to ensure DOM has been updated
-      setTimeout(() => {
-        this.consoleService.consoleResized.next({
-          width: this.resizedWidth,
-          height: this.resizedHeight - this.CONSOLE_HEADER_HEIGHT,
-        });
-      }, 50);
+      this.notifyConsoleResized(this.resizedHeight);
     }
     this.cdr.markForCheck();
     // Save window state to localStorage
@@ -339,9 +348,15 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   removeTab(index: number) {
+    if (index < 0 || index >= this.nodes.length) {
+      return;
+    }
+
     // Remove the node at the specified index
     this.nodes.splice(index, 1);
-    this.consoleService.openConsoles--;
+    if (this.consoleService.openConsoles > 0) {
+      this.consoleService.openConsoles--;
+    }
 
     // Update selected index to prevent out-of-bounds or incorrect selection
     const currentSelected = this.selected.value;
@@ -448,13 +463,13 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     this.styleInside = {
-      height: `${constrained.height - 60}px`,
+      height: `${constrained.height - this.CONSOLE_HEADER_HEIGHT}px`,
       width: `${constrained.width}px`,
     };
 
     this.consoleService.consoleResized.next({
       width: constrained.width,
-      height: constrained.height - 53,
+      height: constrained.height - this.CONSOLE_HEADER_HEIGHT,
     });
 
     this.resizedWidth = constrained.width;
@@ -630,11 +645,11 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
     });
   }
 
-  enableScroll(e: Event): void {
+  enableScroll(_e: Event): void {
     this.mapSettingsService.isScrollDisabled.next(false);
   }
 
-  disableScroll(e: Event): void {
+  disableScroll(_e: Event): void {
     this.mapSettingsService.isScrollDisabled.next(true);
   }
 
@@ -650,7 +665,7 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     // Re-constrain window position to stay within viewport
-    this.style = this.boundaryService.constrainWindowPosition(this.style);
+    this.updateStyle(this.boundaryService.constrainWindowPosition(this.style));
   }
 
   /**
@@ -761,6 +776,18 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
       });
   }
 
+  private notifyConsoleResized(height: number): void {
+    const payload = { width: this.resizedWidth, height: height - this.CONSOLE_HEADER_HEIGHT };
+    this.consoleService.consoleResized.next(payload);
+    if (this._resizeNotifyTimeoutId !== null) {
+      clearTimeout(this._resizeNotifyTimeoutId);
+    }
+    this._resizeNotifyTimeoutId = setTimeout(() => {
+      this._resizeNotifyTimeoutId = null;
+      this.consoleService.consoleResized.next({ width: this.resizedWidth, height: height - this.CONSOLE_HEADER_HEIGHT });
+    }, 50);
+  }
+
   /**
    * Handle drag end - restore iframe pointer events and save state
    */
@@ -783,8 +810,57 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
     });
   }
 
+  // ─── Terminal appearance settings ───────────────────────────────────────────
+
+  toggleSettingsPanel(): void {
+    this.showSettingsPanelSignal.update((v) => !v);
+    this.cdr.markForCheck();
+  }
+
+  closeSettingsPanel(): void {
+    this.showSettingsPanelSignal.set(false);
+    this.cdr.markForCheck();
+  }
+
+  private applySettings(patch: Partial<ConsoleAppearanceSettings>): void {
+    this.xtermService.updateSettings(patch);
+    this.settingsSignal.set(this.xtermService.settings);
+    this.cdr.markForCheck();
+  }
+
+  onBgColorChange(event: Event): void {
+    this.applySettings({ backgroundColor: (event.target as HTMLInputElement).value });
+  }
+
+  onFgColorChange(event: Event): void {
+    this.applySettings({ foregroundColor: (event.target as HTMLInputElement).value });
+  }
+
+  resetBgColor(): void {
+    this.applySettings({ backgroundColor: null });
+  }
+
+  resetFgColor(): void {
+    this.applySettings({ foregroundColor: null });
+  }
+
+  changeFontSize(delta: number): void {
+    this.applySettings({
+      fontSize: Math.max(this.minFontSize, Math.min(this.maxFontSize, this.currentSettings().fontSize + delta)),
+    });
+  }
+
+  resetFontSize(): void {
+    this.applySettings({ fontSize: DEFAULT_FONT_SIZE });
+  }
+
+  onFontFamilyChange(value: string): void {
+    this.applySettings({ fontFamily: value || null });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+
   ngOnDestroy(): void {
-    // Cleanup theme subscription
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
       this.themeSubscription = null;
@@ -815,7 +891,7 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
           const newHeight = windowHeight - toolbarHeight - 20;
           this.style = {
             bottom: '0px',
-            left: this.DEFAULT_LEFT,
+            left: state.left || this.DEFAULT_LEFT,
             width: `${this.resizedWidth}px`,
             height: `${newHeight}px`,
           };

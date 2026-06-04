@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "last_updated": "2026-04-27",
+  "last_updated": "2026-06-03",
   "description": "Allowed hardcoded colors in legacy graphics rendering code. DO NOT modify without proper review. Supports .ts, .html, and .scss files.",
   "allowed_scss_variables": [
     {
@@ -169,6 +169,15 @@
         "link.link_type === 'serial' ? '#800000' : '#000000'"
       ],
       "reason": "Link style editor default colors"
+    },
+    {
+      "file": "src/app/services/xterm.service.ts",
+      "patterns": [
+        "if (!color) return '#000000';",
+        "if (!ctx) return '#000000';",
+        "return '#000000';"
+      ],
+      "reason": "Canvas-based CSS color resolver (resolveColorToHex) - fallback to black when input color is empty, canvas context is unavailable, or color cannot be parsed"
     }
   ]
 }

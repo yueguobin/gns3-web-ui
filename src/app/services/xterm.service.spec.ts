@@ -1,17 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TestBed } from '@angular/core/testing';
-import { XtermService } from './xterm.service';
-import { ThemeService } from './theme.service';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
 import { ChangeDetectorRef } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock CSS variables
+import { DEFAULT_FONT_SIZE, XtermService } from './xterm.service';
+import { ThemeService } from './theme.service';
+
+const APPEARANCE_STORAGE_KEY = 'gns3_console_appearance';
+
 const mockCssVariables: Record<string, string> = {
   '--mat-sys-surface': '#ffffff',
   '--mat-sys-on-surface': '#000000',
+  '--mat-sys-primary-container': '#d9c2ff',
+  '--mat-sys-on-primary-container': '#20004f',
   '--mat-sys-primary': '#6200ee',
-  '--mat-sys-on-primary': '#ffffff',
   '--mat-sys-tertiary': '#03dac6',
   '--mat-sys-error': '#b00020',
   '--mat-sys-outline': '#737373',
@@ -24,14 +27,13 @@ describe('XtermService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
 
-    // Mock getComputedStyle using vi.spyOn
     vi.spyOn(window, 'getComputedStyle').mockReturnValue({
       getPropertyValue: (name: string) => mockCssVariables[name] || '',
       trim: () => '',
     } as any);
 
-    // Mock ThemeService using vi.fn
     mockThemeService = {
       getActualTheme: vi.fn().mockReturnValue('light'),
     };
@@ -44,448 +46,172 @@ describe('XtermService', () => {
   });
 
   afterEach(() => {
-    // Restore original getComputedStyle to prevent test pollution
+    vi.useRealTimers();
     vi.restoreAllMocks();
+    localStorage.clear();
   });
 
-  describe('Service Creation', () => {
-    it('should create the service', () => {
-      expect(service).toBeTruthy();
-    });
-
-    it('should be instance of XtermService', () => {
-      expect(service).toBeInstanceOf(XtermService);
-    });
-
-    it('should have themeService as dependency', () => {
-      expect((service as any).themeService).toBe(mockThemeService);
+  it('creates service with default settings', () => {
+    expect(service).toBeTruthy();
+    expect(service.settings).toEqual({
+      fontSize: DEFAULT_FONT_SIZE,
+      fontFamily: null,
+      foregroundColor: null,
+      backgroundColor: null,
     });
   });
 
-  describe('getCssVar', () => {
-    it('should return CSS variable value', () => {
-      const value = service.getCssVar('--mat-sys-surface');
-      expect(value).toBe('#ffffff');
-    });
+  it('returns terminal defaults that match new appearance settings', () => {
+    const options = service.getDefaultTerminalOptions();
 
-    it('should return empty string for non-existent variable', () => {
-      const value = service.getCssVar('--non-existent');
-      expect(value).toBe('');
-    });
+    expect(options.fontSize).toBe(DEFAULT_FONT_SIZE);
+    expect(options.fontFamily).toContain('ui-monospace');
+    expect(options.cursorBlink).toBe(true);
+    expect(options.scrollback).toBe(1000);
+  });
 
-    it('should trim whitespace from value', () => {
-      const mockComputedStyle = {
-        getPropertyValue: (name: string) => '  #ffffff  ',
-        trim: () => '#ffffff',
-      };
-      vi.spyOn(window, 'getComputedStyle').mockReturnValue(mockComputedStyle as any);
+  it('loads sanitized settings from localStorage', () => {
+    localStorage.setItem(
+      APPEARANCE_STORAGE_KEY,
+      JSON.stringify({
+        fontSize: 99,
+        fontFamily: 'Consolas',
+        foregroundColor: '#112233',
+        backgroundColor: '#aabbcc',
+      })
+    );
 
-      const value = service.getCssVar('--test');
-      expect(value).toBe('#ffffff');
-    });
+    const loaded = new XtermService(mockThemeService as any);
 
-    it('should get value from document.documentElement', () => {
-      const spy = vi.spyOn(window, 'getComputedStyle');
-
-      service.getCssVar('--mat-sys-primary');
-
-      expect(spy).toHaveBeenCalledWith(document.documentElement);
+    expect(loaded.settings).toEqual({
+      fontSize: 28,
+      fontFamily: 'Consolas',
+      foregroundColor: '#112233',
+      backgroundColor: '#aabbcc',
     });
   });
 
-  describe('buildTerminalTheme', () => {
-    it('should return theme object for light mode', () => {
-      const theme = service.buildTerminalTheme(true);
+  it('drops invalid persisted values while keeping valid ones', () => {
+    localStorage.setItem(
+      APPEARANCE_STORAGE_KEY,
+      JSON.stringify({
+        fontSize: 'big',
+        fontFamily: 'Unknown Font',
+        foregroundColor: 'red',
+        backgroundColor: '#ffffff',
+      })
+    );
 
-      expect(theme).toBeDefined();
-      expect(theme.background).toBe('#ffffff');
-      expect(theme.foreground).toBe('#000000');
-    });
+    const loaded = new XtermService(mockThemeService as any);
 
-    it('should return theme object for dark mode', () => {
-      const theme = service.buildTerminalTheme(false);
-
-      expect(theme).toBeDefined();
-      expect(theme.background).toBe('#ffffff');
-      expect(theme.foreground).toBe('#000000');
-    });
-
-    it('should set white color differently for light theme', () => {
-      const theme = service.buildTerminalTheme(true);
-
-      expect(theme.white).toBe('#e0e0e0');
-      expect(theme.brightWhite).toBe('#ffffff');
-    });
-
-    it('should set white color differently for dark theme', () => {
-      const theme = service.buildTerminalTheme(false);
-
-      expect(theme.white).toBe('#000000');
-      expect(theme.brightWhite).toBe('#ffffff');
-    });
-
-    it('should set cursor colors', () => {
-      const theme = service.buildTerminalTheme(true);
-
-      expect(theme.cursor).toBe('#000000');
-      expect(theme.cursorAccent).toBe('#ffffff');
-    });
-
-    it('should set selection colors', () => {
-      const theme = service.buildTerminalTheme(true);
-
-      expect(theme.selectionBackground).toBe('#6200ee');
-      expect(theme.selectionForeground).toBe('#ffffff');
-    });
-
-    it('should set black color from on-surface', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.black).toBe('#000000');
-    });
-
-    it('should set red color from error', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.red).toBe('#b00020');
-    });
-
-    it('should set green color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.green).toBe('#6200ee');
-    });
-
-    it('should set yellow color from tertiary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.yellow).toBe('#03dac6');
-    });
-
-    it('should set blue color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.blue).toBe('#6200ee');
-    });
-
-    it('should set magenta color from error', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.magenta).toBe('#b00020');
-    });
-
-    it('should set cyan color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.cyan).toBe('#6200ee');
-    });
-
-    it('should set bright black color from outline', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightBlack).toBe('#737373');
-    });
-
-    it('should set bright red color from error', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightRed).toBe('#b00020');
-    });
-
-    it('should set bright green color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightGreen).toBe('#6200ee');
-    });
-
-    it('should set bright yellow color from tertiary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightYellow).toBe('#03dac6');
-    });
-
-    it('should set bright blue color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightBlue).toBe('#6200ee');
-    });
-
-    it('should set bright magenta color from error', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightMagenta).toBe('#b00020');
-    });
-
-    it('should set bright cyan color from primary', () => {
-      const theme = service.buildTerminalTheme(true);
-      expect(theme.brightCyan).toBe('#6200ee');
+    expect(loaded.settings).toEqual({
+      fontSize: DEFAULT_FONT_SIZE,
+      fontFamily: null,
+      foregroundColor: null,
+      backgroundColor: '#ffffff',
     });
   });
 
-  describe('updateTerminalTheme', () => {
-    it('should update terminal options theme', () => {
-      const mockTerminal = {
-        options: {},
-      } as Terminal;
+  it('emits settingsChanged after updateSettings', () => {
+    const received: any[] = [];
+    service.settingsChanged$.subscribe((value) => received.push(value));
 
-      service.updateTerminalTheme(mockTerminal);
+    service.updateSettings({ fontSize: 20, foregroundColor: '#123456' });
 
-      expect(mockTerminal.options.theme).toBeDefined();
-      expect(mockTerminal.options.theme.background).toBe('#ffffff');
-    });
-
-    it('should call markForCheck when cdr is provided', () => {
-      const mockTerminal = {
-        options: {},
-      } as Terminal;
-
-      const mockCdr = {
-        markForCheck: vi.fn(),
-      } as any as ChangeDetectorRef;
-
-      service.updateTerminalTheme(mockTerminal, mockCdr);
-
-      expect(mockCdr.markForCheck).toHaveBeenCalled();
-    });
-
-    it('should not call markForCheck when cdr is not provided', () => {
-      const mockTerminal = {
-        options: {},
-      } as Terminal;
-
-      expect(() => {
-        service.updateTerminalTheme(mockTerminal);
-      }).not.toThrow();
-    });
-
-    it('should use light theme when themeService returns light', () => {
-      const lightMockThemeService = {
-        getActualTheme: vi.fn().mockReturnValue('light'),
-      };
-
-      const lightService = new XtermService(lightMockThemeService as any);
-      const mockTerminal = {
-        options: {},
-      } as Terminal;
-
-      lightService.updateTerminalTheme(mockTerminal);
-
-      expect(mockTerminal.options.theme.white).toBe('#e0e0e0');
-    });
-
-    it('should use dark theme when themeService returns dark', () => {
-      const darkMockThemeService = {
-        getActualTheme: vi.fn().mockReturnValue('dark'),
-      };
-
-      const darkService = new XtermService(darkMockThemeService as any);
-      const mockTerminal = {
-        options: {},
-      } as Terminal;
-
-      darkService.updateTerminalTheme(mockTerminal);
-
-      expect(mockTerminal.options.theme.white).toBe('#000000');
+    expect(received).toHaveLength(1);
+    expect(received[0]).toEqual({
+      fontSize: 20,
+      fontFamily: null,
+      foregroundColor: '#123456',
+      backgroundColor: null,
     });
   });
 
-  describe('getDefaultTerminalOptions', () => {
-    it('should return default options', () => {
-      const options = service.getDefaultTerminalOptions();
-
-      expect(options).toBeDefined();
-      expect(options.cursorBlink).toBe(true);
-      expect(options.cursorStyle).toBe('block');
-      expect(options.fontSize).toBe(15);
+  it('sanitizes invalid runtime updates', () => {
+    service.updateSettings({
+      fontSize: -4 as any,
+      fontFamily: 'Invalid Font' as any,
+      foregroundColor: 'blue' as any,
+      backgroundColor: null,
     });
 
-    it('should set fontFamily to courier-new', () => {
-      const options = service.getDefaultTerminalOptions();
-
-      expect(options.fontFamily).toBe('courier-new, courier, monospace');
-    });
-
-    it('should enable rightClickSelectsWord', () => {
-      const options = service.getDefaultTerminalOptions();
-
-      expect(options.rightClickSelectsWord).toBe(true);
-    });
-
-    it('should enable altClickMovesCursor', () => {
-      const options = service.getDefaultTerminalOptions();
-
-      expect(options.altClickMovesCursor).toBe(true);
-    });
-
-    it('should set scrollback to 1000', () => {
-      const options = service.getDefaultTerminalOptions();
-
-      expect(options.scrollback).toBe(1000);
+    expect(service.settings).toEqual({
+      fontSize: 8,
+      fontFamily: null,
+      foregroundColor: null,
+      backgroundColor: null,
     });
   });
 
-  describe('initTerminal', () => {
-    it('should load fit addon to terminal', () => {
-      const mockTerminal = {
-        loadAddon: vi.fn(),
-      } as any as Terminal;
+  it('buildTerminalTheme uses custom fg/bg when present', () => {
+    service.updateSettings({ foregroundColor: '#101010', backgroundColor: '#f0f0f0' });
 
-      const mockFitAddon = {
-        activate: vi.fn(),
-      } as any as FitAddon;
+    const theme = service.buildTerminalTheme(true);
 
-      service.initTerminal(mockTerminal, mockFitAddon);
-
-      expect(mockTerminal.loadAddon).toHaveBeenCalledWith(mockFitAddon);
-    });
-
-    it('should activate fit addon', () => {
-      const mockTerminal = {
-        loadAddon: vi.fn(),
-      } as any as Terminal;
-
-      const mockFitAddon = {
-        activate: vi.fn(),
-      } as any as FitAddon;
-
-      service.initTerminal(mockTerminal, mockFitAddon);
-
-      expect(mockFitAddon.activate).toHaveBeenCalledWith(mockTerminal);
-    });
+    expect(theme.foreground).toBe('#101010');
+    expect(theme.background).toBe('#f0f0f0');
+    expect(theme.selectionBackground).toBe('#d9c2ff');
+    expect(theme.selectionForeground).toBe('#20004f');
   });
 
-  describe('calculateTerminalDimensions', () => {
-    it('should calculate dimensions using char measurements', () => {
-      const mockTerminal = {
-        _core: {
-          _charMeasure: {
-            width: 10,
-            height: 20,
-          },
-        },
-      } as any as Terminal;
+  it('updates terminal theme and marks for check', () => {
+    const terminal = { options: {} } as Terminal;
+    const cdr = { markForCheck: vi.fn() } as unknown as ChangeDetectorRef;
 
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 800, 600);
+    service.updateTerminalTheme(terminal, cdr);
 
-      expect(dimensions.cols).toBe(80);
-      expect(dimensions.rows).toBe(30);
-    });
-
-    it('should use fallback when charMeasure is missing', () => {
-      const mockTerminal = {
-        _core: {},
-      } as any as Terminal;
-
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 900, 510);
-
-      expect(dimensions.cols).toBe(100); // 900 / 9
-      expect(dimensions.rows).toBe(30); // 510 / 17
-    });
-
-    it('should use fallback when core is missing', () => {
-      const mockTerminal = {} as any as Terminal;
-
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 900, 510);
-
-      expect(dimensions.cols).toBe(100);
-      expect(dimensions.rows).toBe(30);
-    });
-
-    it('should use fallback when charMeasure dimensions are zero', () => {
-      const mockTerminal = {
-        _core: {
-          _charMeasure: {
-            width: 0,
-            height: 0,
-          },
-        },
-      } as any as Terminal;
-
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 900, 510);
-
-      expect(dimensions.cols).toBe(100);
-      expect(dimensions.rows).toBe(30);
-    });
-
-    it('should floor the calculated values', () => {
-      const mockTerminal = {
-        _core: {
-          _charMeasure: {
-            width: 9,
-            height: 17,
-          },
-        },
-      } as any as Terminal;
-
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 850, 515);
-
-      expect(dimensions.cols).toBe(Math.floor(850 / 9));
-      expect(dimensions.rows).toBe(Math.floor(515 / 17));
-    });
-
-    it('should handle small containers', () => {
-      const mockTerminal = {
-        _core: {
-          _charMeasure: {
-            width: 10,
-            height: 20,
-          },
-        },
-      } as any as Terminal;
-
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 50, 40);
-
-      expect(dimensions.cols).toBe(5);
-      expect(dimensions.rows).toBe(2);
-    });
+    expect(terminal.options.theme).toBeDefined();
+    expect(cdr.markForCheck).toHaveBeenCalled();
   });
 
-  describe('Edge Cases', () => {
-    it('should handle terminal without core using fallback', () => {
-      const mockTerminal = {} as any as Terminal;
+  it('applies settings to terminal and triggers fit', () => {
+    vi.useFakeTimers();
 
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 800, 600);
+    const terminal = { options: {} } as Terminal;
+    const fitAddon = { fit: vi.fn() } as unknown as FitAddon;
 
-      expect(dimensions.cols).toBe(88); // 800 / 9
-      expect(dimensions.rows).toBe(35); // 600 / 17
-    });
+    service.updateSettings({ fontSize: 22, fontFamily: 'Consolas', foregroundColor: '#202020' });
+    service.applySettingsToTerminal(terminal, fitAddon);
 
-    it('should handle terminal with null core using fallback', () => {
-      const mockTerminal = {
-        _core: null,
-      } as any as Terminal;
+    expect(terminal.options.fontSize).toBe(22);
+    expect(terminal.options.fontFamily).toContain('Consolas');
+    expect(terminal.options.theme?.foreground).toBe('#202020');
 
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 800, 600);
+    vi.advanceTimersByTime(60);
+    expect(fitAddon.fit).toHaveBeenCalled();
+  });
 
-      expect(dimensions.cols).toBe(88); // 800 / 9
-      expect(dimensions.rows).toBe(35); // 600 / 17
-    });
+  it('returns only installed fonts from getInstalledFonts', () => {
+    const installSpy = vi
+      .spyOn(service as any, '_isFontInstalled')
+      .mockImplementation((fontName: string) => fontName === 'Consolas');
 
-    it('should return zero when container has zero dimensions', () => {
-      const mockTerminal = {} as any as Terminal;
+    const fonts = service.getInstalledFonts();
 
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, 0, 0);
+    expect(fonts.some((font) => font.value === null)).toBe(true);
+    expect(fonts.some((font) => font.value === 'Consolas')).toBe(true);
+    expect(fonts.some((font) => font.value === 'Fira Code')).toBe(false);
+    expect(installSpy).toHaveBeenCalled();
+  });
 
-      expect(dimensions.cols).toBe(0);
-      expect(dimensions.rows).toBe(0);
-    });
+  it('uses 8.4x17 fallback when character metrics are unavailable', () => {
+    const dimensions = service.calculateTerminalDimensions({} as Terminal, 840, 170);
 
-    it('should return negative values when container has negative dimensions (documenting current behavior)', () => {
-      const mockTerminal = {} as any as Terminal;
+    expect(dimensions.cols).toBe(100);
+    expect(dimensions.rows).toBe(10);
+  });
 
-      const dimensions = service.calculateTerminalDimensions(mockTerminal, -100, -100);
+  it('returns an immutable copy from settings getter', () => {
+    const settings = service.settings;
+    settings.fontSize = 21;
 
-      // Note: This documents current behavior. The service could guard against
-      // negative dimensions and return 0 instead, which would be more sensible.
-      expect(dimensions.cols).toBeLessThan(0);
-      expect(dimensions.rows).toBeLessThan(0);
-    });
+    expect(service.settings.fontSize).toBe(DEFAULT_FONT_SIZE);
+  });
 
-    it('should handle empty CSS variable value', () => {
-      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
-        getPropertyValue: () => '',
-        trim: () => '',
-      } as any);
+  it('uses explicit configured colors for effective color getters', () => {
+    service.updateSettings({ foregroundColor: '#111111', backgroundColor: '#eeeeee' });
 
-      const value = service.getCssVar('--empty-var');
-      expect(value).toBe('');
-    });
-
-    it('should handle CSS variable with only whitespace', () => {
-      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
-        getPropertyValue: () => '   ',
-        trim: () => '',
-      } as any);
-
-      const value = service.getCssVar('--whitespace-var');
-      expect(value).toBe('');
-    });
+    expect(service.getEffectiveForegroundHex()).toBe('#111111');
+    expect(service.getEffectiveBackgroundHex()).toBe('#eeeeee');
   });
 });

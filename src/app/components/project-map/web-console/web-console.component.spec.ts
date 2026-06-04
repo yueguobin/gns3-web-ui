@@ -19,6 +19,7 @@ describe('WebConsoleComponent', () => {
   // Subjects for observable mocking
   let consoleResizedSubject: Subject<ConsoleResizedEvent>;
   let themeChangedSubject: Subject<void>;
+  let settingsChangedSubject: Subject<void>;
 
   const mockController: Controller = {
     id: 1,
@@ -77,6 +78,8 @@ describe('WebConsoleComponent', () => {
     }),
     updateTerminalTheme: vi.fn(),
     initTerminal: vi.fn(),
+    settingsChanged$: new Subject<void>(),
+    applySettingsToTerminal: vi.fn(),
   };
 
   const mockCdr = {
@@ -145,6 +148,8 @@ describe('WebConsoleComponent', () => {
     mockNodeConsoleService.getNumberOfColumns.mockReturnValue(80);
     mockNodeConsoleService.getNumberOfRows.mockReturnValue(24);
     mockThemeService.getActualTheme.mockReturnValue('light');
+    settingsChangedSubject = new Subject<void>();
+    (mockXtermService as any).settingsChanged$ = settingsChangedSubject.asObservable();
 
     TestBed.configureTestingModule({
       imports: [WebConsoleComponent],
@@ -167,6 +172,7 @@ describe('WebConsoleComponent', () => {
   });
 
   afterEach(() => {
+    settingsChangedSubject?.complete();
     if (fixture) {
       fixture.destroy();
     }
@@ -241,6 +247,14 @@ describe('WebConsoleComponent', () => {
       fixture.detectChanges();
       expect(mockXtermContextMenuService.attachContextMenu).toHaveBeenCalled();
     });
+
+    it('should apply terminal settings when settingsChanged emits', () => {
+      fixture.detectChanges();
+
+      settingsChangedSubject.next();
+
+      expect(mockXtermService.applySettingsToTerminal).toHaveBeenCalled();
+    });
   });
 
   describe('WebSocket error handling', () => {
@@ -256,6 +270,16 @@ describe('WebConsoleComponent', () => {
   });
 
   describe('ngOnDestroy', () => {
+      it('should ignore settingsChanged emits after destroy', () => {
+        fixture.detectChanges();
+        component.ngOnDestroy();
+        mockXtermService.applySettingsToTerminal.mockClear();
+
+        settingsChangedSubject.next();
+
+        expect(mockXtermService.applySettingsToTerminal).not.toHaveBeenCalled();
+      });
+
     it('should complete destroy$ subject', () => {
       fixture.detectChanges();
       const destroySpy = vi.spyOn((component as any).destroy$, 'next');

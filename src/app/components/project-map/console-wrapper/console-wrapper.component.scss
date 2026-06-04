@@ -12,7 +12,7 @@
 .consoleWrapper {
   box-shadow: 0 2px 8px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent);
   position: fixed;
-  bottom: 100px; // Moved up from 40px to avoid bottom button overlap
+  bottom: 100px;
   left: 80px;
   height: 180px;
   width: 600px;
@@ -23,45 +23,31 @@
   border-radius: 4px;
   outline: none;
   transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 900; // Ensure console stays above most content but below AI Chat (1000) and context menu (10000)
+  z-index: 900;
 
-  // GPU acceleration hint for smooth dragging
-  will-change: left, bottom;
-  contain: layout style; // Isolate from parent layout recalculations
+  contain: layout style;
 
-  &:focus {
-    outline: none;
-  }
-
-  /* =============================================
-  // Dragging State - GPU Accelerated
-  // ============================================= */
   &.is-dragging {
     cursor: grabbing;
     user-select: none;
     box-shadow: 0 8px 32px color-mix(in srgb, var(--mat-sys-shadow) 40%, transparent);
-    transition: none; // Instant position updates during drag
-
-    // Use will-change on transform for GPU layer promotion
+    transition: none;
     will-change: left, bottom;
   }
 
-  /* =============================================
-  // Minimized State - hide console window
-  // ============================================= */
   &.is-minimized {
     display: none;
   }
 }
 
 /* =============================================
-// Taskbar Icon Styles (always visible, fixed position)
+// Taskbar Icon Styles
 // ============================================= */
 .taskbar-icon {
   position: fixed;
   bottom: 20px;
   left: 20px;
-  z-index: 901; // Above console (900) but below AI Chat (1000) and context menu (10000)
+  z-index: 901;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -104,59 +90,19 @@
   }
 }
 
-.lightThemeConsoleHeader {
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-
-  .mat-icon-button {
-    &:hover {
-      background-color: var(--mat-sys-hover-state-layer);
-
-      mat-icon {
-        color: var(--mat-sys-primary);
-        filter: none;
-      }
-    }
-
-    &:active {
-      background-color: var(--mat-sys-focus-state-layer);
-    }
-  }
-
-  .mat-icon-button[title='Close']:hover {
-    background-color: var(--mat-sys-error-container);
-
-    mat-icon {
-      color: var(--mat-sys-error);
-    }
-
-    &:active {
-      background-color: var(--mat-sys-error);
-      opacity: 0.8;
-    }
-  }
-}
-
-.filterButton {
-  background: transparent;
-  color: var(--mat-sys-on-surface-variant);
-  border: none;
-  margin-top: 0;
-  outline: none;
-  font-weight: bold;
-  padding: 0;
-}
-
-.consoleFiltering {
-  display: flex;
-}
-
+/* =============================================
+// Console Header — 40px height
+// ============================================= */
 .consoleHeader {
   width: 100%;
-  font-size: 12px;
+  height: 40px;
+  // overflow: hidden is a fallback for browsers that do not support overflow: clip.
+  // overflow: clip keeps children visually clipped without creating a scroll container,
+  // which allows the mat-tab active indicator (positioned at bottom: 0) to remain visible.
   overflow: hidden;
+  overflow: clip;
   display: flex;
-  padding: 2px;
+  padding: 0 2px;
   justify-content: space-between;
   align-items: center;
   background: var(--mat-sys-surface);
@@ -164,37 +110,7 @@
   position: relative;
   z-index: 10;
   flex-shrink: 0;
-
-  .mat-icon-button {
-    mat-icon {
-      color: var(--mat-sys-on-surface);
-    }
-  }
-}
-
-.consoleHeader:active {
-  cursor: grabbing;
-}
-
-.mat-tab-label {
-  height: 3rem;
-  min-width: 8rem;
-  flex-shrink: 0;
-}
-
-.mat-tab-label > .tab-label-text {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mat-tab-label > .mat-icon-button {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  padding: 4px;
-  margin-left: auto;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 
   mat-icon {
     font-size: 16px;
@@ -203,73 +119,317 @@
   }
 }
 
-.mat-tab-label.mat-tab-label-active {
-  border-bottom: 2px solid var(--mat-sys-primary);
-  box-sizing: border-box;
-  font-weight: 700;
+.consoleHeader:active {
+  cursor: grabbing;
 }
 
-.mat-ink-bar {
-  display: none;
-}
-
-@-moz-document url-prefix() {
-  .mat-tab-label {
-    min-width: 8rem;
-    max-width: none;
-    flex: 0 0 auto;
-    width: auto;
-  }
-
-  .mat-tab-label-container {
-    display: flex;
-    flex-direction: row;
-  }
-}
-
+/* =============================================
+// Tab Group — 40px height set via global styles
+// ============================================= */
 .console-wrapper__tabs {
-  width: 80%;
+  flex: 1;
+  min-width: 0;
 }
 
-.console {
-  width: 596px;
-  height: 120px;
-  overflow-y: scroll;
-  padding: 2px;
-  color: var(--mat-sys-on-surface-variant);
-  scrollbar-color: var(--mat-sys-on-surface-variant) var(--mat-sys-surface);
-  scrollbar-width: thin;
+// Spacer mirrors the close button width so the hostname appears truly centered
+.tab-label-spacer {
+  width: 18px;
+  flex-shrink: 0;
 }
 
-.consoleInput {
-  width: 100%;
-  height: 30px;
-  padding: 2px;
-  display: flex;
-}
-
-.commandLine {
-  background-color: transparent;
-  color: var(--mat-sys-on-surface);
-  border: none;
-}
-
-.inputIcon {
-  margin-top: 2px;
-}
-
-mat-icon {
+.tab-label-text {
+  flex: 1;
   font-size: 14px;
-  width: 14px;
-  height: 14px;
+  font-weight: 500;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-input:focus {
-  outline: none;
-}
-
-.closeButton {
+// Tab close button — plain button, no MDC touch-target overhead
+.tab-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
   cursor: pointer;
+  color: var(--mat-sys-on-surface-variant);
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 100ms ease, background-color 100ms ease;
+
+  &:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 15%, transparent);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+  }
+}
+
+/* =============================================
+// Header Action Buttons — sized for 40px header
+// Correct token: --mat-icon-button-state-layer-size (Angular Material 21)
+// ============================================= */
+.header-action-btn {
+  width: 32px;
+  height: 32px;
+  --mat-icon-button-state-layer-size: 32px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &.active {
+    color: var(--mat-sys-primary);
+    background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+    border-radius: 4px;
+  }
+
+  &--close {
+    background: color-mix(in srgb, var(--mat-sys-error) 15%, transparent);
+    border-radius: 50%;
+    color: var(--mat-sys-error);
+  }
+
+  &--close:hover {
+    background: color-mix(in srgb, var(--mat-sys-error) 28%, transparent);
+  }
+}
+
+/* =============================================
+// Settings Panel
+// ============================================= */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+}
+
+.console-settings-panel {
+  position: absolute;
+  top: 40px;
+  right: 15px;
+  z-index: 200;
+  background: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 12px 10px 12px 14px;
+  min-width: 280px;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--mat-sys-shadow) 28%, transparent);
+}
+
+.settings-panel__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 10px;
+}
+
+.settings-panel__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  gap: 8px;
+
+  & + & {
+    margin-top: 4px;
+  }
+}
+
+.settings-panel__label {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface);
+  flex: 1;
+}
+
+.settings-panel__color-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Color swatch — wraps input[type=color] */
+.color-swatch {
+  display: flex;
+  width: 28px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: var(--swatch-color);
+  // inset shadow renders on top of fill so the visible colored area is always the full 28×22px,
+  // regardless of whether the fill is light or dark (unlike border which reduces layout area)
+  box-shadow: inset 0 0 0 1px var(--mat-sys-outline-variant), 0 0 0 1px transparent;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 120ms ease;
+
+  &:hover {
+    box-shadow: inset 0 0 0 1px var(--mat-sys-outline), 0 0 0 1px transparent;
+  }
+
+  &--custom {
+    box-shadow: inset 0 0 0 1px var(--mat-sys-primary), 0 0 0 1px var(--mat-sys-primary);
+  }
+
+  input[type='color'] {
+    position: absolute;
+    inset: -4px;
+    width: calc(100% + 8px);
+    height: calc(100% + 8px);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+    // Visually hidden — the label's background-color shows the color;
+    // the native picker still opens on click
+    opacity: 0.01;
+  }
+}
+
+.settings-panel__auto-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant);
+  background: color-mix(in srgb, var(--mat-sys-on-surface-variant) 12%, transparent);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+// Plain icon button — no MDC touch-target overhead, always inline with color swatch
+.reset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface-variant);
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 100ms ease, color 100ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface-variant) 12%, transparent);
+    color: var(--mat-sys-on-surface);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+  }
+}
+
+/* =============================================
+// Font Size Control — plain buttons so there's no 40px touch-target overhead
+// ============================================= */
+.settings-panel__font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* =============================================
+// Font Family Row — inline: label left, select takes remaining space
+// ============================================= */
+.settings-panel__row--font {
+  align-items: center;
+}
+
+.settings-panel__font-select {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+  cursor: pointer;
+  appearance: auto;
+  transition: border-color 120ms ease;
+
+  &:hover {
+    border-color: var(--mat-sys-outline);
+  }
+
+  &:focus {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 1px;
+  }
+
+  option {
+    background: var(--mat-sys-surface-container-high);
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.settings-panel__font-size-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+  min-width: 36px;
+  text-align: center;
+}
+
+.font-size-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mat-sys-on-surface);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 120ms ease, border-color 120ms ease;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 10%, transparent);
+    border-color: var(--mat-sys-outline);
+  }
+
+  &:disabled {
+    opacity: 0.38;
+    cursor: default;
+  }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .console-content {
@@ -286,6 +446,9 @@ input:focus {
   position: relative;
 }
 
+/* =============================================
+// Resize Handles
+// ============================================= */
 .resize-handle {
   position: absolute;
   z-index: 100;
@@ -296,7 +459,6 @@ input:focus {
     opacity: 1;
   }
 
-  // Edge handles - transparent
   &.resize-handle-top {
     top: -4px;
     left: 12px;
@@ -333,7 +495,6 @@ input:focus {
     background: transparent;
   }
 
-  // Corner handles - more subtle
   &.resize-handle-top-left {
     top: -6px;
     left: -6px;
