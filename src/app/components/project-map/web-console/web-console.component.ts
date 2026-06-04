@@ -137,6 +137,11 @@ export class WebConsoleComponent implements OnInit, AfterViewInit, OnDestroy {
     // Setup ResizeObserver for automatic terminal resizing
     this.setupResizeObserver();
 
+    // Apply appearance settings whenever they change
+    this.xtermService.settingsChanged$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.xtermService.applySettingsToTerminal(this.term, this.fitAddon, this.cdr);
+    });
+
     // Setup context menu for copy/paste
     this.contextMenuCleanup = this.contextMenuService.attachContextMenu(this.term, terminal.nativeElement);
   }

@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { signal } from '@angular/core';
+import { describe, it, expect, vi } from 'vitest';
 import { ConsoleWrapperComponent } from './console-wrapper.component';
+import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '@services/xterm.service';
 
 describe('ConsoleWrapperComponent', () => {
   describe('prototype methods', () => {
@@ -85,6 +87,73 @@ describe('ConsoleWrapperComponent', () => {
 
     it('should have onWindowResize method', () => {
       expect(typeof (ConsoleWrapperComponent.prototype as any).onWindowResize).toBe('function');
+    });
+  });
+
+  describe('settings behavior', () => {
+    it('toggleSettingsPanel should flip state and mark for check', () => {
+      const markForCheck = vi.fn();
+      const host = {
+        showSettingsPanelSignal: signal(false),
+        cdr: { markForCheck },
+      } as any;
+
+      (ConsoleWrapperComponent.prototype as any).toggleSettingsPanel.call(host);
+      expect(host.showSettingsPanelSignal()).toBe(true);
+      expect(markForCheck).toHaveBeenCalledTimes(1);
+
+      (ConsoleWrapperComponent.prototype as any).toggleSettingsPanel.call(host);
+      expect(host.showSettingsPanelSignal()).toBe(false);
+      expect(markForCheck).toHaveBeenCalledTimes(2);
+    });
+
+    it('applySettings should refresh state from service settings', () => {
+      const markForCheck = vi.fn();
+      const updateSettings = vi.fn();
+      const serviceState = {
+        fontSize: MAX_FONT_SIZE,
+        fontFamily: 'Consolas',
+        foregroundColor: '#112233',
+        backgroundColor: '#aabbcc',
+      };
+      const xtermService = { updateSettings } as any;
+      Object.defineProperty(xtermService, 'settings', {
+        get: () => ({ ...serviceState }),
+      });
+
+      const host = {
+        xtermService,
+        settingsSignal: signal({
+          fontSize: DEFAULT_FONT_SIZE,
+          fontFamily: null,
+          foregroundColor: null,
+          backgroundColor: null,
+        }),
+        cdr: { markForCheck },
+      } as any;
+
+      (ConsoleWrapperComponent.prototype as any).applySettings.call(host, { fontSize: 999 });
+
+      expect(updateSettings).toHaveBeenCalledWith({ fontSize: 999 });
+      expect(host.settingsSignal()).toEqual(serviceState);
+      expect(markForCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('changeFontSize should clamp bounds before applying', () => {
+      const applySettings = vi.fn();
+      const host = {
+        minFontSize: MIN_FONT_SIZE,
+        maxFontSize: MAX_FONT_SIZE,
+        currentSettings: () => ({ fontSize: MIN_FONT_SIZE }),
+        applySettings,
+      } as any;
+
+      (ConsoleWrapperComponent.prototype as any).changeFontSize.call(host, -5);
+      expect(applySettings).toHaveBeenLastCalledWith({ fontSize: MIN_FONT_SIZE });
+
+      host.currentSettings = () => ({ fontSize: MAX_FONT_SIZE });
+      (ConsoleWrapperComponent.prototype as any).changeFontSize.call(host, 5);
+      expect(applySettings).toHaveBeenLastCalledWith({ fontSize: MAX_FONT_SIZE });
     });
   });
 });
