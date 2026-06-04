@@ -4,6 +4,18 @@
 </h2>
 
 <mat-dialog-content class="help-content">
+  <!-- Compatibility Notice -->
+  <mat-card class="compatibility-card">
+    <mat-card-content>
+      <p class="status-text">
+        <mat-icon class="status-icon">info</mat-icon>
+        <strong>OpenAI-Compatible Only:</strong> GNS3 currently supports only OpenAI-compatible LLM APIs.
+        Ensure your provider and model use the OpenAI API format
+        (e.g., OpenAI, DeepSeek, OpenRouter, Ollama with OpenAI compatibility).
+      </p>
+    </mat-card-content>
+  </mat-card>
+
   <!-- Basic Configuration Section -->
   <div class="help-section">
     <h3>Basic Configuration</h3>
