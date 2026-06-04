@@ -123,7 +123,7 @@ jobs:
         run: |
           echo "Checking if .husky/ hook scripts were modified..."
           echo "(Config files like allowed-hardcoded-colors.json are excluded)"
-          HUSKY_SCRIPTS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^\.\husky/" | grep -v "allowed-hardcoded-colors.json" || true)
+          HUSKY_SCRIPTS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^\.husky/" | grep -v "allowed-hardcoded-colors.json" || true)
 
           if [ -n "$HUSKY_SCRIPTS" ]; then
             echo "⚠️  The following hook scripts were modified:"

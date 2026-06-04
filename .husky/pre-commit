@@ -5,7 +5,7 @@ echo "🔍 Running Standards check..."
 
 # Check if .husky/ hook scripts are being modified (PROTECTED)
 # NOTE: allowed-hardcoded-colors.json is a regular config file, not a hook script
-STAGED_HUSKY=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep "^\.\husky/" | grep -v "allowed-hardcoded-colors.json" || true)
+STAGED_HUSKY=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep "^\.husky/" | grep -v "allowed-hardcoded-colors.json" || true)
 if [ -n "$STAGED_HUSKY" ]; then
   echo ""
   echo "⚠️  ⚠️  ⚠️  WARNING ⚠️  ⚠️  ⚠️"
