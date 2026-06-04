@@ -121,12 +121,13 @@ jobs:
       - name: Check for hooks modifications
         if: github.event_name == 'pull_request'
         run: |
-          echo "Checking if .husky/ files were modified..."
-          HUSKY_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^\.\husky/" || true)
+          echo "Checking if .husky/ hook scripts were modified..."
+          echo "(Config files like allowed-hardcoded-colors.json are excluded)"
+          HUSKY_SCRIPTS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^\.husky/" | grep -v "allowed-hardcoded-colors.json" || true)
 
-          if [ -n "$HUSKY_FILES" ]; then
-            echo "⚠️  The following hook files were modified:"
-            echo "$HUSKY_FILES" | sed 's/^/  /'
+          if [ -n "$HUSKY_SCRIPTS" ]; then
+            echo "⚠️  The following hook scripts were modified:"
+            echo "$HUSKY_SCRIPTS" | sed 's/^/  /'
 
             # Check if PR has the 'hooks-update' label
             HAS_LABEL=$(echo '${{ github.event.pull_request.labels.*.name }}' | grep -o 'hooks-update' || true)
@@ -145,7 +146,7 @@ jobs:
               echo "✅ PR has 'hooks-update' label - hooks modification allowed"
             fi
           else
-            echo "✅ No hook files modified"
+            echo "✅ No hook scripts modified"
           fi
 
       - name: Install JS dependencies

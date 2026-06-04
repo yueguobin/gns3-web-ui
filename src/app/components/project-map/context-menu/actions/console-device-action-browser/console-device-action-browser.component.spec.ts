@@ -7,7 +7,6 @@ import { ConsoleDeviceActionBrowserComponent } from './console-device-action-bro
 import { NodeService } from '@services/node.service';
 import { ToasterService } from '@services/toaster.service';
 import { ProtocolHandlerService } from '@services/protocol-handler.service';
-import { VncConsoleService } from '@services/vnc-console.service';
 import { Controller } from '@models/controller';
 import { Node } from '../../../../../cartography/models/node';
 import { of, throwError } from 'rxjs';
@@ -18,7 +17,6 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
   let mockNodeService: NodeService;
   let mockToasterService: ToasterService;
   let mockProtocolHandlerService: ProtocolHandlerService;
-  let mockVncConsoleService: VncConsoleService;
 
   const mockController: Controller = {
     id: 1,
@@ -144,17 +142,12 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
       open: vi.fn(),
     } as any;
 
-    mockVncConsoleService = {
-      openVncConsole: vi.fn(),
-    } as any;
-
     await TestBed.configureTestingModule({
       imports: [ConsoleDeviceActionBrowserComponent, MatButtonModule, MatIconModule, MatMenuModule],
     })
       .overrideProvider(NodeService, { useValue: mockNodeService })
       .overrideProvider(ToasterService, { useValue: mockToasterService })
       .overrideProvider(ProtocolHandlerService, { useValue: mockProtocolHandlerService })
-      .overrideProvider(VncConsoleService, { useValue: mockVncConsoleService })
       .compileComponents();
 
     fixture = TestBed.createComponent(ConsoleDeviceActionBrowserComponent);
@@ -462,11 +455,14 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
   });
 
   describe('startConsole() with vnc', () => {
-    it('should call VncConsoleService for vnc console type', () => {
+    it('should build correct gns3+vnc:// URI and call protocol handler', () => {
       const mockNode = createMockNode({
         console_type: 'vnc',
         console_host: '192.168.1.1',
         console: 5900,
+        name: 'VM1',
+        project_id: 'proj-1',
+        node_id: 'node-1',
       });
 
       fixture.componentRef.setInput('controller', mockController);
@@ -475,8 +471,9 @@ describe('ConsoleDeviceActionBrowserComponent', () => {
 
       component.startConsole(false);
 
-      expect(mockVncConsoleService.openVncConsole).toHaveBeenCalledWith(mockController, mockNode);
-      expect(mockProtocolHandlerService.open).not.toHaveBeenCalled();
+      expect(mockProtocolHandlerService.open).toHaveBeenCalledWith(
+        'gns3+vnc://192.168.1.1:5900?name=VM1&project_id=proj-1&node_id=node-1'
+      );
     });
   });
 

@@ -245,6 +245,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   readonly templateComponent = viewChild(TemplateComponent);
 
   private projectMapSubscription: Subscription = new Subscription();
+  private startedNodeIds = new Set<string>();
 
   private route = inject(ActivatedRoute);
   private controllerService = inject(ControllerService);
@@ -463,6 +464,27 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     this.projectMapSubscription.add(
       this.mapSettingsService.symbolScalingSubject.subscribe((value) => {
         if (value) this.applyScalingOfNodeSymbols();
+      })
+    );
+
+    this.projectMapSubscription.add(
+      this.projectWebServiceHandler.nodeNotificationEmitter.subscribe((message) => {
+        if (message.action !== 'node.updated') return;
+        const node = message.event as Node;
+        const wasStarted = this.startedNodeIds.has(node.node_id);
+        if (node.status === 'started') {
+          this.startedNodeIds.add(node.node_id);
+        } else {
+          this.startedNodeIds.delete(node.node_id);
+        }
+        // Only open console on the transition from non-started to started
+        if (wasStarted || node.status !== 'started' || !node.console_auto_start || node.console_type === 'none') return;
+        if (node.console_type === 'vnc') {
+          setTimeout(() => this.onOpenWebConsoleInline({ node, controller: this.controller, project: this.project }), 500);
+        } else {
+          this.mapSettingsService.logConsoleSubject.next(true);
+          setTimeout(() => this.nodeConsoleService.openConsoleForNode(node), 500);
+        }
       })
     );
   }
@@ -686,6 +708,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       .pipe(
         mergeMap((nodes: Node[]) => {
           this.nodesDataSource.set(nodes);
+          nodes.filter((n) => n.status === 'started').forEach((n) => this.startedNodeIds.add(n.node_id));
           return this.projectService.links(this.controller, project.project_id);
         }),
         mergeMap((links: Link[]) => {
@@ -1641,5 +1664,6 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       if (this.ws.OPEN) this.ws.close();
     }
     this.projectMapSubscription.unsubscribe();
+    this.startedNodeIds.clear();
   }
 }
