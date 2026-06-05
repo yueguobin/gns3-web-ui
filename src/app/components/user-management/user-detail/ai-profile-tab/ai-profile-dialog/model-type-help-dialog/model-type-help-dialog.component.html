@@ -4,6 +4,18 @@
 </h2>
 
 <mat-dialog-content class="help-content">
+  <!-- Compatibility Notice -->
+  <mat-card class="compatibility-card">
+    <mat-card-content>
+      <p class="status-text">
+        <mat-icon class="status-icon">info</mat-icon>
+        <strong>OpenAI-Compatible Only:</strong> GNS3 currently supports only OpenAI-compatible LLM APIs.
+        Ensure your provider and model use the OpenAI API format
+        (e.g., OpenAI, DeepSeek, OpenRouter, Ollama with OpenAI compatibility).
+      </p>
+    </mat-card-content>
+  </mat-card>
+
   <!-- Basic Configuration Section -->
   <div class="help-section">
     <h3>Basic Configuration</h3>
@@ -20,40 +32,16 @@
 
     <div class="field-item">
       <h4>Model Type</h4>
-      <p>The category of AI model you are configuring. This field is reserved for future use.</p>
+      <p>The category of AI model for this configuration.</p>
       <mat-card class="info-card">
         <mat-card-content>
           <p class="status-text">
             <mat-icon class="status-icon">info</mat-icon>
-            Currently, only <strong>text</strong> model type is supported. Other options (vision, stt, tts, multimodal,
-            embedding, reranking, other) are reserved for future enhancements.
+            Currently fixed to <strong>text</strong>. This field is reserved for future use when additional model
+            types become supported.
           </p>
         </mat-card-content>
       </mat-card>
-    </div>
-
-    <div class="field-item">
-      <h4>Select LLM Provider</h4>
-      <p>Choose a preset provider to auto-configure the connection settings.</p>
-      <ul>
-        <li><strong>OpenRouter:</strong> Access to multiple models through openrouter.ai</li>
-        <li><strong>DeepSeek:</strong> DeepSeek's official API endpoint</li>
-        <li><strong>Custom:</strong> Manually configure all settings</li>
-      </ul>
-      <p class="note">Presets automatically fill in the Base URL and default model list.</p>
-    </div>
-
-    <div class="field-item">
-      <h4>Model Name</h4>
-      <p>The specific model to use from the selected provider.</p>
-      <ul>
-        <li><strong>From preset:</strong> Select from a dropdown list of available models</li>
-        <li><strong>Custom:</strong> Enter any model name manually</li>
-      </ul>
-      <p>
-        <strong>Examples:</strong> <code>gpt-4o</code>, <code>claude-3-5-sonnet-20241022</code>,
-        <code>deepseek-v4-pro</code>
-      </p>
     </div>
   </div>
 
@@ -63,21 +51,31 @@
 
     <div class="field-item">
       <h4>Model Provider</h4>
-      <p>The provider type for API communication.</p>
+      <p>The LLM provider identifier for API communication.</p>
       <p>
-        Select the provider that matches your API endpoint. For OpenAI-compatible APIs, choose "OpenAI" and customize
-        the Base URL.
+        Enter the provider that matches your API endpoint. Common values include
+        <code>openai</code>, <code>anthropic</code>, <code>ollama</code>, <code>deepseek</code>.
       </p>
+      <p>For OpenAI-compatible APIs, use <code>openai</code> as the provider and customize the Base URL.</p>
     </div>
 
     <div class="field-item">
       <h4>Base URL</h4>
       <p>The API endpoint URL for the provider.</p>
       <ul>
-        <li><strong>Default:</strong> Leave empty to use the provider's default endpoint</li>
-        <li><strong>Custom:</strong> Enter a full URL (e.g., <code>https://api.openai.com/v1</code>)</li>
+        <li>Enter the full URL of the API endpoint</li>
+        <li><strong>Examples:</strong> <code>https://api.openai.com/v1</code>, <code>http://localhost:11434/v1</code></li>
       </ul>
-      <p class="note">This field is auto-filled when using presets.</p>
+    </div>
+
+    <div class="field-item">
+      <h4>Model Name</h4>
+      <p>The specific model to use.</p>
+      <p>Enter the model identifier exactly as required by the provider's API.</p>
+      <p>
+        <strong>Examples:</strong> <code>gpt-4o</code>, <code>claude-sonnet-4</code>,
+        <code>deepseek-v4-pro</code>, <code>llama-3-70b</code>
+      </p>
     </div>
 
     <div class="field-item">

@@ -161,55 +161,11 @@
         }
       </mat-form-field>
 
-      <!-- Model Type Selection -->
+      <!-- Model Type (fixed to text) -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Model Type</mat-label>
-        <mat-select formControlName="model_type">
-          @for (type of modelTypes; track type.value) {
-          <mat-option [value]="type.value">
-            {{ type.label }}
-          </mat-option>
-          }
-        </mat-select>
+        <input matInput formControlName="model_type" value="text" readonly />
       </mat-form-field>
-
-      <!-- Provider Preset Selection -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Select LLM Provider</mat-label>
-        <mat-select [value]="selectedPresetId" (selectionChange)="onPresetChange($event.value)">
-          @for (preset of providerPresets; track preset.id) {
-          <mat-option [value]="preset.id">
-            {{ preset.label }}
-          </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Model Selection (when preset is selected and not custom) -->
-      @if (selectedPreset && selectedPresetId !== 'custom' && !useCustomModel) {
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Model Name</mat-label>
-        <mat-select [value]="form.get('model')?.value" (selectionChange)="onModelChange($event.value)">
-          @for (model of selectedPreset.models; track model) {
-          <mat-option [value]="model">
-            {{ model }}
-          </mat-option>
-          }
-          <mat-option value="__custom__">Custom model name...</mat-option>
-        </mat-select>
-      </mat-form-field>
-      }
-
-      <!-- Custom Model Input (when Custom preset is selected or "Custom model name..." is chosen) -->
-      @if (selectedPresetId === 'custom' || useCustomModel) {
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Model Name</mat-label>
-        <input matInput formControlName="model" placeholder="Enter model name" />
-        @if (!form.get('model')?.value) {
-        <mat-error>Model name is required</mat-error>
-        }
-      </mat-form-field>
-      }
 
       <!-- API Configuration Section -->
       <div class="section-header">
@@ -218,19 +174,13 @@
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Model Provider</mat-label>
-        <mat-select formControlName="provider" placeholder="Select provider">
-          @for (provider of supportedProviders; track provider.value) {
-          <mat-option [value]="provider.value">
-            {{ provider.label }}
-          </mat-option>
-          }
-        </mat-select>
+        <input matInput formControlName="provider" placeholder="e.g.: openai, anthropic, ollama" />
         <mat-error>Provider is required</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Base URL</mat-label>
-        <input matInput formControlName="base_url" placeholder="Auto-filled from preset" />
+        <input matInput formControlName="base_url" placeholder="e.g.: https://api.openai.com/v1" />
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
@@ -244,6 +194,15 @@
         />
         @if (hasError('api_key')) {
         <mat-error>{{ getErrorMessage('api_key') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Model Name -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Model Name</mat-label>
+        <input matInput formControlName="model" placeholder="e.g.: gpt-4o, deepseek-v4-flash, claude-sonnet-4" />
+        @if (!form.get('model')?.value) {
+        <mat-error>Model name is required</mat-error>
         }
       </mat-form-field>
 

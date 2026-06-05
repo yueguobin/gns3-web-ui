@@ -19,6 +19,33 @@ mat-dialog-title {
   max-height: 60vh;
   overflow-y: auto;
 
+  .compatibility-card {
+    margin: 0 0 24px 0;
+    border-radius: 8px;
+    background: var(--mat-sys-primary-container);
+    border: 1px solid var(--mat-sys-primary);
+
+    mat-card-content {
+      padding: 12px 16px;
+    }
+
+    .status-text {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--mat-sys-on-primary-container);
+
+      .status-icon {
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--mat-sys-primary);
+      }
+    }
+  }
+
   .help-section {
     margin-bottom: 32px;
 

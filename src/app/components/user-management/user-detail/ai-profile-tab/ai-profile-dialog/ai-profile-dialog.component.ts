@@ -5,6 +5,7 @@ import {
   FormGroup,
   FormArray,
   Validators,
+  ValidatorFn,
   AbstractControl,
   ValidationErrors,
   ReactiveFormsModule,
@@ -173,26 +174,6 @@ export class AiProfileDialogComponent implements OnInit {
   selectedPreset: ProviderPreset | null = null;
   useCustomModel: boolean = false;
 
-  // Supported providers for Custom Mode
-  supportedProviders = [
-    { value: 'openai', label: 'OpenAI' },
-    { value: 'anthropic', label: 'Anthropic' },
-    { value: 'google', label: 'Google' },
-    { value: 'aws', label: 'AWS Bedrock' },
-    { value: 'ollama', label: 'Ollama' },
-    { value: 'deepseek', label: 'DeepSeek' },
-    { value: 'xai', label: 'xAI' },
-  ];
-
-  // Default base URLs for providers
-  providerDefaultUrls: { [key: string]: string } = {
-    openai: 'https://api.openai.com/v1',
-    anthropic: 'https://api.anthropic.com',
-    google: 'https://generativelanguage.googleapis.com',
-    deepseek: 'https://api.deepseek.com/v1',
-    xai: 'https://api.x.ai',
-  };
-
   // Get non-custom presets for Basic Mode
   get basicModePresets(): ProviderPreset[] {
     return this.providerPresets.filter((preset) => preset.id !== 'custom');
@@ -266,21 +247,6 @@ export class AiProfileDialogComponent implements OnInit {
       this.detectPresetFromConfig();
       this.cd.markForCheck();
     }
-
-    // Watch for provider changes to auto-fill base URL in Custom mode
-    this.form.get('provider')?.valueChanges.subscribe((providerValue) => {
-      // Only auto-fill in Custom mode (not when using presets)
-      if (this.selectedPresetId === 'custom' && providerValue) {
-        const defaultUrl = this.providerDefaultUrls[providerValue];
-        const baseUrlControl = this.form.get('base_url');
-
-        // Add null check for base_url control
-        if (defaultUrl && baseUrlControl && !baseUrlControl.value) {
-          baseUrlControl.setValue(defaultUrl);
-        }
-      }
-      this.cd.markForCheck();
-    });
   }
 
   private createForm(): FormGroup {
@@ -295,6 +261,7 @@ export class AiProfileDialogComponent implements OnInit {
             Validators.minLength(1),
             Validators.maxLength(100),
             Validators.pattern(/^[a-zA-Z0-9_-]+$/),
+            this.duplicateNameValidator(),
           ],
         ],
         model_type: ['text', Validators.required],
@@ -309,8 +276,21 @@ export class AiProfileDialogComponent implements OnInit {
         is_default: [false],
         customFields: this.customFieldsArray,
       },
-      { validators: this.nameUniqueValidator.bind(this) }
     );
+  }
+
+  /**
+   * Custom validator: check if the name already exists
+   */
+  private duplicateNameValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const name = control.value;
+      if (!name) return null;
+      if (this.existingNames.includes(name)) {
+        return { duplicateName: true };
+      }
+      return null;
+    };
   }
 
   /**
@@ -412,20 +392,6 @@ export class AiProfileDialogComponent implements OnInit {
   }
 
   /**
-   * Name uniqueness validator
-   */
-  private nameUniqueValidator(group: AbstractControl): ValidationErrors | null {
-    const name = group.get('name')?.value;
-    if (!name) return null;
-
-    if (this.existingNames.includes(name)) {
-      return { duplicateName: true };
-    }
-
-    return null;
-  }
-
-  /**
    * Get error message
    */
   getErrorMessage(field: string): string {
@@ -433,14 +399,13 @@ export class AiProfileDialogComponent implements OnInit {
     if (!control || !control.errors) return '';
 
     const errors = control.errors;
-    const formErrors = this.form.errors;
 
     if (field === 'name') {
       if (errors.required) return 'Name is required';
       if (errors.minlength) return 'Name must be at least 1 character';
       if (errors.maxlength) return 'Name cannot exceed 100 characters';
       if (errors.pattern) return 'Name can only contain letters, numbers, underscores and hyphens';
-      if (formErrors?.duplicateName) return 'Name already exists';
+      if (errors.duplicateName) return 'Name already exists';
       return 'Invalid name format';
     }
 
@@ -568,7 +533,7 @@ export class AiProfileDialogComponent implements OnInit {
    */
   openCustomModeHelp(): void {
     this.dialog.open(ModelTypeHelpDialogComponent, {
-      panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
+      panelClass: ['base-dialog-panel', 'ai-profile-dialog-panel'],
     });
   }
 
