@@ -151,7 +151,7 @@
               (focus)="refreshQemuImages()"
               placeholder="Disk image"
             />
-            <mat-autocomplete #hdaAuto="matAutocomplete">
+            <mat-autocomplete #hdaAuto="matAutocomplete" (optionSelected)="hdaDiskImage.set($event.option.value)">
               @if (filteredImages.length) {
               <mat-optgroup label="Global images">
                 @for (image of filteredImages; track image.filename) {
@@ -185,7 +185,7 @@
               (focus)="refreshQemuImages()"
               placeholder="Disk image"
             />
-            <mat-autocomplete #hdbAuto="matAutocomplete">
+            <mat-autocomplete #hdbAuto="matAutocomplete" (optionSelected)="hdbDiskImage.set($event.option.value)">
               @if (filteredImages.length) {
               <mat-optgroup label="Global images">
                 @for (image of filteredImages; track image.filename) {
@@ -219,7 +219,7 @@
               (focus)="refreshQemuImages()"
               placeholder="Disk image"
             />
-            <mat-autocomplete #hdcAuto="matAutocomplete">
+            <mat-autocomplete #hdcAuto="matAutocomplete" (optionSelected)="hdcDiskImage.set($event.option.value)">
               @if (filteredImages.length) {
               <mat-optgroup label="Global images">
                 @for (image of filteredImages; track image.filename) {
@@ -253,7 +253,7 @@
               (focus)="refreshQemuImages()"
               placeholder="Disk image"
             />
-            <mat-autocomplete #hddAuto="matAutocomplete">
+            <mat-autocomplete #hddAuto="matAutocomplete" (optionSelected)="hddDiskImage.set($event.option.value)">
               @if (filteredImages.length) {
               <mat-optgroup label="Global images">
                 @for (image of filteredImages; track image.filename) {

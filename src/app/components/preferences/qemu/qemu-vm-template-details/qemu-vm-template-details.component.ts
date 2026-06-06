@@ -158,9 +158,10 @@ export class QemuVmTemplateDetailsComponent implements OnInit {
         this.getConfiguration();
         this.qemuService.getImages(this.controller).subscribe({
           next: (images: QemuImage[]) => {
-            this.qemuImages = images;
-            this.filteredImages = images;
-            this.filteredAdvancedImages = images;
+            const unique = images.filter((img, idx, arr) => arr.findIndex(i => i.filename === img.filename) === idx);
+            this.qemuImages = unique;
+            this.filteredImages = unique;
+            this.filteredAdvancedImages = unique;
             this.cd.markForCheck();
           },
           error: (err) => {
@@ -298,9 +299,10 @@ export class QemuVmTemplateDetailsComponent implements OnInit {
   refreshQemuImages() {
     this.qemuService.getImages(this.controller).subscribe({
       next: (images: QemuImage[]) => {
-        this.qemuImages = images;
-        this.filteredImages = images;
-        this.filteredAdvancedImages = images;
+        const unique = images.filter((img, idx, arr) => arr.findIndex(i => i.filename === img.filename) === idx);
+        this.qemuImages = unique;
+        this.filteredImages = unique;
+        this.filteredAdvancedImages = unique;
         this.cd.markForCheck();
       },
     });
