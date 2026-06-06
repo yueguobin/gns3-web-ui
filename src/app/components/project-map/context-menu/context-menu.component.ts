@@ -50,6 +50,7 @@ import { LockActionComponent } from './actions/lock-action/lock-action.component
 import { DeleteActionComponent } from './actions/delete-action/delete-action.component';
 import { AlignHorizontallyActionComponent } from './actions/align-horizontally/align-horizontally.component';
 import { AlignVerticallyActionComponent } from './actions/align_vertically/align-vertically.component';
+import { ShowInFileManagerActionComponent } from './actions/show-in-file-manager-action/show-in-file-manager-action.component';
 
 @Component({
   selector: 'app-context-menu',
@@ -97,6 +98,7 @@ import { AlignVerticallyActionComponent } from './actions/align_vertically/align
     DeleteActionComponent,
     AlignHorizontallyActionComponent,
     AlignVerticallyActionComponent,
+    ShowInFileManagerActionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
