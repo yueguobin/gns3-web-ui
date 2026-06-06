@@ -1,0 +1,25 @@
+<h1 mat-dialog-title>
+  {{ data.nodeName }}
+  <button mat-icon-button class="close-btn" (click)="onCloseClick()">
+    <mat-icon>close</mat-icon>
+  </button>
+</h1>
+
+<div mat-dialog-content class="node-file-manager-dialog__content">
+  <p class="node-file-manager-dialog__label">Node directory on server <strong>{{ data.controllerName }}</strong>:</p>
+  <div class="node-file-manager-dialog__path-row">
+    <span class="node-file-manager-dialog__path">{{ data.nodeDirectory }}</span>
+    <button
+      mat-icon-button
+      [matTooltip]="copied ? 'Copied!' : 'Copy path to clipboard'"
+      (click)="copyPath()"
+      aria-label="Copy path to clipboard"
+    >
+      <mat-icon>{{ copied ? 'check' : 'content_copy' }}</mat-icon>
+    </button>
+  </div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCloseClick()">Close</button>
+</div>

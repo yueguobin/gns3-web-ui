@@ -1,0 +1,25 @@
+.node-file-manager-dialog__content {
+  min-width: 420px;
+}
+
+.node-file-manager-dialog__label {
+  margin: 0 0 8px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.node-file-manager-dialog__path-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  padding: 8px 4px 8px 12px;
+}
+
+.node-file-manager-dialog__path {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
