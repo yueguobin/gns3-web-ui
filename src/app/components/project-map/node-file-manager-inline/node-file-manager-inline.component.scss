@@ -8,7 +8,6 @@
     0 4px 8px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
   overflow: visible;
   transition: box-shadow 0.2s ease;
-  contain: layout style;
 
   &:hover {
     box-shadow: 0 12px 32px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent),
