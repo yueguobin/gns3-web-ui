@@ -6,6 +6,9 @@
   border-radius: 8px;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--mat-sys-shadow) 15%, transparent),
     0 4px 8px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
+  // WARNING: Do NOT add contain:layout here. It would make position:fixed
+  // inside this component relative to this window instead of the viewport,
+  // breaking the context menu position (onRowContextMenu uses position:fixed).
   overflow: visible;
   transition: box-shadow 0.2s ease;
 
