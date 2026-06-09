@@ -32,6 +32,9 @@
         <span class="node-info">{{ node()?.name }}</span>
       </div>
       <div class="node-file-manager-inline-header__actions">
+        <button mat-icon-button class="open-in-new-tab-button" (click)="openInNewTab()" title="Open in new tab">
+          <mat-icon>open_in_new</mat-icon>
+        </button>
         <button mat-icon-button class="minimize-button" (click)="toggleMinimize()" title="Minimize">
           <mat-icon>remove</mat-icon>
         </button>

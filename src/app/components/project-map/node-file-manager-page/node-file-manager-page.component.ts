@@ -293,7 +293,7 @@ export class NodeFileManagerPageComponent implements OnInit {
   }
 
   isEditableFile(file: NodeFile): boolean {
-    return file.file_type === 'ASCII text';
+    return file.file_type.includes('ASCII') || file.file_type.includes('UTF-8') || file.file_type.includes('text');
   }
 
   formatFileSize(size: number): string {

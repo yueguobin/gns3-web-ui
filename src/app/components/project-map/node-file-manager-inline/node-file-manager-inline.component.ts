@@ -14,6 +14,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -72,6 +73,7 @@ export class NodeFileManagerInlineComponent implements OnInit, OnDestroy {
   private boundaryService = inject(WindowBoundaryService);
   private windowManagement = inject(WindowManagementService);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -242,5 +244,28 @@ export class NodeFileManagerInlineComponent implements OnInit, OnDestroy {
     if (page) {
       page.style.pointerEvents = value;
     }
+  }
+
+  openInNewTab(): void {
+    const node = this.node();
+    const controller = this.controller();
+    if (!node || !controller) return;
+
+    const url = this.router.createUrlTree([
+      '/controller',
+      controller.id,
+      'project',
+      node.project_id,
+      'nodes',
+      node.node_id,
+      'files'
+    ], {
+      queryParams: {
+        name: node.name
+      }
+    });
+
+    const fullUrl = window.location.origin + this.router.serializeUrl(url);
+    window.open(fullUrl, '_blank');
   }
 }
