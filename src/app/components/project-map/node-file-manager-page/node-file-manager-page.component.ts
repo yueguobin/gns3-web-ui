@@ -396,7 +396,8 @@ export class NodeFileManagerPageComponent implements OnInit {
     this.uploading.set(true);
     this.uploadProgress.set(0);
     const ctrl = this.controller();
-    this.nodeService.uploadNodeFileWithProgress(ctrl, this.projectId, this.nodeId, file.name, file).subscribe({
+    const uploadPath = this.currentPath() ? `${this.currentPath()}/${file.name}` : file.name;
+    this.nodeService.uploadNodeFileWithProgress(ctrl, this.projectId, this.nodeId, uploadPath, file).subscribe({
       next: (p) => {
         this.uploadProgress.set(p);
         this.cd.markForCheck();
@@ -411,7 +412,10 @@ export class NodeFileManagerPageComponent implements OnInit {
         this.uploading.set(false);
         this.uploadProgress.set(0);
         this.toaster.success(`File "${file.name}" uploaded.`);
-        this.loadFiles();
+        // Add to current dir cache without full reload
+        const current = this.getDirCache(this.currentPath());
+        const newFile = { path: uploadPath, size: file.size, created_at: '', modified_at: '', file_type: 'ASCII text' };
+        this.setDirCache(this.currentPath(), [...current, newFile]);
         this.cd.markForCheck();
       },
     });
