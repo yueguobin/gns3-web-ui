@@ -4,7 +4,7 @@
     @if (nodes.length === 1) {
     <app-show-node-action [controller]="controller" [node]="nodes[0]"></app-show-node-action>
     } @if (nodes.length === 1) {
-    <app-show-in-file-manager-action [controller]="controller" [node]="nodes[0]"></app-show-in-file-manager-action>
+    <app-show-in-file-manager-action [controller]="controller" [node]="nodes[0]" (openFileManagerInline)="onOpenFileManagerInline($event)"></app-show-in-file-manager-action>
     } @if (nodes.length === 1) {
     <app-config-node-action [controller]="controller" [node]="nodes[0]"></app-config-node-action>
     } @if (nodes.length) {

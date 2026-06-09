@@ -111,6 +111,7 @@ export class ContextMenuComponent implements OnInit {
   @Input() controller: Controller;
   @Output() openWebWiresharkInline = new EventEmitter<{ link: Link; controller: Controller; project: Project }>();
   @Output() openWebConsoleInline = new EventEmitter<{ node: Node; controller: Controller; project: Project }>();
+  @Output() openFileManagerInline = new EventEmitter<{ node: Node; controller: Controller }>();
 
   @ViewChild(MatMenuTrigger) contextMenu: MatMenuTrigger;
 
@@ -213,5 +214,9 @@ export class ContextMenuComponent implements OnInit {
 
   public onOpenWebConsoleInline(data: { node: Node; controller: Controller; project: Project }) {
     this.openWebConsoleInline.emit(data);
+  }
+
+  public onOpenFileManagerInline(data: { node: Node; controller: Controller }) {
+    this.openFileManagerInline.emit(data);
   }
 }

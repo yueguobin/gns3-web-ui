@@ -7,10 +7,12 @@ import { Node } from '../cartography/models/node';
 import { Project } from '@models/project';
 import { Template } from '@models/template';
 import { Label } from '../cartography/models/label';
+import { HttpClient } from '@angular/common/http';
 
 describe('NodeService', () => {
   let service: NodeService;
   let mockHttpController: any;
+  let mockHttp: HttpClient;
   let mockController: Controller;
   let mockProject: Project;
   let mockNode: Node;
@@ -24,6 +26,14 @@ describe('NodeService', () => {
       put: vi.fn(),
       delete: vi.fn(),
     };
+
+    // Mock HttpClient
+    mockHttp = {
+      post: vi.fn(),
+      get: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    } as any;
 
     // Mock Controller
     mockController = {
@@ -73,7 +83,7 @@ describe('NodeService', () => {
       symbol: 'test.svg',
     } as Template;
 
-    service = new NodeService(mockHttpController);
+    service = new NodeService(mockHttpController, mockHttp);
   });
 
   describe('Service Creation', () => {

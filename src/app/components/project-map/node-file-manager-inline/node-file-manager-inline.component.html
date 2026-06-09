@@ -1,0 +1,48 @@
+<div
+  #windowWrapper
+  class="node-file-manager-inline"
+  [class.is-dragging]="isDragging()"
+  [class.is-resizing]="isResizing()"
+  [class.is-minimized]="isMinimized()"
+  [ngStyle]="style"
+  [style.z-index]="zIndex()"
+  (mousedown)="onWindowFocus()"
+  mwlResizable
+  [validateResize]="validate"
+  [enableGhostResize]="false"
+  (resizeStart)="onResizeStart()"
+  (resizeEnd)="onResizeEnd($event)"
+>
+  @if (!isMinimized()) {
+  <div class="resize-handle resize-handle-top" mwlResizeHandle [resizeEdges]="{ top: true }"></div>
+  <div class="resize-handle resize-handle-right" mwlResizeHandle [resizeEdges]="{ right: true }"></div>
+  <div class="resize-handle resize-handle-bottom" mwlResizeHandle [resizeEdges]="{ bottom: true }"></div>
+  <div class="resize-handle resize-handle-left" mwlResizeHandle [resizeEdges]="{ left: true }"></div>
+  <div class="resize-handle resize-handle-top-left" mwlResizeHandle [resizeEdges]="{ top: true, left: true }"></div>
+  <div class="resize-handle resize-handle-top-right" mwlResizeHandle [resizeEdges]="{ top: true, right: true }"></div>
+  <div class="resize-handle resize-handle-bottom-left" mwlResizeHandle [resizeEdges]="{ bottom: true, left: true }"></div>
+  <div class="resize-handle resize-handle-bottom-right" mwlResizeHandle [resizeEdges]="{ bottom: true, right: true }"></div>
+  }
+
+  <div class="node-file-manager-inline__content">
+    <div class="node-file-manager-inline-header">
+      <div class="node-file-manager-inline-header__title">
+        <mat-icon class="header-icon">folder</mat-icon>
+        <span>File Manager</span>
+        <span class="node-info">{{ node()?.name }}</span>
+      </div>
+      <div class="node-file-manager-inline-header__actions">
+        <button mat-icon-button class="minimize-button" (click)="toggleMinimize()" title="Minimize">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <button mat-icon-button class="close-button" (click)="close()" title="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="node-file-manager-inline__iframe-container">
+      <app-node-file-manager-page [inputNode]="node()" [inputController]="controller()"></app-node-file-manager-page>
+    </div>
+  </div>
+</div>

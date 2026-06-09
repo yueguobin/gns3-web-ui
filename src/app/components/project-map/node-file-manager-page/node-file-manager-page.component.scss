@@ -1,0 +1,232 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+.editor-container {
+  display: flex;
+  flex: 1;
+  min-height: 200px;
+}
+
+.editor-textarea {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 12px;
+  border-radius: 0 8px 8px 0;
+  background: var(--mat-sys-surface-container-low);
+  color: var(--mat-sys-on-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-left: none;
+  resize: none;
+  box-sizing: border-box;
+  line-height: 1.5;
+  outline: none;
+  &:focus { border-color: var(--mat-sys-primary); }
+}
+
+.editor-line-marker--modified { background: var(--mat-sys-error); }
+.editor-line-marker--added { background: var(--mat-sys-tertiary); }
+
+.node-file-browser__table-container { width: 100%; overflow-x: hidden; }
+.node-file-browser__table { width: 100%; }
+
+/* ── Layout utilities ── */
+.node-file-manager__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  flex-shrink: 0;
+}
+
+.node-file-manager__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.node-file-manager__progress-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--mat-sys-outline);
+  background: transparent;
+}
+
+.node-file-manager__progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.node-file-manager__progress-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  padding: 4px 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.node-file-manager__content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+.node-file-manager__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px 16px;
+}
+
+.node-file-manager__spinner {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.node-file-manager__error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--mat-sys-error);
+}
+
+.node-file-manager__error-icon {
+  font-size: 48px;
+  height: 48px;
+  width: 48px;
+}
+
+.node-file-manager__sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--mat-sys-outline-variant);
+  padding: 8px 4px 8px 0;
+}
+
+.node-file-manager__tree-row {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  cursor: pointer;
+  background: transparent;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-low);
+  }
+
+  &--active {
+    background: var(--mat-sys-surface-container-high);
+
+    &:hover {
+      background: var(--mat-sys-surface-container-high);
+    }
+  }
+}
+
+.node-file-manager__tree-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.node-file-manager__tree-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.node-file-manager__tree-toggle {
+  cursor: pointer;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.node-file-manager__breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.node-file-manager__edit-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.node-file-manager__edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.node-file-manager__edit-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.node-file-manager__title {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.node-file-manager__icon-lg {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.node-file-manager__text-sm {
+  font-size: 13px;
+}
+
+.node-file-manager__hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.node-file-manager__mono {
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.mat-column-icon { flex: 0 0 36px; min-width: 36px; justify-content: center; }
+.mat-column-path { flex: 3; min-width: 200px; }
+.mat-column-file_type { flex: 0 0 140px; min-width: 140px; }
+.mat-column-size { flex: 0 0 120px; min-width: 120px; }
+.mat-column-modified_at { flex: 1; min-width: 150px; }
+
+.node-file-browser__table mat-row:nth-child(even) { background: var(--mat-sys-surface-container-low); }
