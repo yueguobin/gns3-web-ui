@@ -1,15 +1,20 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map, catchError, throwError } from 'rxjs';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Label } from '../cartography/models/label';
 import { Node } from '../cartography/models/node';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
 import { Template } from '@models/template';
 import { HttpController } from './http-controller.service';
+import { environment } from 'environments/environment';
 
 @Injectable()
 export class NodeService {
-  constructor(private httpController: HttpController) {}
+  constructor(
+    private httpController: HttpController,
+    private http: HttpClient
+  ) {}
 
   getNodeById(controller: Controller, projectId: string, nodeId: string) {
     return this.httpController.get(controller, `/projects/${projectId}/nodes/${nodeId}`);
@@ -195,11 +200,96 @@ export class NodeService {
   }
 
   uploadNodeFile(controller: Controller, projectId: string, nodeId: string, filePath: string, file: File): Observable<any> {
-    return this.httpController.post(controller, `/projects/${projectId}/nodes/${nodeId}/files/${filePath}`, file);
+    return this.httpController.post(controller, `/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`, file);
   }
 
-  getNodeFiles(controller: Controller, projectId: string, nodeId: string): Observable<any[]> {
-    return this.httpController.get(controller, `/projects/${projectId}/nodes/${nodeId}/files`);
+  uploadNodeFileWithProgress(controller: Controller, projectId: string, nodeId: string, filePath: string, file: File): Observable<number> {
+    const protocol = controller.protocol || (location.protocol as any);
+    const url = `${protocol}//${controller.host}:${controller.port}/${environment.current_version}/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`;
+    const headers: any = {};
+
+    if (controller.authToken && !controller.tokenExpired) {
+      headers['Authorization'] = `Bearer ${controller.authToken}`;
+    }
+
+    return this.http.post(url, file, {
+      headers,
+      reportProgress: true,
+      observe: 'events',
+    }).pipe(
+      map((event: HttpEvent<any>) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          return Math.round(100 * event.loaded / (event.total || 1));
+        }
+        if (event.type === HttpEventType.Response) {
+          return 100;
+        }
+        return 0;
+      }),
+      catchError((err) => {
+        const message = err.error?.message || err.message || 'Failed to upload file';
+        return throwError(() => new Error(message));
+      })
+    );
+  }
+
+  getNodeFiles(controller: Controller, projectId: string, nodeId: string, path?: string): Observable<any[]> {
+    const base = `/projects/${projectId}/nodes/${nodeId}/files`;
+    const params = path ? `?path=${encodeURIComponent(path)}` : '';
+    return this.httpController.get(controller, `${base}${params}`);
+  }
+
+  getNodeFilesRecursive(controller: Controller, projectId: string, nodeId: string): Observable<any[]> {
+    return this.httpController.get(controller, `/projects/${projectId}/nodes/${nodeId}/files?recursive=true`);
+  }
+
+  deleteNodeFile(controller: Controller, projectId: string, nodeId: string, filePath: string): Observable<any> {
+    return this.httpController.delete(controller, `/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`);
+  }
+
+  getNodeFileContent(controller: Controller, projectId: string, nodeId: string, filePath: string): Observable<string> {
+    return this.httpController.get(controller, `/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`, {
+      responseType: 'text' as 'json',
+    });
+  }
+
+  saveNodeFileContent(controller: Controller, projectId: string, nodeId: string, filePath: string, content: string): Observable<any> {
+    return this.httpController.post(controller, `/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`, content);
+  }
+
+  downloadNodeFile(controller: Controller, projectId: string, nodeId: string, filePath: string): Observable<Blob> {
+    return this.httpController.getBlob(controller, `/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`);
+  }
+
+  async streamNodeFileToFile(controller: Controller, projectId: string, nodeId: string, filePath: string, fileHandle: any, onProgress?: (downloaded: number) => void): Promise<void> {
+    const protocol = controller.protocol || (location.protocol as any);
+    const url = `${protocol}//${controller.host}:${controller.port}/${environment.current_version}/projects/${projectId}/nodes/${nodeId}/files/${encodeURIComponent(filePath)}`;
+    const headers: Record<string, string> = {};
+
+    if (controller.authToken && !controller.tokenExpired) {
+      headers['Authorization'] = `Bearer ${controller.authToken}`;
+    }
+
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+
+    const reader = response.body!.getReader();
+    const writable = await fileHandle.createWritable();
+    let downloaded = 0;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        await writable.write(value);
+        downloaded += value.length;
+        onProgress?.(downloaded);
+      }
+    } finally {
+      await writable.close();
+    }
   }
 
   getNetworkConfiguration(controller: Controller, node: Node) {

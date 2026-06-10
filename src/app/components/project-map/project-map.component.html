@@ -37,6 +37,7 @@
           [controller]="controller"
           (openWebWiresharkInline)="openWebWiresharkInline($event)"
           (openWebConsoleInline)="onOpenWebConsoleInline($event)"
+          (openFileManagerInline)="onOpenFileManagerInline($event)"
         ></app-context-menu>
       </div>
     </div>
@@ -306,6 +307,19 @@
     }
   }
 
+  <!-- File Manager Inline Windows (multiple) -->
+  @if (project && fileManagerInlineWindows.size > 0) {
+    @for (node of getFileManagerInlineWindows(); track node.node_id) {
+      <app-node-file-manager-inline
+        [node]="node"
+        [controller]="controller"
+        [zIndex]="getFileManagerZIndex(node.node_id)"
+        (closeWindow)="closeFileManagerInline(node.node_id)"
+        (windowFocused)="bringFileManagerToFront(node.node_id)"
+      ></app-node-file-manager-inline>
+    }
+  }
+
   <!-- Unified Taskbar for all open windows -->
   <div class="inline-taskbar">
     <!-- Console taskbar icon - always shown when console is open -->
@@ -346,6 +360,20 @@
         [title]="node.name"
       >
         <mat-icon class="inline-taskbar__icon-type">web</mat-icon>
+        <span class="inline-taskbar__label">{{ node.name }}</span>
+      </div>
+    }
+
+    <!-- File Manager taskbar icons -->
+    @for (node of getFileManagerInlineWindows(); track node.node_id) {
+      <div
+        class="inline-taskbar__icon"
+        [class.inline-taskbar__icon--minimized]="isFileManagerMinimized(node.node_id)"
+        [style.left.px]="getFileManagerTaskbarLeft(node.node_id)"
+        (click)="toggleFileManagerMinimize(node.node_id)"
+        [title]="'File Manager - ' + node.name"
+      >
+        <mat-icon class="inline-taskbar__icon-type">folder</mat-icon>
         <span class="inline-taskbar__label">{{ node.name }}</span>
       </div>
     }

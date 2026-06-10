@@ -109,6 +109,7 @@ import { AiChatComponent } from './ai-chat/ai-chat.component';
 import { ConsoleWrapperComponent } from './console-wrapper/console-wrapper.component';
 import { WebWiresharkInlineComponent } from './web-wireshark-inline/web-wireshark-inline.component';
 import { WebConsoleInlineComponent } from './web-console-inline/web-console-inline.component';
+import { NodeFileManagerInlineComponent } from './node-file-manager-inline/node-file-manager-inline.component';
 import { DrawLinkToolComponent } from './draw-link-tool/draw-link-tool.component';
 import { ImportApplianceComponent } from './import-appliance/import-appliance.component';
 import { NodesMenuComponent } from './nodes-menu/nodes-menu.component';
@@ -150,6 +151,7 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     AiChatComponent,
     WebWiresharkInlineComponent,
     WebConsoleInlineComponent,
+    NodeFileManagerInlineComponent,
     ProgressComponent,
     DrawingDraggedComponent,
     DrawingResizedComponent,
@@ -194,6 +196,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public webConsoleInlineZIndex = new Map<string, number>();
   // Base z-index for windows
   private baseZIndex = 1000;
+  // File Manager inline windows (multiple)
+  public fileManagerInlineWindows = new Map<string, Node>();
+  public fileManagerInlineZIndex = new Map<string, number>();
   // Counter for generating unique z-indices
   private zIndexCounter = 0;
 
@@ -1245,6 +1250,19 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
    * Get taskbar icon position for Web Console windows
    * Icons are arranged after Wireshark windows
    */
+  public getFileManagerTaskbarLeft(nodeId: string): number {
+    const index = Array.from(this.fileManagerInlineWindows.keys()).indexOf(nodeId);
+    const consoleOffset = this.TASKBAR_ICON_WIDTH + this.TASKBAR_ICON_GAP;
+    const wiresharkCount = this.webWiresharkInlineWindows.size;
+    const webConsoleCount = this.webConsoleInlineWindows.size;
+    const fileMgrCount = this.fileManagerInlineWindows.size;
+    let baseOffset = this.TASKBAR_BASE_LEFT;
+    if (this.isConsoleVisible) baseOffset += consoleOffset;
+    baseOffset += wiresharkCount * consoleOffset;
+    baseOffset += webConsoleCount * consoleOffset;
+    return baseOffset + index * consoleOffset;
+  }
+
   public getWebConsoleTaskbarLeft(nodeId: string | undefined): number {
     if (!nodeId) return this.TASKBAR_BASE_LEFT;
 
@@ -1665,5 +1683,54 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     }
     this.projectMapSubscription.unsubscribe();
     this.startedNodeIds.clear();
+  }
+
+  /**
+   * Open File Manager inline window
+   */
+  public onOpenFileManagerInline(data: { node: Node; controller: Controller }) {
+    if (this.fileManagerInlineWindows.has(data.node.node_id)) {
+      this.bringFileManagerToFront(data.node.node_id);
+      return;
+    }
+    this.zIndexCounter++;
+    this.fileManagerInlineWindows.set(data.node.node_id, data.node);
+    this.fileManagerInlineZIndex.set(data.node.node_id, this.baseZIndex + this.zIndexCounter);
+    this.cd.markForCheck();
+  }
+
+  public closeFileManagerInline(nodeId: string) {
+    this.fileManagerInlineWindows.delete(nodeId);
+    this.fileManagerInlineZIndex.delete(nodeId);
+    this.cd.markForCheck();
+  }
+
+  public bringFileManagerToFront(nodeId: string) {
+    if (!this.fileManagerInlineWindows.has(nodeId)) return;
+    this.zIndexCounter++;
+    this.fileManagerInlineZIndex.set(nodeId, this.baseZIndex + this.zIndexCounter);
+    this.cd.markForCheck();
+  }
+
+  public getFileManagerZIndex(nodeId: string): number {
+    return this.fileManagerInlineZIndex.get(nodeId) || this.baseZIndex;
+  }
+
+  public getFileManagerInlineWindows(): Node[] {
+    return Array.from(this.fileManagerInlineWindows.values());
+  }
+
+  public isFileManagerMinimized(nodeId: string): boolean {
+    return this.windowManagement.minimizedWindows().some(w => w.id === 'filemgr-' + nodeId);
+  }
+
+  public toggleFileManagerMinimize(nodeId: string) {
+    const id = `filemgr-${nodeId}`;
+    if (this.windowManagement.minimizedWindows().some(w => w.id === id)) {
+      this.windowManagement.restoreWindow(id);
+    } else {
+      this.windowManagement.minimizeWindow(id, 'filemgr');
+    }
+    this.cd.markForCheck();
   }
 }

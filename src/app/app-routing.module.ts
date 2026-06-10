@@ -52,6 +52,7 @@ import { ConsoleComponent } from '@components/settings/console/console.component
 import { SettingsComponent } from '@components/settings/settings.component';
 import { SystemStatusComponent } from '@components/system-status/system-status.component';
 import { WebConsoleFullWindowComponent } from '@components/web-console-full-window/web-console-full-window.component';
+import { NodeFileManagerPageComponent } from '@components/project-map/node-file-manager-page/node-file-manager-page.component';
 import { ConsoleGuard } from './guards/console-guard';
 import { LoginGuard } from './guards/login-guard';
 import { DefaultLayoutComponent } from './layouts/default-layout/default-layout.component';
@@ -350,6 +351,11 @@ const routes: Routes = [
   {
     path: 'controller/:controller_id/project/:project_id/nodes/:node_id',
     component: WebConsoleFullWindowComponent,
+    canActivate: [LoginGuard],
+  },
+  {
+    path: 'controller/:controller_id/project/:project_id/nodes/:node_id/files',
+    component: NodeFileManagerPageComponent,
     canActivate: [LoginGuard],
   },
   {

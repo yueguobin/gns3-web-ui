@@ -180,13 +180,20 @@ export class ConfiguratorDialogQemuComponent implements OnInit {
         // Load node files for HDD autocomplete
         this.nodeService.getNodeFiles(this.controller, node.project_id, node.node_id).subscribe({
           next: (files: any[]) => {
-            const extSet = new Set(['qcow2', 'qcow', 'vmdk', 'vhd', 'vdi', 'raw', 'img']);
             this.allNodeFiles = files.map((f: any) => f.path);
+            // Filter disk images based on file_type from Python magic library
             this.projectDiskFiles = files
-              .filter((f: any) => extSet.has(f.extension?.toLowerCase()))
+              .filter((f: any) => f.file_type?.toLowerCase().includes('qemu') ||
+                                 f.file_type?.toLowerCase().includes('qcow') ||
+                                 f.file_type?.toLowerCase().includes('vmdk') ||
+                                 f.file_type?.toLowerCase().includes('vmware') ||
+                                 f.file_type?.toLowerCase().includes('virtual') ||
+                                 f.file_type?.toLowerCase().includes('disk image'))
               .map((f: any) => f.path);
+            // Filter ISO images based on file_type
             this.projectIsoFiles = files
-              .filter((f: any) => f.extension?.toLowerCase() === 'iso')
+              .filter((f: any) => f.file_type?.toLowerCase().includes('iso 9660') ||
+                                 f.file_type?.toLowerCase().includes('cd-rom'))
               .map((f: any) => f.path);
             this.cd.markForCheck();
           },
@@ -276,11 +283,18 @@ export class ConfiguratorDialogQemuComponent implements OnInit {
     this.nodeService.getNodeFiles(this.controller, this.node.project_id, this.node.node_id).subscribe({
       next: (files: any[]) => {
         this.allNodeFiles = files.map((f: any) => f.path);
-        const extSet = new Set(['qcow2', 'qcow', 'vmdk', 'vhd', 'vdi', 'raw', 'img']);
-        this.projectIsoFiles = files.filter((f: any) => f.extension?.toLowerCase() === 'iso').map((f: any) => f.path);
+        // Filter disk images based on file_type from Python magic library
         this.projectDiskFiles = files
-          .filter((f: any) => extSet.has(f.extension?.toLowerCase()))
+          .filter((f: any) => f.file_type?.toLowerCase().includes('qemu') ||
+                             f.file_type?.toLowerCase().includes('qcow') ||
+                             f.file_type?.toLowerCase().includes('vmdk') ||
+                             f.file_type?.toLowerCase().includes('vmware') ||
+                             f.file_type?.toLowerCase().includes('virtual') ||
+                             f.file_type?.toLowerCase().includes('disk image'))
           .map((f: any) => f.path);
+        // Filter ISO images based on file_type
+        this.projectIsoFiles = files.filter((f: any) => f.file_type?.toLowerCase().includes('iso 9660') ||
+                                                   f.file_type?.toLowerCase().includes('cd-rom')).map((f: any) => f.path);
         this.cd.markForCheck();
       },
       error: () => {},

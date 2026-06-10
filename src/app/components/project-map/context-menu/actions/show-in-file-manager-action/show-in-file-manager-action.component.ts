@@ -1,11 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject, input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatDialog } from '@angular/material/dialog';
 import { Node } from '../../../../../cartography/models/node';
 import { Controller } from '@models/controller';
-import { NodeFileManagerDialogComponent } from '../../../node-file-manager-dialog/node-file-manager-dialog.component';
 
 @Component({
   standalone: true,
@@ -15,7 +13,7 @@ import { NodeFileManagerDialogComponent } from '../../../node-file-manager-dialo
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShowInFileManagerActionComponent {
-  private dialog = inject(MatDialog);
+  @Output() openFileManagerInline = new EventEmitter<{ node: Node; controller: Controller }>();
 
   readonly node = input<Node>(undefined);
   readonly controller = input<Controller>(undefined);
@@ -23,15 +21,8 @@ export class ShowInFileManagerActionComponent {
   showInFileManager() {
     const node = this.node();
     const controller = this.controller();
-    this.dialog.open(NodeFileManagerDialogComponent, {
-      panelClass: ['base-dialog-panel', 'node-file-manager-dialog-panel'],
-      autoFocus: false,
-      disableClose: false,
-      data: {
-        nodeName: node.name,
-        nodeDirectory: node.node_directory || 'Directory not available (node may not be running)',
-        controllerName: controller?.name || controller?.host || 'Unknown server',
-      },
-    });
+    if (node && controller) {
+      this.openFileManagerInline.emit({ node, controller });
+    }
   }
 }
