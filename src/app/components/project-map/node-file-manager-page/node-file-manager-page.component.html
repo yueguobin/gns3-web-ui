@@ -112,7 +112,7 @@
             <mat-header-cell *matHeaderCellDef>Modified</mat-header-cell>
             <mat-cell *matCellDef="let row" class="node-file-manager__text-sm">{{ row.isDir ? '-' : formatDate(row.modified_at) }}</mat-cell>
           </ng-container>
-          <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+          <mat-header-row *matHeaderRowDef="displayedColumns" [sticky]="true"></mat-header-row>
           <mat-row *matRowDef="let row; columns: displayedColumns"
             (contextmenu)="onRowContextMenu($event, row)"
             [style.cursor]="'context-menu'"

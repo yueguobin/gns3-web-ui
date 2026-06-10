@@ -230,3 +230,10 @@
 .mat-column-modified_at { flex: 1; min-width: 150px; }
 
 .node-file-browser__table mat-row:nth-child(even) { background: var(--mat-sys-surface-container-low); }
+
+.node-file-browser__table mat-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mat-sys-surface);
+}
