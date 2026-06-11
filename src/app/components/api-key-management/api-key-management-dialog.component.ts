@@ -107,7 +107,7 @@ export class ApiKeyManagementDialogComponent implements OnInit {
   onCreate() {
     this.dialog
       .open(AddApiKeyDialogComponent, {
-        panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
+        panelClass: ['base-dialog-panel', 'simple-dialog-panel', 'add-api-key-dialog-panel'],
         autoFocus: false,
         disableClose: true,
       })

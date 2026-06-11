@@ -1287,4 +1287,13 @@ h2[mat-dialog-title] {
   transition: all 0.3s ease;
 }
 
+/* =============================================
+// Add API Key Dialog - prevent floating label clipping
+// ============================================= */
+.add-api-key-dialog-panel {
+  .mat-mdc-dialog-content {
+    overflow: visible;
+  }
+}
+
 
