@@ -184,7 +184,10 @@ export class D3MapComponent implements OnInit, OnChanges, OnDestroy {
 
     this.onChangesDetected = this.mapChangeDetectorRef.changesDetected.subscribe(() => {
       if (this.mapChangeDetectorRef.hasBeenDrawn) {
-        this.redraw();
+        // Defer redraw so Angular propagates signal inputs (nodes/links/drawings)
+        // before D3 reads them. Without this, redraw() reads stale empty arrays
+        // because zoneless change detection hasn't propagated inputs yet.
+        setTimeout(() => this.redraw());
       }
     });
 
