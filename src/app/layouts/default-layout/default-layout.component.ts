@@ -15,6 +15,8 @@ import { ProgressService } from '../../common/progress/progress.service';
 import { NewTemplateDialogComponent } from '@components/project-map/new-template-dialog/new-template-dialog.component';
 import { LoggedUserComponent } from '@components/users/logged-user/logged-user.component';
 import { AiProfileDialogComponent } from '@components/user-management/ai-profile-dialog/ai-profile-dialog.component';
+import { ApiKeyManagementDialogComponent } from '@components/api-key-management/api-key-management-dialog.component';
+import { ApiKeyManagementDialogData } from '@components/api-key-management/api-key-management-dialog.component';
 import { Controller } from '@models/controller';
 import { Project } from '@models/project';
 import { ControllerManagementService } from '@services/controller-management.service';
@@ -139,6 +141,16 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
       panelClass: ['base-dialog-panel'],
       autoFocus: false,
       data: { controllerId: +this.controllerId },
+    });
+  }
+
+  openApiKeyManagementDialog() {
+    this.controllerService.get(+this.controllerId).then((controller: Controller) => {
+      this.dialog.open(ApiKeyManagementDialogComponent, {
+        panelClass: ['base-dialog-panel', 'configurator-dialog-panel'],
+        autoFocus: false,
+        data: { controller } satisfies ApiKeyManagementDialogData,
+      });
     });
   }
 

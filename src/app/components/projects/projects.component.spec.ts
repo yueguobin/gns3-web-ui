@@ -3,18 +3,17 @@ import { MatSort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, of, firstValueFrom, throwError } from 'rxjs';
-import { ProjectsComponent, ProjectDatabase, ProjectDataSource } from './projects.component';
+import { BehaviorSubject, of, throwError, Subject } from 'rxjs';
+import { ProjectsComponent } from './projects.component';
 import { ProjectService } from '@services/project.service';
 import { SettingsService, Settings } from '@services/settings.service';
 import { ProgressService } from '../../common/progress/progress.service';
 import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
 import { ThemeService } from '@services/theme.service';
 import { ToasterService } from '@services/toaster.service';
-import { ProjectsFilter } from '../../filters/projectsFilter.pipe';
+import { NotificationService, ProjectNotification } from '@services/notification.service';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
-import { ChangeDetectorRef } from '@angular/core';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('ProjectsComponent', () => {
@@ -27,11 +26,11 @@ describe('ProjectsComponent', () => {
   let mockRecentlyOpenedProjectService: any;
   let mockThemeService: any;
   let mockToasterService: any;
+  let mockNotificationService: any;
   let mockDialog: any;
   let mockBottomSheet: any;
   let mockRouter: any;
   let mockActivatedRoute: any;
-  let mockChangeDetectorRef: any;
 
   const mockController: Controller = {
     id: 1,
@@ -50,8 +49,8 @@ describe('ProjectsComponent', () => {
   } as Controller;
 
   const mockProjects: Project[] = [
-    { project_id: 'proj1', name: 'Project A', status: 'closed', created_by: '' } as Project,
-    { project_id: 'proj2', name: 'Project B', status: 'opened', created_by: '' } as Project,
+    { project_id: 'proj1', name: 'Project A', status: 'closed', created_by: 'Alice' } as Project,
+    { project_id: 'proj2', name: 'Project B', status: 'opened', created_by: 'Bob' } as Project,
   ];
 
   const mockSettings: Settings = {
@@ -61,9 +60,11 @@ describe('ProjectsComponent', () => {
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     mockProjectService = {
       list: vi.fn().mockReturnValue(of(mockProjects)),
-      projectListSubject: new BehaviorSubject<void>(undefined as any),
+      projectListSubject: new Subject<void>(),
       delete: vi.fn().mockReturnValue(of({})),
       open: vi.fn().mockReturnValue(of({})),
       close: vi.fn().mockReturnValue(of({})),
@@ -90,6 +91,10 @@ describe('ProjectsComponent', () => {
     mockToasterService = {
       error: vi.fn(),
       success: vi.fn(),
+    };
+
+    mockNotificationService = {
+      projectNotificationEmitter: new Subject<ProjectNotification>(),
     };
 
     mockDialog = {
@@ -120,12 +125,8 @@ describe('ProjectsComponent', () => {
       },
     };
 
-    mockChangeDetectorRef = {
-      markForCheck: vi.fn(),
-    };
-
     await TestBed.configureTestingModule({
-      imports: [ProjectsComponent, ProjectsFilter],
+      imports: [ProjectsComponent],
       providers: [
         { provide: ProjectService, useValue: mockProjectService },
         { provide: SettingsService, useValue: mockSettingsService },
@@ -133,11 +134,11 @@ describe('ProjectsComponent', () => {
         { provide: RecentlyOpenedProjectService, useValue: mockRecentlyOpenedProjectService },
         { provide: ThemeService, useValue: mockThemeService },
         { provide: ToasterService, useValue: mockToasterService },
+        { provide: NotificationService, useValue: mockNotificationService },
         { provide: MatDialog, useValue: mockDialog },
         { provide: MatBottomSheet, useValue: mockBottomSheet },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef },
       ],
     }).compileComponents();
 
@@ -170,7 +171,7 @@ describe('ProjectsComponent', () => {
     it('should call recentlyOpenedProjectService with controller id', () => {
       fixture.detectChanges();
       expect(mockRecentlyOpenedProjectService.setcontrollerIdProjectList).toHaveBeenCalledWith(
-        mockController.id.toString()
+        mockController.id.toString(),
       );
     });
 
@@ -219,7 +220,7 @@ describe('ProjectsComponent', () => {
 
     it('should select all projects on allChecked', () => {
       fixture.detectChanges();
-      component.projectDatabase.addProjects(mockProjects);
+      component['_projects'].set(mockProjects);
 
       component.allChecked();
 
@@ -229,7 +230,7 @@ describe('ProjectsComponent', () => {
 
     it('should return true from isAllSelected when all selected', () => {
       fixture.detectChanges();
-      component.projectDatabase.addProjects([mockProjects[0]]);
+      component['_projects'].set([mockProjects[0]]);
       component.selection.select(mockProjects[0]);
 
       const result = component.isAllSelected();
@@ -239,7 +240,7 @@ describe('ProjectsComponent', () => {
 
     it('should return false from isAllSelected when not all selected', () => {
       fixture.detectChanges();
-      component.projectDatabase.addProjects(mockProjects);
+      component['_projects'].set(mockProjects);
       component.selection.select(mockProjects[0]);
 
       const result = component.isAllSelected();
@@ -251,7 +252,7 @@ describe('ProjectsComponent', () => {
   describe('selectAllImages', () => {
     it('should uncheck when all are selected', () => {
       fixture.detectChanges();
-      component.projectDatabase.addProjects([mockProjects[0]]);
+      component['_projects'].set([mockProjects[0]]);
       component.selection.select(mockProjects[0]);
 
       component.selectAllImages();
@@ -261,11 +262,159 @@ describe('ProjectsComponent', () => {
 
     it('should select all when not all are selected', () => {
       fixture.detectChanges();
-      component.projectDatabase.addProjects(mockProjects);
+      component['_projects'].set(mockProjects);
 
       component.selectAllImages();
 
       expect(component.selection.selected.length).toBe(2);
+    });
+  });
+
+  describe('searchText and filtering', () => {
+    it('should filter projects by name when searchText changes', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      component.searchText.set('Project A');
+
+      const displayed = component.displayProjects();
+      expect(displayed.length).toBe(1);
+      expect(displayed[0].project_id).toBe('proj1');
+    });
+
+    it('should filter projects by created_by when searchText changes', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      component.searchText.set('Bob');
+
+      const displayed = component.displayProjects();
+      expect(displayed.length).toBe(1);
+      expect(displayed[0].project_id).toBe('proj2');
+    });
+
+    it('should return all projects when searchText is empty', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      const displayed = component.displayProjects();
+      expect(displayed.length).toBe(2);
+    });
+  });
+
+  describe('sorting', () => {
+    it('should sort projects by name in ascending order by default', () => {
+      fixture.detectChanges();
+      const projects = [
+        { project_id: 'z', name: 'Z Project', status: 'closed', created_by: '' } as Project,
+        { project_id: 'a', name: 'A Project', status: 'closed', created_by: '' } as Project,
+      ];
+      component['_projects'].set(projects);
+
+      const displayed = component.displayProjects();
+      expect(displayed[0].project_id).toBe('a');
+      expect(displayed[1].project_id).toBe('z');
+    });
+
+    it('should sort by specified column when onSortChange is called', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      component.onSortChange({ active: 'name', direction: 'desc' });
+
+      const displayed = component.displayProjects();
+      expect(displayed[0].project_id).toBe('proj2');
+      expect(displayed[1].project_id).toBe('proj1');
+    });
+  });
+
+  describe('project notifications', () => {
+    it('should add a new project when project.created notification arrives', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      const newProject = { project_id: 'proj3', name: 'Project C', status: 'closed', created_by: '' } as Project;
+      mockNotificationService.projectNotificationEmitter.next({
+        action: 'project.created',
+        event: newProject,
+      });
+
+      expect(component['_projects']().length).toBe(3);
+      expect(component['_projects']().find(p => p.project_id === 'proj3')).toBeTruthy();
+    });
+
+    it('should update an existing project when project.updated notification arrives', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      const updated = { ...mockProjects[0], name: 'Updated A' };
+      mockNotificationService.projectNotificationEmitter.next({
+        action: 'project.updated',
+        event: updated,
+      });
+
+      const project = component['_projects']().find(p => p.project_id === 'proj1');
+      expect(project?.name).toBe('Updated A');
+    });
+
+    it('should update project status when project.opened notification arrives', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      const opened = { ...mockProjects[0], status: 'opened' };
+      mockNotificationService.projectNotificationEmitter.next({
+        action: 'project.opened',
+        event: opened,
+      });
+
+      const project = component['_projects']().find(p => p.project_id === 'proj1');
+      expect(project?.status).toBe('opened');
+    });
+
+    it('should update project status when project.closed notification arrives', () => {
+      fixture.detectChanges();
+      const openedProject = { ...mockProjects[0], status: 'opened' };
+      component['_projects'].set([openedProject, mockProjects[1]]);
+
+      const closed = { ...openedProject, status: 'closed' };
+      mockNotificationService.projectNotificationEmitter.next({
+        action: 'project.closed',
+        event: closed,
+      });
+
+      const project = component['_projects']().find(p => p.project_id === 'proj1');
+      expect(project?.status).toBe('closed');
+    });
+
+    it('should remove a project when project.deleted notification arrives', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+
+      mockNotificationService.projectNotificationEmitter.next({
+        action: 'project.deleted',
+        event: mockProjects[0],
+      });
+
+      expect(component['_projects']().length).toBe(1);
+      expect(component['_projects']().find(p => p.project_id === 'proj1')).toBeFalsy();
+    });
+  });
+
+  describe('loading state', () => {
+    it('should return false for a project that is not loading', () => {
+      fixture.detectChanges();
+      expect(component.isProjectLoading('unknown')).toBe(false);
+    });
+
+    it('should return true for a project that is loading', () => {
+      fixture.detectChanges();
+      component['_loadingProjects'].update(set => {
+        const next = new Set(set);
+        next.add('proj1');
+        return next;
+      });
+
+      expect(component.isProjectLoading('proj1')).toBe(true);
     });
   });
 
@@ -275,9 +424,7 @@ describe('ProjectsComponent', () => {
     });
 
     it('should show error toaster when refresh list fails', async () => {
-      mockProjectService.list.mockReturnValue(
-        throwError(() => ({ error: { message: 'List failed' } }))
-      );
+      mockProjectService.list.mockReturnValue(throwError(() => ({ error: { message: 'List failed' } })));
       fixture.detectChanges();
 
       component.refresh();
@@ -293,165 +440,6 @@ describe('ProjectsComponent', () => {
       component.refresh();
 
       expect(mockToasterService.error).toHaveBeenCalledWith('Failed to list projects');
-    });
-
-    it('should call markForCheck when list fails', async () => {
-      mockProjectService.list.mockReturnValue(
-        throwError(() => ({ error: { message: 'List failed' } }))
-      );
-      fixture.detectChanges();
-
-      const cdrSpy = vi.spyOn(component['cdr'], 'markForCheck');
-      component.refresh();
-
-      expect(cdrSpy).toHaveBeenCalled();
-    });
-  });
-});
-
-describe('ProjectDatabase', () => {
-  let database: ProjectDatabase;
-
-  beforeEach(() => {
-    database = new ProjectDatabase();
-  });
-
-  describe('Creation', () => {
-    it('should create', () => {
-      expect(database).toBeTruthy();
-    });
-
-    it('should initialize with empty data', () => {
-      expect(database.data).toEqual([]);
-    });
-  });
-
-  describe('addProjects', () => {
-    it('should set data when adding projects', () => {
-      const projects: Project[] = [
-        { project_id: '1', name: 'Project 1' } as Project,
-        { project_id: '2', name: 'Project 2' } as Project,
-      ];
-
-      database.addProjects(projects);
-
-      expect(database.data).toHaveLength(2);
-      expect(database.data[0].name).toBe('Project 1');
-      expect(database.data[1].name).toBe('Project 2');
-    });
-
-    it('should replace existing data when adding new projects', () => {
-      const initialProjects: Project[] = [{ project_id: '1', name: 'Initial' } as Project];
-      const newProjects: Project[] = [{ project_id: '2', name: 'New' } as Project];
-
-      database.addProjects(initialProjects);
-      database.addProjects(newProjects);
-
-      expect(database.data).toHaveLength(1);
-      expect(database.data[0].name).toBe('New');
-    });
-
-    it('should update data synchronously after adding projects', () => {
-      const projects: Project[] = [{ project_id: '1', name: 'Project 1' } as Project];
-      database.addProjects(projects);
-
-      expect(database.data).toHaveLength(1);
-      expect(database.data[0].project_id).toBe('1');
-    });
-  });
-
-  describe('remove', () => {
-    it('should remove project from data', () => {
-      const project: Project = { project_id: '1', name: 'Project 1' } as Project;
-      database.addProjects([project]);
-
-      database.remove(project);
-
-      expect(database.data).toHaveLength(0);
-    });
-
-    it('should not remove project that does not exist', () => {
-      const project1: Project = { project_id: '1', name: 'Project 1' } as Project;
-      const project2: Project = { project_id: '2', name: 'Project 2' } as Project;
-      database.addProjects([project1]);
-
-      database.remove(project2);
-
-      expect(database.data).toHaveLength(1);
-    });
-
-    it('should not throw when removing non-existent project', () => {
-      database.addProjects([]);
-
-      expect(() => database.remove({ project_id: '999', name: 'Non' } as Project)).not.toThrow();
-    });
-
-    it('should update data synchronously after removal', () => {
-      const project: Project = { project_id: '1', name: 'Project 1' } as Project;
-      database.addProjects([project]);
-      database.remove(project);
-
-      expect(database.data).toHaveLength(0);
-    });
-  });
-});
-
-describe('ProjectDataSource', () => {
-  let dataSource: ProjectDataSource;
-  let database: ProjectDatabase;
-  let mockSort: MatSort;
-
-  const mockProjects: Project[] = [
-    { project_id: '1', name: 'Project A' } as Project,
-    { project_id: '2', name: 'Project B' } as Project,
-  ];
-
-  beforeEach(() => {
-    database = new ProjectDatabase();
-    database.addProjects(mockProjects);
-
-    mockSort = {
-      active: '',
-      direction: '',
-      sortChange: new BehaviorSubject<void>(undefined as any),
-    } as any as MatSort;
-
-    dataSource = new ProjectDataSource(database, mockSort);
-  });
-
-  describe('Creation', () => {
-    it('should create', () => {
-      expect(dataSource).toBeTruthy();
-    });
-
-    it('should have projectDatabase', () => {
-      expect(dataSource.projectDatabase).toBeDefined();
-      expect(dataSource.projectDatabase).toBe(database);
-    });
-  });
-
-  describe('connect', () => {
-    it('should return an Observable', () => {
-      const result = dataSource.connect();
-      expect(result).toBeTruthy();
-    });
-  });
-
-  describe('disconnect', () => {
-    it('should not throw when called', () => {
-      expect(() => dataSource.disconnect()).not.toThrow();
-    });
-  });
-
-  describe('sorting behavior', () => {
-    it('should have access to projectDatabase data', () => {
-      expect(dataSource.projectDatabase.data).toHaveLength(2);
-    });
-
-    it('should return data with correct structure via connect', async () => {
-      const data = await firstValueFrom(dataSource.connect());
-      expect(data).toBeInstanceOf(Array);
-      expect(data.length).toBe(2);
     });
   });
 });

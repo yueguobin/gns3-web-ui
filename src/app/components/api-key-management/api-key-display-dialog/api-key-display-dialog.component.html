@@ -1,0 +1,32 @@
+<h2 mat-dialog-title>API Key Created</h2>
+
+<mat-dialog-content>
+  <p class="info-note">
+    <mat-icon>warning</mat-icon>
+    This key will only be shown once. Copy it now — you cannot retrieve it later.
+  </p>
+
+  <div class="detail-row">
+    <span class="detail-row__label">Name</span>
+    <span class="detail-row__value">{{ data.response.name }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-row__label">API Key</span>
+    <div class="detail-row__value detail-row__value--key">
+      <code>{{ data.response.api_key }}</code>
+      <button mat-icon-button (click)="copyKey()" matTooltip="Copy to clipboard">
+        <mat-icon>content_copy</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-row__label">Created</span>
+    <span class="detail-row__value">{{ data.response.created_at }}</span>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="onClose()">I've saved the key</button>
+</mat-dialog-actions>
