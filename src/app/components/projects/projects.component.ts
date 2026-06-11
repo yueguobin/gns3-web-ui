@@ -189,6 +189,8 @@ export class ProjectsComponent implements OnInit {
         case 'project.created':
           if (index === -1) list.push(notification.event);
           break;
+        case 'project.opened':
+        case 'project.closed':
         case 'project.updated':
           if (index >= 0) list[index] = notification.event;
           break;

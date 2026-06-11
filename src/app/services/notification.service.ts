@@ -10,7 +10,7 @@ export interface ComputeNotification {
 }
 
 export interface ProjectNotification {
-  action: 'project.created' | 'project.updated' | 'project.deleted';
+  action: 'project.created' | 'project.opened' | 'project.closed' | 'project.updated' | 'project.deleted';
   event: Project;
 }
 
@@ -135,6 +135,8 @@ export class NotificationService {
         this.computeCacheUpdated.emit(this.getCachedComputes());
         break;
       case 'project.created':
+      case 'project.opened':
+      case 'project.closed':
       case 'project.updated':
       case 'project.deleted':
         this.projectNotificationEmitter.emit(message as ProjectNotification);
