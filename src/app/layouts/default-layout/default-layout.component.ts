@@ -149,7 +149,6 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
       this.dialog.open(ApiKeyManagementDialogComponent, {
         panelClass: ['base-dialog-panel', 'configurator-dialog-panel'],
         autoFocus: false,
-        disableClose: true,
         data: { controller } satisfies ApiKeyManagementDialogData,
       });
     });
