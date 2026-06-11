@@ -1,5 +1,5 @@
 import { DataSource, SelectionModel } from '@angular/cdk/collections';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, viewChild, model } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject, viewChild, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
@@ -7,12 +7,13 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSort, MatSortable, MatSortModule } from '@angular/material/sort';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ExportPortableProjectComponent } from '@components/export-portable-project/export-portable-project.component';
-import { BehaviorSubject, merge, Observable } from 'rxjs';
+import { BehaviorSubject, merge, Observable, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ProgressService } from '../../common/progress/progress.service';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
 import { ProjectService } from '@services/project.service';
+import { NotificationService, ProjectNotification } from '@services/notification.service';
 import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
 import { Settings, SettingsService } from '@services/settings.service';
 import { ThemeService } from '@services/theme.service';
@@ -58,7 +59,7 @@ import { version } from '../../version';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectsComponent implements OnInit {
+export class ProjectsComponent implements OnInit, OnDestroy {
   controller: Controller;
   projectDatabase = new ProjectDatabase();
   dataSource: ProjectDataSource;
@@ -71,6 +72,7 @@ export class ProjectsComponent implements OnInit {
   public readonly version = version;
   public readonly currentYear = new Date().getFullYear();
   private loadingProjects = new Set<string>();
+  private readonly _subscriptions: Subscription[] = [];
 
   readonly sort = viewChild(MatSort);
 
@@ -85,6 +87,7 @@ export class ProjectsComponent implements OnInit {
   private recentlyOpenedProjectService = inject(RecentlyOpenedProjectService);
   private cdr = inject(ChangeDetectorRef);
   private themeService = inject(ThemeService);
+  private notificationService = inject(NotificationService);
 
   constructor() {}
 
@@ -109,6 +112,17 @@ export class ProjectsComponent implements OnInit {
     this.settings = this.settingsService.getAll();
 
     this.projectService.projectListSubject.subscribe(() => this.refresh());
+
+    // Subscribe to global project notifications for incremental updates
+    this._subscriptions.push(
+      this.notificationService.projectNotificationEmitter.subscribe((notification: ProjectNotification) => {
+        this.handleProjectNotification(notification);
+      }),
+    );
+  }
+
+  ngOnDestroy() {
+    this._subscriptions.forEach(sub => sub.unsubscribe());
   }
 
   refresh() {
@@ -356,6 +370,23 @@ export class ProjectsComponent implements OnInit {
     }
     this.cdr.markForCheck();
   }
+
+  /**
+   * Handle incoming project notification from global WebSocket.
+   * Updates the local list incrementally without a full re-fetch.
+   */
+  private handleProjectNotification(notification: ProjectNotification): void {
+    switch (notification.action) {
+      case 'project.created':
+      case 'project.updated':
+        this.projectDatabase.upsert(notification.event);
+        break;
+      case 'project.deleted':
+        this.projectDatabase.removeById(notification.event.project_id);
+        break;
+    }
+    this.cdr.markForCheck();
+  }
 }
 
 export class ProjectDatabase {
@@ -374,6 +405,34 @@ export class ProjectDatabase {
     if (index >= 0) {
       this.data.splice(index, 1);
       this.dataChange.next(this.data.slice());
+    }
+  }
+
+  /**
+   * Add a new project or update an existing one (matched by project_id).
+   * Used for incremental WebSocket notification updates.
+   */
+  public upsert(project: Project) {
+    const projects = this.data.slice();
+    const index = projects.findIndex(p => p.project_id === project.project_id);
+    if (index >= 0) {
+      projects[index] = project;
+    } else {
+      projects.push(project);
+    }
+    this.dataChange.next(projects);
+  }
+
+  /**
+   * Remove a project by its project_id.
+   * Used for incremental WebSocket notification updates.
+   */
+  public removeById(projectId: string) {
+    const projects = this.data.slice();
+    const index = projects.findIndex(p => p.project_id === projectId);
+    if (index >= 0) {
+      projects.splice(index, 1);
+      this.dataChange.next(projects);
     }
   }
 }

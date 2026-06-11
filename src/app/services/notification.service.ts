@@ -2,10 +2,16 @@ import { EventEmitter, Injectable } from '@angular/core';
 import { environment } from 'environments/environment';
 import { Controller } from '@models/controller';
 import { Compute } from '@models/compute';
+import { Project } from '@models/project';
 
 export interface ComputeNotification {
   action: 'compute.created' | 'compute.updated' | 'compute.deleted';
   event: Compute;
+}
+
+export interface ProjectNotification {
+  action: 'project.created' | 'project.updated' | 'project.deleted';
+  event: Project;
 }
 
 @Injectable()
@@ -18,6 +24,9 @@ export class NotificationService {
 
   // Cache for compute data - stores the latest compute states
   private computeCache: Map<string, Compute> = new Map();
+
+  // Event emitter for project notifications
+  public projectNotificationEmitter = new EventEmitter<ProjectNotification>();
 
   // EventEmitter for cache updates
   public computeCacheUpdated = new EventEmitter<Compute[]>();
@@ -124,6 +133,11 @@ export class NotificationService {
         this.computeCache.delete(message.event.compute_id);
         this.computeNotificationEmitter.emit(message as ComputeNotification);
         this.computeCacheUpdated.emit(this.getCachedComputes());
+        break;
+      case 'project.created':
+      case 'project.updated':
+      case 'project.deleted':
+        this.projectNotificationEmitter.emit(message as ProjectNotification);
         break;
     }
   }
