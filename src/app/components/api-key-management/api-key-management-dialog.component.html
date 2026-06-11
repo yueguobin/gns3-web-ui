@@ -28,8 +28,8 @@
       </ng-container>
 
       <ng-container matColumnDef="key_prefix">
-        <mat-header-cell *matHeaderCellDef>Key Prefix</mat-header-cell>
-        <mat-cell *matCellDef="let row"><code>{{ row.key_prefix }}</code></mat-cell>
+        <mat-header-cell *matHeaderCellDef class="col-key-prefix">Key Prefix</mat-header-cell>
+        <mat-cell *matCellDef="let row" class="col-key-prefix"><code>{{ row.key_prefix }}</code></mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="created_at">
@@ -37,14 +37,9 @@
         <mat-cell *matCellDef="let row">{{ row.created_at }}</mat-cell>
       </ng-container>
 
-      <ng-container matColumnDef="last_used_at">
-        <mat-header-cell *matHeaderCellDef mat-sort-header>Last Used</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ row.last_used_at || 'Never' }}</mat-cell>
-      </ng-container>
-
       <ng-container matColumnDef="status">
-        <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
-        <mat-cell *matCellDef="let row">
+        <mat-header-cell *matHeaderCellDef class="col-status">Status</mat-header-cell>
+        <mat-cell *matCellDef="let row" class="col-status">
           @if (row.revoked) {
             <span class="status-badge status-badge--revoked">Revoked</span>
           } @else {
@@ -54,11 +49,18 @@
       </ng-container>
 
       <ng-container matColumnDef="actions">
-        <mat-header-cell *matHeaderCellDef></mat-header-cell>
-        <mat-cell *matCellDef="let row">
+        <mat-header-cell *matHeaderCellDef class="col-actions">Actions</mat-header-cell>
+        <mat-cell *matCellDef="let row" class="col-actions">
           @if (!row.revoked) {
             <button mat-icon-button color="warn" (click)="onRevoke(row)" matTooltip="Revoke API key">
               <mat-icon>block</mat-icon>
+            </button>
+          } @else {
+            <button mat-icon-button (click)="onRestore(row)" matTooltip="Restore API key">
+              <mat-icon>restart_alt</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="onPermanentDelete(row)" matTooltip="Permanently delete">
+              <mat-icon>delete_forever</mat-icon>
             </button>
           }
         </mat-cell>

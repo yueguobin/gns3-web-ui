@@ -30,6 +30,11 @@
 .keys-table {
   width: 100%;
 
+  .mat-mdc-header-cell,
+  .mat-mdc-cell {
+    justify-content: center;
+  }
+
   code {
     font-family: monospace;
     font-size: 13px;
@@ -63,6 +68,22 @@
   mat-cell {
     text-decoration: line-through;
   }
+}
+
+.mat-column-created_at {
+  flex: 0 0 200px;
+}
+
+.col-key-prefix {
+  flex: 0 0 160px;
+}
+
+.col-status {
+  flex: 0 0 100px;
+}
+
+.col-actions {
+  flex: 0 0 120px;
 }
 
 h2[mat-dialog-title] {

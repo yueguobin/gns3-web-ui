@@ -45,7 +45,7 @@ export class ApiKeyManagementDialogComponent implements OnInit {
   private dialog = inject(MatDialog);
   private destroyRef = inject(DestroyRef);
 
-  displayedColumns = ['name', 'key_prefix', 'created_at', 'last_used_at', 'status', 'actions'];
+  displayedColumns = ['name', 'key_prefix', 'created_at', 'status', 'actions'];
 
   // ── Signal state ──────────────────────────────────────────────
   private _keys = signal<ApiKey[]>([]);
@@ -107,7 +107,7 @@ export class ApiKeyManagementDialogComponent implements OnInit {
   onCreate() {
     this.dialog
       .open(AddApiKeyDialogComponent, {
-        panelClass: ['simple-dialog-panel'],
+        panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
         autoFocus: false,
         disableClose: true,
       })
@@ -118,7 +118,7 @@ export class ApiKeyManagementDialogComponent implements OnInit {
           next: (response) => {
             this.loadKeys();
             this.dialog.open(ApiKeyDisplayDialogComponent, {
-              panelClass: ['simple-dialog-panel'],
+              panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
               autoFocus: false,
               disableClose: true,
               data: { response } satisfies ApiKeyDisplayDialogData,
@@ -137,7 +137,7 @@ export class ApiKeyManagementDialogComponent implements OnInit {
         panelClass: ['base-confirmation-dialog-panel', 'confirmation-danger-panel'],
         data: {
           title: 'Revoke API Key',
-          message: `Are you sure you want to revoke "${key.name}"? This action cannot be undone. Any services using this key will immediately lose access.`,
+          message: `Are you sure you want to revoke "${key.name}"? Any services using this key will immediately lose access. You can restore it later.`,
           confirmButtonText: 'Revoke',
           cancelButtonText: 'Cancel',
         } satisfies ConfirmationDialogData,
@@ -146,12 +146,64 @@ export class ApiKeyManagementDialogComponent implements OnInit {
       .pipe(filter(Boolean), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.apiKeyService.revoke(this.data.controller, key.api_key_id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.toasterService.success('API key revoked');
+          next: (response) => {
+            this.toasterService.success(response.message || 'API key revoked');
             this.loadKeys();
           },
           error: (err) => {
             this.toasterService.error(err.error?.message || err.message || 'Failed to revoke API key');
+          },
+        });
+      });
+  }
+
+  onRestore(key: ApiKey) {
+    this.dialog
+      .open(ConfirmationDialogComponent, {
+        panelClass: ['base-confirmation-dialog-panel', 'confirmation-warning-panel'],
+        data: {
+          title: 'Restore API Key',
+          message: `Restore "${key.name}"? It will become active again.`,
+          confirmButtonText: 'Restore',
+          cancelButtonText: 'Cancel',
+        } satisfies ConfirmationDialogData,
+      })
+      .afterClosed()
+      .pipe(filter(Boolean), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.apiKeyService.restore(this.data.controller, key.api_key_id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: (response) => {
+            this.toasterService.success(response.message || 'API key restored');
+            this.loadKeys();
+          },
+          error: (err) => {
+            this.toasterService.error(err.error?.message || err.message || 'Failed to restore API key');
+          },
+        });
+      });
+  }
+
+  onPermanentDelete(key: ApiKey) {
+    this.dialog
+      .open(ConfirmationDialogComponent, {
+        panelClass: ['base-confirmation-dialog-panel', 'confirmation-danger-panel'],
+        data: {
+          title: 'Permanently Delete API Key',
+          message: `Delete "${key.name}" permanently? This action cannot be undone.`,
+          confirmButtonText: 'Delete',
+          cancelButtonText: 'Cancel',
+        } satisfies ConfirmationDialogData,
+      })
+      .afterClosed()
+      .pipe(filter(Boolean), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.apiKeyService.delete(this.data.controller, key.api_key_id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: () => {
+            this.toasterService.success('API key permanently deleted');
+            this.loadKeys();
+          },
+          error: (err) => {
+            this.toasterService.error(err.error?.message || err.message || 'Failed to delete API key');
           },
         });
       });

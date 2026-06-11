@@ -14,3 +14,7 @@ export interface ApiKeyCreatedResponse {
   key_prefix: string;
   created_at: string;
 }
+
+export interface ApiKeyActionResponse {
+  message: string;
+}
