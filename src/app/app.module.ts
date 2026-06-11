@@ -218,7 +218,6 @@ import { DataSourceFilter } from '@filters/dataSourceFilter';
 import { AuthImageFilter } from '@filters/authImageFilter';
 import { DateFilter } from '@filters/dateFilter.pipe';
 import { NameFilter } from '@filters/nameFilter.pipe';
-import { ProjectsFilter } from '@filters/projectsFilter.pipe';
 import { SearchFilter } from '@filters/searchFilter.pipe';
 import { TemplateFilter } from '@filters/templateFilter.pipe';
 import { ConsoleGuard } from './guards/console-guard';
@@ -444,7 +443,6 @@ import { GlobalUploadIndicatorComponent } from '@components/global-upload-indica
     RoleFilterPipe,
     ResourcePoolsFilterPipe,
     TemplateFilter,
-    ProjectsFilter,
     GroupPrivilegesPipe,
     ProgressComponent,
     PrivilegeComponent,

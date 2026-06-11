@@ -35,7 +35,7 @@
     <!-- Projects Table -->
     <div class="projects__table-container">
       <cdk-virtual-scroll-viewport itemSize="72" minBufferPx="400" maxBufferPx="800">
-        <mat-table #table [dataSource]="dataSource | projectsfilter : searchText()" matSort>
+        <mat-table #table [dataSource]="dataSource" matSort (matSortChange)="onSortChange($event)">
         <ng-container matColumnDef="select">
           <mat-header-cell *matHeaderCellDef>
             <mat-checkbox

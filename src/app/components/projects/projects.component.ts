@@ -1,14 +1,23 @@
-import { DataSource, SelectionModel } from '@angular/cdk/collections';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject, viewChild, model } from '@angular/core';
+import { SelectionModel } from '@angular/cdk/collections';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  model,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSort, MatSortable, MatSortModule } from '@angular/material/sort';
+import { MatSort, MatSortModule, Sort } from '@angular/material/sort';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ExportPortableProjectComponent } from '@components/export-portable-project/export-portable-project.component';
-import { BehaviorSubject, merge, Observable, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProgressService } from '../../common/progress/progress.service';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
@@ -33,7 +42,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { ProjectsFilter } from '../../filters/projectsFilter.pipe';
 import { version } from '../../version';
 
 @Component({
@@ -55,29 +63,67 @@ import { version } from '../../version';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     ScrollingModule,
-    ProjectsFilter,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProjectsComponent implements OnInit, OnDestroy {
+export class ProjectsComponent implements OnInit {
   controller: Controller;
-  projectDatabase = new ProjectDatabase();
-  dataSource: ProjectDataSource;
-  displayedColumns = ['select', 'name', 'created_by', 'actions', 'delete'];
   settings: Settings;
   project: Project;
-  readonly searchText = model('');
-  isAllDelete: boolean = false;
-  selection = new SelectionModel(true, []);
+  displayedColumns = ['select', 'name', 'created_by', 'actions', 'delete'];
   public readonly version = version;
   public readonly currentYear = new Date().getFullYear();
-  private loadingProjects = new Set<string>();
-  private readonly _subscriptions: Subscription[] = [];
+  isAllDelete = false;
+  selection = new SelectionModel<Project>(true, []);
 
-  readonly sort = viewChild(MatSort);
+  readonly sort = viewChild<MatSort>(MatSort);
+  readonly searchText = model('');
 
+  // ── Signal state ──────────────────────────────────────────────
+  private _projects = signal<Project[]>([]);
+  private _sortActive = signal<string>('name');
+  private _sortDirection = signal<'asc' | 'desc' | ''>('asc');
+  private _loadingProjects = signal<Set<string>>(new Set());
+
+  // ── Derived: sorted + filtered display data ───────────────────
+  readonly displayProjects = computed(() => {
+    const search = this.searchText()?.toLowerCase() || '';
+    let projects = this._projects();
+
+    // Filter by name or created_by
+    if (search) {
+      projects = projects.filter(
+        p =>
+          p.name.toLowerCase().includes(search) ||
+          (p.created_by && p.created_by.toLowerCase().includes(search)),
+      );
+    }
+
+    // Sort
+    const active = this._sortActive();
+    const direction = this._sortDirection();
+    if (active && direction) {
+      projects = [...projects].sort((a, b) => {
+        const valueA = (a as any)[active];
+        const valueB = (b as any)[active];
+        const valA = isNaN(+valueA) ? valueA : +valueA;
+        const valB = isNaN(+valueB) ? valueB : +valueB;
+        return (valA < valB ? -1 : 1) * (direction === 'asc' ? 1 : -1);
+      });
+    }
+
+    return projects;
+  });
+
+  // Bridge to mat-table (material table accepts Observable<T[]>)
+  private _displayProjects$ = toObservable(this.displayProjects);
+  readonly dataSource = this._displayProjects$;
+
+  // ── Dependencies ──────────────────────────────────────────────
+  private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectService);
+  private notificationService = inject(NotificationService);
   private settingsService = inject(SettingsService);
   private progressService = inject(ProgressService);
   public dialog = inject(MatDialog);
@@ -85,11 +131,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   private bottomSheet = inject(MatBottomSheet);
   private toasterService = inject(ToasterService);
   private recentlyOpenedProjectService = inject(RecentlyOpenedProjectService);
-  private cdr = inject(ChangeDetectorRef);
   private themeService = inject(ThemeService);
-  private notificationService = inject(NotificationService);
-
-  constructor() {}
 
   ngOnInit() {
     this.controller = this.route.snapshot.data['controller'];
@@ -104,41 +146,96 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     }
 
     this.refresh();
-    this.sort().sort(<MatSortable>{
-      id: 'name',
-      start: 'asc',
-    });
-    this.dataSource = new ProjectDataSource(this.projectDatabase, this.sort());
+    this.sort()?.sort({ id: 'name', start: 'asc' } as any);
     this.settings = this.settingsService.getAll();
 
-    this.projectService.projectListSubject.subscribe(() => this.refresh());
+    // Subscribe to external refresh requests
+    this.projectService.projectListSubject
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.refresh());
 
     // Subscribe to global project notifications for incremental updates
-    this._subscriptions.push(
-      this.notificationService.projectNotificationEmitter.subscribe((notification: ProjectNotification) => {
-        this.handleProjectNotification(notification);
-      }),
-    );
+    this.notificationService.projectNotificationEmitter
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((notification: ProjectNotification) => this.handleProjectNotification(notification));
   }
 
-  ngOnDestroy() {
-    this._subscriptions.forEach(sub => sub.unsubscribe());
+  // ── Sort handler (called from template matSortChange) ─────────
+  onSortChange(sortState: Sort) {
+    this._sortActive.set(sortState.active);
+    this._sortDirection.set(sortState.direction);
   }
 
+  // ── Data fetching ─────────────────────────────────────────────
   refresh() {
     this.projectService.list(this.controller).subscribe({
       next: (projects: Project[]) => {
-        this.projectDatabase.addProjects(projects);
+        this._projects.set(projects);
       },
       error: (err) => {
         const message = err.error?.message || err.message || 'Failed to list projects';
         this.toasterService.error(message);
         this.progressService.setError(err);
-        this.cdr.markForCheck();
       },
     });
   }
 
+  // ── WebSocket notification handler ────────────────────────────
+  private handleProjectNotification(notification: ProjectNotification): void {
+    this._projects.update(projects => {
+      const list = [...projects];
+      const index = list.findIndex(p => p.project_id === notification.event.project_id);
+      switch (notification.action) {
+        case 'project.created':
+          if (index === -1) list.push(notification.event);
+          break;
+        case 'project.updated':
+          if (index >= 0) list[index] = notification.event;
+          break;
+        case 'project.deleted':
+          if (index >= 0) list.splice(index, 1);
+          break;
+      }
+      return list;
+    });
+  }
+
+  // ── Loading state ─────────────────────────────────────────────
+  isProjectLoading(projectId: string): boolean {
+    return this._loadingProjects().has(projectId);
+  }
+
+  private setProjectLoading(projectId: string, loading: boolean): void {
+    this._loadingProjects.update(set => {
+      const next = new Set(set);
+      if (loading) next.add(projectId);
+      else next.delete(projectId);
+      return next;
+    });
+  }
+
+  // ── Selection ─────────────────────────────────────────────────
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this._projects().length;
+    return numSelected === numRows;
+  }
+
+  selectAllImages() {
+    this.isAllSelected() ? this.unChecked() : this.allChecked();
+  }
+
+  unChecked() {
+    this.selection.clear();
+    this.isAllDelete = false;
+  }
+
+  allChecked() {
+    this._projects().forEach(row => this.selection.select(row));
+    this.isAllDelete = true;
+  }
+
+  // ── CRUD operations ───────────────────────────────────────────
   delete(project: Project) {
     const bottomSheetRef = this.bottomSheet.open(ConfirmationBottomSheetComponent, {
       data: { message: 'Do you want to delete the project?' },
@@ -278,7 +375,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
               error: (err) => {
                 const message = err.error?.message || err.message || 'Failed to open project';
                 this.toasterService.error(message);
-                this.cdr.markForCheck();
               },
             });
           }
@@ -311,32 +407,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     });
   }
 
-  isAllSelected() {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.projectDatabase.data.length;
-    return numSelected === numRows;
-  }
-
-  selectAllImages() {
-    this.isAllSelected() ? this.unChecked() : this.allChecked();
-  }
-
-  unChecked() {
-    this.selection.clear();
-    this.isAllDelete = false;
-  }
-
-  allChecked() {
-    this.projectDatabase.data.forEach((row) => this.selection.select(row));
-    this.isAllDelete = true;
-  }
-
   exportSelectProject(project: Project) {
     this.project = project;
     if (this.project.project_id) {
       this.exportPortableProjectDialog();
     }
   }
+
   exportPortableProjectDialog() {
     const dialogRef = this.dialog.open(ExportPortableProjectComponent, {
       panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
@@ -345,124 +422,10 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       data: { controllerDetails: this.controller, projectDetails: this.project },
     });
 
-    dialogRef.afterClosed().subscribe((isAddes: boolean) => {});
+    dialogRef.afterClosed().subscribe(() => {});
   }
 
   isLightThemeEnabled() {
     return this.themeService.getActualTheme() === 'light';
   }
-
-  /**
-   * Check if a project is currently being operated on (closing or deleting)
-   */
-  isProjectLoading(projectId: string): boolean {
-    return this.loadingProjects.has(projectId);
-  }
-
-  /**
-   * Set project loading state
-   */
-  private setProjectLoading(projectId: string, loading: boolean): void {
-    if (loading) {
-      this.loadingProjects.add(projectId);
-    } else {
-      this.loadingProjects.delete(projectId);
-    }
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Handle incoming project notification from global WebSocket.
-   * Updates the local list incrementally without a full re-fetch.
-   */
-  private handleProjectNotification(notification: ProjectNotification): void {
-    switch (notification.action) {
-      case 'project.created':
-      case 'project.updated':
-        this.projectDatabase.upsert(notification.event);
-        break;
-      case 'project.deleted':
-        this.projectDatabase.removeById(notification.event.project_id);
-        break;
-    }
-    this.cdr.markForCheck();
-  }
-}
-
-export class ProjectDatabase {
-  dataChange: BehaviorSubject<Project[]> = new BehaviorSubject<Project[]>([]);
-
-  get data(): Project[] {
-    return this.dataChange.value;
-  }
-
-  public addProjects(projects: Project[]) {
-    this.dataChange.next(projects);
-  }
-
-  public remove(project: Project) {
-    const index = this.data.indexOf(project);
-    if (index >= 0) {
-      this.data.splice(index, 1);
-      this.dataChange.next(this.data.slice());
-    }
-  }
-
-  /**
-   * Add a new project or update an existing one (matched by project_id).
-   * Used for incremental WebSocket notification updates.
-   */
-  public upsert(project: Project) {
-    const projects = this.data.slice();
-    const index = projects.findIndex(p => p.project_id === project.project_id);
-    if (index >= 0) {
-      projects[index] = project;
-    } else {
-      projects.push(project);
-    }
-    this.dataChange.next(projects);
-  }
-
-  /**
-   * Remove a project by its project_id.
-   * Used for incremental WebSocket notification updates.
-   */
-  public removeById(projectId: string) {
-    const projects = this.data.slice();
-    const index = projects.findIndex(p => p.project_id === projectId);
-    if (index >= 0) {
-      projects.splice(index, 1);
-      this.dataChange.next(projects);
-    }
-  }
-}
-
-export class ProjectDataSource extends DataSource<any> {
-  constructor(public projectDatabase: ProjectDatabase, private sort: MatSort) {
-    super();
-  }
-
-  connect(): Observable<Project[]> {
-    const displayDataChanges = [this.projectDatabase.dataChange, this.sort.sortChange];
-
-    return merge(...displayDataChanges).pipe(
-      map(() => {
-        if (!this.sort.active || this.sort.direction === '') {
-          return this.projectDatabase.data;
-        }
-
-        return this.projectDatabase.data.sort((a, b) => {
-          const propertyA = a[this.sort.active];
-          const propertyB = b[this.sort.active];
-
-          const valueA = isNaN(+propertyA) ? propertyA : +propertyA;
-          const valueB = isNaN(+propertyB) ? propertyB : +propertyB;
-
-          return (valueA < valueB ? -1 : 1) * (this.sort.direction === 'asc' ? 1 : -1);
-        });
-      })
-    );
-  }
-
-  disconnect() {}
 }

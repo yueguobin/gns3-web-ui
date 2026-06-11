@@ -4,17 +4,15 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, of, firstValueFrom, throwError } from 'rxjs';
-import { ProjectsComponent, ProjectDatabase, ProjectDataSource } from './projects.component';
+import { ProjectsComponent } from './projects.component';
 import { ProjectService } from '@services/project.service';
 import { SettingsService, Settings } from '@services/settings.service';
 import { ProgressService } from '../../common/progress/progress.service';
 import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
 import { ThemeService } from '@services/theme.service';
 import { ToasterService } from '@services/toaster.service';
-import { ProjectsFilter } from '../../filters/projectsFilter.pipe';
 import { Project } from '@models/project';
 import { Controller } from '@models/controller';
-import { ChangeDetectorRef } from '@angular/core';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('ProjectsComponent', () => {
