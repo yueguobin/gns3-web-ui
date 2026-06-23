@@ -174,6 +174,12 @@ export class LoginComponent implements OnInit {
       next: async (response: AuthResponse) => {
         let controller = this.controller;
         controller.authToken = response.access_token;
+
+        // Save refresh_token for silent token refresh
+        if (response.refresh_token) {
+          localStorage.setItem(`refresh_token_${controller.id}`, response.refresh_token);
+        }
+
         controller.username = username;
         controller.password = password;
         controller.tokenExpired = false;
