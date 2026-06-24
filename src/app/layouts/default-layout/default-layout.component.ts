@@ -182,6 +182,9 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
 
   logout() {
     this.controllerService.get(+this.controllerId).then((controller: Controller) => {
+      // Clear refresh token
+      localStorage.removeItem(`refresh_token_${controller.id}`);
+
       controller.authToken = null;
       this.controllerService
         .update(controller)
