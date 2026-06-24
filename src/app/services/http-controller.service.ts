@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { EventEmitter, Injectable } from '@angular/core';
 import { environment } from 'environments/environment';
-import { Observable, from, throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { Controller, ControllerProtocol } from '@models/controller';
 import { AuthResponse } from '@models/authResponse';
@@ -364,8 +364,12 @@ export class HttpController {
       catchError((refreshError) => {
         this.isRefreshing = false;
         this.processQueue(refreshError);
-        this.clearTokens(controller);
-        this.redirectToLogin(controller);
+        // Only clear tokens and redirect on 401; preserve tokens for other errors
+        // (e.g. network failure, server error) so the user can retry
+        if (refreshError.status === 401) {
+          this.clearTokens(controller);
+          this.redirectToLogin(controller);
+        }
         return throwError(() => refreshError);
       }),
     );
