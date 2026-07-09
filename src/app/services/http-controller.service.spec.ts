@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { HttpController, ControllerError, ControllerErrorHandler, JsonOptions } from './http-controller.service';
 import { Controller, ControllerProtocol } from '@models/controller';
 import { environment } from '../../environments/environment';
@@ -11,6 +12,7 @@ describe('HttpController', () => {
   let service: HttpController;
   let mockHttp: HttpClient;
   let mockErrorHandler: ControllerErrorHandler;
+  let mockRouter: Router;
   let mockController: Controller;
 
   beforeEach(() => {
@@ -32,7 +34,9 @@ describe('HttpController', () => {
       handleError: vi.fn((err: any) => throwError(() => err)),
     } as any as ControllerErrorHandler;
 
-    service = new HttpController(mockHttp, mockErrorHandler);
+    mockRouter = { navigate: vi.fn() } as any as Router;
+
+    service = new HttpController(mockHttp, mockErrorHandler, mockRouter);
 
     mockController = {
       id: 1,
@@ -449,6 +453,17 @@ describe('HttpController', () => {
       });
 
       expect(mockErrorHandler.handleError).toHaveBeenCalled();
+    });
+  });
+
+  describe('Token Expiry Redirect', () => {
+    it('should navigate to login via Router (not a full-page reload) on 401 without refresh token', () => {
+      const error401 = new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' });
+      (mockHttp.get as any).mockReturnValue(throwError(() => error401));
+
+      service.get(mockController, '/test').subscribe({ error: () => {} });
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/controller', mockController.id, 'login']);
     });
   });
 

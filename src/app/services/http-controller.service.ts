@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { EventEmitter, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { environment } from 'environments/environment';
 import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
@@ -108,7 +109,11 @@ export class HttpController {
   private isRefreshing = false;
   private failedQueue: { resolve: () => void; reject: (error: unknown) => void }[] = [];
 
-  constructor(private http: HttpClient, private errorHandler: ControllerErrorHandler) {}
+  constructor(
+    private http: HttpClient,
+    private errorHandler: ControllerErrorHandler,
+    private router: Router,
+  ) {}
 
   get<T>(controller: Controller, url: string, options?: JsonOptions): Observable<T> {
     options = this.getJsonOptions(options);
@@ -367,7 +372,6 @@ export class HttpController {
         // Only clear tokens and redirect on 401; preserve tokens for other errors
         // (e.g. network failure, server error) so the user can retry
         if (refreshError.status === 401) {
-          this.clearTokens(controller);
           this.redirectToLogin(controller);
         }
         return throwError(() => refreshError);
@@ -421,6 +425,15 @@ export class HttpController {
   }
 
   private redirectToLogin(controller: Controller): void {
-    window.location.href = `/controller/${controller.id}/login`;
+    // An in-app Router navigation does not reset singletons the way a full-page
+    // reload would, so explicitly tear down the refresh-token flow state and
+    // persisted auth first. Otherwise LoginComponent sees the stale authToken
+    // and navigates back to projects, causing a login loop.
+    this.clearTokens(controller);
+    controller.tokenExpired = true;
+    localStorage.setItem(`controller-${controller.id}`, JSON.stringify(controller));
+    this.isRefreshing = false;
+    this.processQueue(new Error('Session expired, redirecting to login'));
+    this.router.navigate(['/controller', controller.id, 'login']);
   }
 }
