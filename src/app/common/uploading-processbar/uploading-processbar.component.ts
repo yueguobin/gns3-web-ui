@@ -26,6 +26,8 @@ export class UploadingProcessbarComponent implements OnInit, OnDestroy {
   private _US = inject(UploadServiceService);
 
   uploadProgress = signal<number>(0);
+  label = signal<string>('');
+  isComputing = signal<boolean>(false);
   subscription: Subscription;
   upload_file_type: string;
 
@@ -35,10 +37,15 @@ export class UploadingProcessbarComponent implements OnInit, OnDestroy {
     this.upload_file_type = this.data.upload_file_type;
     this.subscription = this._US.currentCount.subscribe((count: number) => {
       this.uploadProgress.set(count);
-      if (this.uploadProgress() === 100 || this.uploadProgress() == null) {
+      // `null` always dismisses (cancel path for all consumers).
+      // `100` only dismisses when not in the local-compute (e.g. MD5) phase,
+      // otherwise the bar would close before the real upload starts.
+      if (this.uploadProgress() == null || (this.uploadProgress() === 100 && !this.isComputing())) {
         this.dismiss();
       }
     });
+    this.subscription.add(this._US.currentMessage.subscribe((msg: string) => this.label.set(msg)));
+    this.subscription.add(this._US.currentComputing.subscribe((v: boolean) => this.isComputing.set(v)));
   }
 
   dismiss() {

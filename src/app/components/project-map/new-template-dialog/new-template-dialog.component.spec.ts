@@ -206,6 +206,10 @@ describe('NewTemplateDialogComponent', () => {
       processBarCount: vi.fn(),
       currentCancelItemDetails: of(false),
       cancelFileUploading: vi.fn(),
+      setMessage: vi.fn(),
+      setComputing: vi.fn(),
+      currentMessage: of(''),
+      currentComputing: of(false),
     };
 
     mockChangeDetectorRef = {
@@ -617,6 +621,52 @@ describe('NewTemplateDialogComponent', () => {
           data: { upload_file_type: 'Image' },
         })
       );
+    });
+  });
+
+  describe('cancelUploading computing-phase reset', () => {
+    it('should clear the phase message on cancel', () => {
+      component.cancelUploading();
+      expect(mockUploadServiceService.setMessage).toHaveBeenCalledWith('');
+    });
+
+    it('should clear the computing flag on cancel', () => {
+      component.cancelUploading();
+      expect(mockUploadServiceService.setComputing).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe('refreshImagesUntilReady', () => {
+    it('should stop polling once the uploaded image checksum is available', () => {
+      mockQemuService.getImages.mockReturnValue(of([{ checksum: 'abc123' }]));
+      component.applianceToInstall = createMockAppliance();
+      mockQemuService.getImages.mockClear(); // ignore the initial load triggered by ngOnInit
+
+      (component as any).refreshImagesUntilReady('test-image.img');
+
+      expect(mockQemuService.getImages).toHaveBeenCalledTimes(1);
+      expect(component.checkImageFromVersion('test-image.img')).toBe(true);
+    });
+
+    it('should retry until the checksum becomes available', async () => {
+      let callCount = 0;
+      mockQemuService.getImages.mockImplementation(() => {
+        callCount++;
+        return of(callCount === 1 ? [] : [{ checksum: 'abc123' }]);
+      });
+      component.applianceToInstall = createMockAppliance();
+      mockQemuService.getImages.mockClear(); // ignore the initial load triggered by ngOnInit
+
+      vi.useFakeTimers();
+      try {
+        (component as any).refreshImagesUntilReady('test-image.img');
+        await vi.runAllTimersAsync();
+
+        expect(mockQemuService.getImages).toHaveBeenCalledTimes(2);
+        expect(component.checkImageFromVersion('test-image.img')).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
