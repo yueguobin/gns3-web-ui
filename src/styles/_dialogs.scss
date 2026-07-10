@@ -1213,6 +1213,35 @@ h2[mat-dialog-title] {
       font-size: 14px;
       padding: 12px 16px;
     }
+
+    /* IP addresses column: one address per line, allow long IPv6 to wrap */
+    .mat-column-ipAddresses {
+      white-space: normal;
+      word-break: break-word;
+      max-width: 360px;
+    }
+
+    /* One IP address per line */
+    .cloud-ip-line {
+      line-height: 1.5;
+    }
+
+    /* Interface cell: name (with inline status dot) + secondary meta line */
+    .cloud-iface-cell {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cloud-iface-cell .cloud-iface-status {
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .cloud-iface-meta {
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 0.85em;
+      line-height: 1.4;
+    }
   }
 
   /* Add interface row styling */
@@ -1226,6 +1255,51 @@ h2[mat-dialog-title] {
 
     mat-form-field {
       flex: 1;
+    }
+  }
+}
+
+/* Cloud interface status indicator — used both in the in-dialog table cells
+   and in the select overlay options, so it cannot be scoped to either. */
+.cloud-iface-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--up {
+    background-color: var(--mat-sys-primary);
+  }
+
+  &--down {
+    background-color: var(--mat-sys-error);
+  }
+}
+
+/* Cloud Ethernet interface select — options render in a global overlay,
+   outside the dialog panel, so they cannot be scoped to the panel. */
+.cloud-ethernet-select-panel {
+  .cloud-iface-option {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+
+    &__head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    &__name {
+      flex-shrink: 0;
+    }
+
+    &__ip {
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 0.85em;
+      padding-left: 16px;
     }
   }
 }

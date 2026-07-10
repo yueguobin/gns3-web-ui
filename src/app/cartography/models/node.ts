@@ -8,10 +8,21 @@ export class PortsMapping {
   type?: string;
 }
 
+export interface HostInterfaceIPAddress {
+  family: string; // 'ipv4' | 'ipv6'
+  address: string;
+  netmask: string;
+}
+
 export interface NetworkInterface {
   name: string;
   special: boolean;
   type: string;
+  ip_addresses?: HostInterfaceIPAddress[];
+  status?: string; // 'up' | 'down' — link carrier state (psutil isup)
+  speed?: number; // Mbit/s, 0 = unknown
+  mtu?: number;
+  flags?: string[]; // normalized Linux interface flags
 }
 
 export class Properties {

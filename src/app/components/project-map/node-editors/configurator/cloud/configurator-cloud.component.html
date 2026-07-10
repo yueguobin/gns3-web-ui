@@ -11,9 +11,28 @@
               <div class="add-interface-row">
                 <mat-form-field>
                   <mat-label>Ethernet interface</mat-label>
-                  <mat-select [value]="ethernetInterface()" (selectionChange)="ethernetInterface.set($event.value)">
-                    @for (iface of availableEthernetInterfaces; track iface) {
-                    <mat-option [value]="iface">{{ iface }}</mat-option>
+                  <mat-select
+                    panelClass="cloud-ethernet-select-panel"
+                    [value]="ethernetInterface()"
+                    (selectionChange)="ethernetInterface.set($event.value)"
+                  >
+                    <mat-select-trigger>{{ ethernetInterface() }}</mat-select-trigger>
+                    @for (iface of availableEthernetInterfaces; track iface.name) {
+                    <mat-option [value]="iface.name">
+                      <div class="cloud-iface-option">
+                        <div class="cloud-iface-option__head">
+                          <span
+                            class="cloud-iface-status"
+                            [class.cloud-iface-status--up]="iface.status === 'up'"
+                            [class.cloud-iface-status--down]="iface.status !== 'up'"
+                          ></span>
+                          <span class="cloud-iface-option__name">{{ iface.name }}</span>
+                        </div>
+                        @for (ip of iface.ip_addresses || []; track ip.address) {
+                          <span class="cloud-iface-option__ip">{{ formatIpAddress(ip) }}</span>
+                        }
+                      </div>
+                    </mat-option>
                     }
                   </mat-select>
                 </mat-form-field>
@@ -23,7 +42,36 @@
               <table mat-table [dataSource]="portsMappingEthernet" class="interfaces-table">
                 <ng-container matColumnDef="name">
                   <th mat-header-cell *matHeaderCellDef>Interface</th>
-                  <td mat-cell *matCellDef="let element">{{ element.name }}</td>
+                  <td mat-cell *matCellDef="let element">
+                    @if (getHostInterface(element.interface || element.name); as host) {
+                      <div class="cloud-iface-cell">
+                        <span [matTooltip]="formatFlags(host.flags) || null">
+                          <span
+                            class="cloud-iface-status"
+                            [class.cloud-iface-status--up]="host.status === 'up'"
+                            [class.cloud-iface-status--down]="host.status !== 'up'"
+                          ></span>
+                          {{ element.name }}
+                        </span>
+                        @if (formatInterfaceMeta(host); as meta) {
+                          <span class="cloud-iface-meta">{{ meta }}</span>
+                        }
+                      </div>
+                    } @else {
+                      {{ element.name }}
+                    }
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="ipAddresses">
+                  <th mat-header-cell *matHeaderCellDef>IP addresses</th>
+                  <td mat-cell *matCellDef="let element">
+                    @for (ip of getHostInterfaceIps(element.interface || element.name); track ip.address) {
+                      <div class="cloud-ip-line">{{ formatIpAddress(ip) }}</div>
+                    } @empty {
+                      —
+                    }
+                  </td>
                 </ng-container>
 
                 <ng-container matColumnDef="actions">
