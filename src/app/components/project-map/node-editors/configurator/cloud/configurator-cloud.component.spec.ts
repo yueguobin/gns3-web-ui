@@ -234,6 +234,43 @@ describe('ConfiguratorDialogCloudComponent', () => {
     });
   });
 
+  describe('getHostInterfaceIps', () => {
+    it('returns ip_addresses for a matching host interface', () => {
+      component.node = {
+        ...mockNode,
+        properties: {
+          ...mockNode.properties,
+          interfaces: [
+            {
+              name: 'eth0',
+              special: false,
+              type: 'ethernet',
+              ip_addresses: [{ family: 'ipv4', address: '192.168.1.5', netmask: '255.255.255.0' }],
+            },
+          ],
+        } as any,
+      };
+
+      const ips = component.getHostInterfaceIps('eth0');
+
+      expect(ips).toHaveLength(1);
+      expect(ips[0].address).toBe('192.168.1.5');
+    });
+
+    it('returns an empty array when the host interface is not found', () => {
+      component.node = { ...mockNode };
+
+      expect(component.getHostInterfaceIps('unknown')).toEqual([]);
+    });
+
+    it('returns an empty array when interfaces are absent', () => {
+      component.node = { ...mockNode, properties: { ...mockNode.properties } as any };
+      delete (component.node.properties as any).interfaces;
+
+      expect(component.getHostInterfaceIps('eth0')).toEqual([]);
+    });
+  });
+
   describe('onAddEthernetInterface', () => {
     beforeEach(() => {
       mockCloudValidationService.validateInterfaceName.mockReturnValue({ isValid: true });

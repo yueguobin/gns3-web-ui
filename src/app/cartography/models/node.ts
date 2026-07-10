@@ -8,10 +8,17 @@ export class PortsMapping {
   type?: string;
 }
 
+export interface HostInterfaceIPAddress {
+  family: string; // 'ipv4' | 'ipv6'
+  address: string;
+  netmask: string;
+}
+
 export interface NetworkInterface {
   name: string;
   special: boolean;
   type: string;
+  ip_addresses?: HostInterfaceIPAddress[];
 }
 
 export class Properties {

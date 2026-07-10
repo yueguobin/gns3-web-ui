@@ -1213,6 +1213,13 @@ h2[mat-dialog-title] {
       font-size: 14px;
       padding: 12px 16px;
     }
+
+    /* IP addresses column: allow long address lists to wrap */
+    .mat-column-ipAddresses {
+      white-space: normal;
+      word-break: break-word;
+      max-width: 360px;
+    }
   }
 
   /* Add interface row styling */
@@ -1227,6 +1234,21 @@ h2[mat-dialog-title] {
     mat-form-field {
       flex: 1;
     }
+  }
+}
+
+/* Cloud Ethernet interface select — options render in a global overlay,
+   outside the dialog panel, so they cannot be scoped to the panel. */
+.cloud-ethernet-select-panel {
+  .cloud-iface-option__name {
+    flex-shrink: 0;
+  }
+
+  .cloud-iface-option__ips {
+    margin-left: auto;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.85em;
+    white-space: nowrap;
   }
 }
 

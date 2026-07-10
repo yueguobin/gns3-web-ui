@@ -14,7 +14,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { Node } from '../../../../../cartography/models/node';
+import type { HostInterfaceIPAddress, NetworkInterface } from '../../../../../cartography/models/node';
 import { UdpTunnelsComponent } from '@components/preferences/common/udp-tunnels/udp-tunnels.component';
+import { formatIpAddresses } from './ip-address.util';
 import { PortsMappingEntity } from '@models/ethernetHub/ports-mapping-enity';
 import { QemuBinary } from '@models/qemu/qemu-binary';
 import { Controller } from '@models/controller';
@@ -67,13 +69,13 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
   portsMappingTap: PortsMappingEntity[] = [];
   portsMappingUdp: PortsMappingEntity[] = [];
 
-  ethernetDisplayColumns: string[] = ['name', 'actions'];
+  ethernetDisplayColumns: string[] = ['name', 'ipAddresses', 'actions'];
   tapDisplayColumns: string[] = ['name', 'actions'];
   displayedColumns: string[] = ['adapter_number', 'port_name', 'adapter_type', 'actions'];
   networkTypes = [];
   readonly tapInterface = model('');
   readonly ethernetInterface = model('');
-  availableEthernetInterfaces: string[] = [];
+  availableEthernetInterfaces: NetworkInterface[] = [];
 
   // Model signals for form fields
   readonly nodeName = model('');
@@ -107,9 +109,9 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
 
         // Populate available ethernet interfaces from gns3server
         if (this.node.properties.interfaces) {
-          this.availableEthernetInterfaces = this.node.properties.interfaces
-            .filter((iface) => iface.type === 'ethernet')
-            .map((iface) => iface.name);
+          this.availableEthernetInterfaces = this.node.properties.interfaces.filter(
+            (iface) => iface.type === 'ethernet'
+          );
         }
 
         this.portsMappingEthernet = this.node.properties.ports_mapping.filter((elem) => elem.type === 'ethernet');
@@ -130,6 +132,16 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
 
   getConfiguration() {
     this.consoleTypes = this.builtInTemplatesConfigurationService.getConsoleTypesForCloudNodes();
+  }
+
+  /** Expose the IP formatter to the template. */
+  formatIpAddresses = formatIpAddresses;
+
+  /** Look up the host interface IP addresses bridged by a configured ethernet port. */
+  getHostInterfaceIps(hostInterfaceName: string): HostInterfaceIPAddress[] {
+    return (
+      this.node?.properties?.interfaces?.find((iface) => iface.name === hostInterfaceName)?.ip_addresses ?? []
+    );
   }
 
   onAddEthernetInterface() {

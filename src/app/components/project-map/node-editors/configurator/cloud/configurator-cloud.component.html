@@ -11,9 +11,18 @@
               <div class="add-interface-row">
                 <mat-form-field>
                   <mat-label>Ethernet interface</mat-label>
-                  <mat-select [value]="ethernetInterface()" (selectionChange)="ethernetInterface.set($event.value)">
-                    @for (iface of availableEthernetInterfaces; track iface) {
-                    <mat-option [value]="iface">{{ iface }}</mat-option>
+                  <mat-select
+                    panelClass="cloud-ethernet-select-panel"
+                    [value]="ethernetInterface()"
+                    (selectionChange)="ethernetInterface.set($event.value)"
+                  >
+                    @for (iface of availableEthernetInterfaces; track iface.name) {
+                    <mat-option [value]="iface.name">
+                      <span class="cloud-iface-option__name">{{ iface.name }}</span>
+                      @if (formatIpAddresses(iface.ip_addresses); as ips) {
+                      <span class="cloud-iface-option__ips">{{ ips }}</span>
+                      }
+                    </mat-option>
                     }
                   </mat-select>
                 </mat-form-field>
@@ -24,6 +33,13 @@
                 <ng-container matColumnDef="name">
                   <th mat-header-cell *matHeaderCellDef>Interface</th>
                   <td mat-cell *matCellDef="let element">{{ element.name }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="ipAddresses">
+                  <th mat-header-cell *matHeaderCellDef>IP addresses</th>
+                  <td mat-cell *matCellDef="let element">
+                    {{ formatIpAddresses(getHostInterfaceIps(element.interface || element.name)) || '—' }}
+                  </td>
                 </ng-container>
 
                 <ng-container matColumnDef="actions">
