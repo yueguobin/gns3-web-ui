@@ -16,7 +16,7 @@
                     [value]="ethernetInterface()"
                     (selectionChange)="ethernetInterface.set($event.value)"
                   >
-                    <span mat-select-trigger>{{ ethernetInterface() }}</span>
+                    <mat-select-trigger>{{ ethernetInterface() }}</mat-select-trigger>
                     @for (iface of availableEthernetInterfaces; track iface.name) {
                     <mat-option [value]="iface.name">
                       <div class="cloud-iface-option">
