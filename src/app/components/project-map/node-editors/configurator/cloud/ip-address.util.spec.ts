@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { HostInterfaceIPAddress } from '../../../../../cartography/models/node';
-import { formatIpAddresses, netmaskToPrefix, stripScope } from './ip-address.util';
+import { formatIpAddress, formatIpAddresses, netmaskToPrefix, stripScope } from './ip-address.util';
 
 describe('stripScope', () => {
   it('removes an IPv6 scope zone', () => {
@@ -69,5 +69,12 @@ describe('formatIpAddresses', () => {
       { family: 'ipv6', address: '2001:db8::1', netmask: 'ffff:ffff:ffff:ffff::' },
     ];
     expect(formatIpAddresses(ips)).toBe('192.168.1.5/24, 10.0.0.5/24, fe80::1/64, 2001:db8::1/64');
+  });
+});
+
+describe('formatIpAddress', () => {
+  it('formats a single address with prefix and strips the scope zone', () => {
+    expect(formatIpAddress({ family: 'ipv4', address: '192.168.1.5', netmask: '255.255.255.0' })).toBe('192.168.1.5/24');
+    expect(formatIpAddress({ family: 'ipv6', address: 'fe80::1%eth0', netmask: 'ffff:ffff:ffff:ffff::' })).toBe('fe80::1/64');
   });
 });

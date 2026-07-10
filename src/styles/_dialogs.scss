@@ -1214,11 +1214,16 @@ h2[mat-dialog-title] {
       padding: 12px 16px;
     }
 
-    /* IP addresses column: allow long address lists to wrap */
+    /* IP addresses column: one address per line, allow long IPv6 to wrap */
     .mat-column-ipAddresses {
       white-space: normal;
       word-break: break-word;
       max-width: 360px;
+    }
+
+    /* One IP address per line */
+    .cloud-ip-line {
+      line-height: 1.5;
     }
   }
 

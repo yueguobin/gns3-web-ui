@@ -66,12 +66,19 @@ export function netmaskToPrefix(netmask: string, family: string): number {
 }
 
 /**
- * Render an interface's IP addresses as compact "address/prefix" text,
- * e.g. "192.168.1.5/24, 2001:db8::1/64". Returns '' when there are none.
+ * Render a single address as compact "address/prefix" text,
+ * e.g. "192.168.1.5/24" or "2001:db8::1/64".
+ */
+export function formatIpAddress(ip: HostInterfaceIPAddress): string {
+  return `${stripScope(ip.address)}/${netmaskToPrefix(ip.netmask, ip.family)}`;
+}
+
+/**
+ * Render an interface's IP addresses as compact "address/prefix" text joined
+ * by commas, e.g. "192.168.1.5/24, 2001:db8::1/64". Returns '' when there are
+ * none.
  */
 export function formatIpAddresses(ips?: HostInterfaceIPAddress[]): string {
   if (!ips || ips.length === 0) return '';
-  return ips
-    .map((ip) => `${stripScope(ip.address)}/${netmaskToPrefix(ip.netmask, ip.family)}`)
-    .join(', ');
+  return ips.map(formatIpAddress).join(', ');
 }

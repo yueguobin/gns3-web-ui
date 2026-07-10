@@ -38,7 +38,11 @@
                 <ng-container matColumnDef="ipAddresses">
                   <th mat-header-cell *matHeaderCellDef>IP addresses</th>
                   <td mat-cell *matCellDef="let element">
-                    {{ formatIpAddresses(getHostInterfaceIps(element.interface || element.name)) || '—' }}
+                    @for (ip of getHostInterfaceIps(element.interface || element.name); track ip.address) {
+                      <div class="cloud-ip-line">{{ formatIpAddress(ip) }}</div>
+                    } @empty {
+                      —
+                    }
                   </td>
                 </ng-container>
 
