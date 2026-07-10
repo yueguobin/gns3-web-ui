@@ -19,6 +19,10 @@ export interface NetworkInterface {
   special: boolean;
   type: string;
   ip_addresses?: HostInterfaceIPAddress[];
+  status?: string; // 'up' | 'down' — link carrier state (psutil isup)
+  speed?: number; // Mbit/s, 0 = unknown
+  mtu?: number;
+  flags?: string[]; // normalized Linux interface flags
 }
 
 export class Properties {

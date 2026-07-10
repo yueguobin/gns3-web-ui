@@ -1,4 +1,4 @@
-import type { HostInterfaceIPAddress } from '../../../../../cartography/models/node';
+import type { HostInterfaceIPAddress, NetworkInterface } from '../../../../../cartography/models/node';
 
 /**
  * Drop an IPv6 scope zone (e.g. "fe80::1%eth0" -> "fe80::1").
@@ -81,4 +81,37 @@ export function formatIpAddress(ip: HostInterfaceIPAddress): string {
 export function formatIpAddresses(ips?: HostInterfaceIPAddress[]): string {
   if (!ips || ips.length === 0) return '';
   return ips.map(formatIpAddress).join(', ');
+}
+
+/**
+ * Format a link speed (Mbit/s) as human-readable text. 0 or missing -> '—'.
+ * 1000 -> "1 Gbit/s", 2500 -> "2.5 Gbit/s", 100 -> "100 Mbit/s".
+ */
+export function formatSpeed(mbit?: number): string {
+  if (!mbit || mbit <= 0) return '—';
+  if (mbit >= 1000) {
+    const gbit = mbit / 1000;
+    return `${gbit.toFixed(gbit % 1 === 0 ? 0 : 1)} Gbit/s`;
+  }
+  return `${mbit} Mbit/s`;
+}
+
+/**
+ * Compact secondary detail for a host interface, e.g. "1 Gbit/s · MTU 1500".
+ * Only known values are included; returns '' when neither speed nor MTU is set.
+ */
+export function formatInterfaceMeta(iface?: NetworkInterface): string {
+  if (!iface) return '';
+  const parts: string[] = [];
+  if (iface.speed && iface.speed > 0) parts.push(formatSpeed(iface.speed));
+  if (iface.mtu) parts.push(`MTU ${iface.mtu}`);
+  return parts.join(' · ');
+}
+
+/**
+ * Render Linux interface flags as a labeled, comma-separated string, e.g.
+ * "Flags: up, broadcast, running, multicast". Returns '' when there are none.
+ */
+export function formatFlags(flags?: string[]): string {
+  return flags && flags.length > 0 ? `Flags: ${flags.join(', ')}` : '';
 }

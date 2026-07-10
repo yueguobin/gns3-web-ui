@@ -16,7 +16,7 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { Node } from '../../../../../cartography/models/node';
 import type { HostInterfaceIPAddress, NetworkInterface } from '../../../../../cartography/models/node';
 import { UdpTunnelsComponent } from '@components/preferences/common/udp-tunnels/udp-tunnels.component';
-import { formatIpAddress, formatIpAddresses } from './ip-address.util';
+import { formatFlags, formatIpAddress, formatIpAddresses, formatInterfaceMeta } from './ip-address.util';
 import { PortsMappingEntity } from '@models/ethernetHub/ports-mapping-enity';
 import { QemuBinary } from '@models/qemu/qemu-binary';
 import { Controller } from '@models/controller';
@@ -134,15 +134,20 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
     this.consoleTypes = this.builtInTemplatesConfigurationService.getConsoleTypesForCloudNodes();
   }
 
-  /** Expose the IP formatters to the template. */
+  /** Expose the interface formatters to the template. */
   formatIpAddresses = formatIpAddresses;
   formatIpAddress = formatIpAddress;
+  formatInterfaceMeta = formatInterfaceMeta;
+  formatFlags = formatFlags;
+
+  /** Look up the full host interface bridged by a configured ethernet port. */
+  getHostInterface(hostInterfaceName: string): NetworkInterface | undefined {
+    return this.node?.properties?.interfaces?.find((iface) => iface.name === hostInterfaceName);
+  }
 
   /** Look up the host interface IP addresses bridged by a configured ethernet port. */
   getHostInterfaceIps(hostInterfaceName: string): HostInterfaceIPAddress[] {
-    return (
-      this.node?.properties?.interfaces?.find((iface) => iface.name === hostInterfaceName)?.ip_addresses ?? []
-    );
+    return this.getHostInterface(hostInterfaceName)?.ip_addresses ?? [];
   }
 
   onAddEthernetInterface() {

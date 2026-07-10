@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { HostInterfaceIPAddress } from '../../../../../cartography/models/node';
-import { formatIpAddress, formatIpAddresses, netmaskToPrefix, stripScope } from './ip-address.util';
+import {
+  formatFlags,
+  formatIpAddress,
+  formatIpAddresses,
+  formatInterfaceMeta,
+  formatSpeed,
+  netmaskToPrefix,
+  stripScope,
+} from './ip-address.util';
 
 describe('stripScope', () => {
   it('removes an IPv6 scope zone', () => {
@@ -76,5 +84,50 @@ describe('formatIpAddress', () => {
   it('formats a single address with prefix and strips the scope zone', () => {
     expect(formatIpAddress({ family: 'ipv4', address: '192.168.1.5', netmask: '255.255.255.0' })).toBe('192.168.1.5/24');
     expect(formatIpAddress({ family: 'ipv6', address: 'fe80::1%eth0', netmask: 'ffff:ffff:ffff:ffff::' })).toBe('fe80::1/64');
+  });
+});
+
+describe('formatSpeed', () => {
+  it('formats megabit speeds', () => {
+    expect(formatSpeed(100)).toBe('100 Mbit/s');
+    expect(formatSpeed(10)).toBe('10 Mbit/s');
+  });
+
+  it('formats gigabit speeds', () => {
+    expect(formatSpeed(1000)).toBe('1 Gbit/s');
+    expect(formatSpeed(10000)).toBe('10 Gbit/s');
+    expect(formatSpeed(2500)).toBe('2.5 Gbit/s');
+  });
+
+  it('returns "—" for unknown / missing / non-positive speeds', () => {
+    expect(formatSpeed(0)).toBe('—');
+    expect(formatSpeed(undefined)).toBe('—');
+    expect(formatSpeed(-1)).toBe('—');
+  });
+});
+
+describe('formatInterfaceMeta', () => {
+  it('combines speed and MTU', () => {
+    expect(formatInterfaceMeta({ speed: 1000, mtu: 1500 } as any)).toBe('1 Gbit/s · MTU 1500');
+  });
+
+  it('omits speed when unknown, keeps MTU', () => {
+    expect(formatInterfaceMeta({ speed: 0, mtu: 1360 } as any)).toBe('MTU 1360');
+  });
+
+  it('returns "" when nothing is known', () => {
+    expect(formatInterfaceMeta({} as any)).toBe('');
+    expect(formatInterfaceMeta(undefined)).toBe('');
+  });
+});
+
+describe('formatFlags', () => {
+  it('joins flags with commas, prefixed with "Flags: "', () => {
+    expect(formatFlags(['up', 'broadcast', 'running', 'multicast'])).toBe('Flags: up, broadcast, running, multicast');
+  });
+
+  it('returns "" for empty / missing flags', () => {
+    expect(formatFlags([])).toBe('');
+    expect(formatFlags(undefined)).toBe('');
   });
 });
