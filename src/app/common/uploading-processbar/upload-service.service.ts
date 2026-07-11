@@ -9,6 +9,10 @@ export class UploadServiceService {
   currentCount = this.countSource.asObservable();
   private cancelItem = new Subject();
   currentCancelItemDetails = this.cancelItem.asObservable();
+  private messageSource = new BehaviorSubject<string>('');
+  currentMessage = this.messageSource.asObservable();
+  private computingSource = new BehaviorSubject<boolean>(false);
+  currentComputing = this.computingSource.asObservable();
 
   constructor() {}
 
@@ -17,5 +21,11 @@ export class UploadServiceService {
   }
   cancelFileUploading(isCancel) {
     this.cancelItem.next(isCancel);
+  }
+  setMessage(message: string) {
+    this.messageSource.next(message);
+  }
+  setComputing(value: boolean) {
+    this.computingSource.next(value);
   }
 }

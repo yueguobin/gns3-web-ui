@@ -9,6 +9,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UploadingProcessbarComponent } from 'app/common/uploading-processbar/uploading-processbar.component';
 import { FileItem, FileUploader, ParsedResponseHeaders } from 'ng2-file-upload';
 import * as SparkMD5 from 'spark-md5';
+import { timer } from 'rxjs';
 import { v4 as uuid } from 'uuid';
 import { ProgressService } from '../../../common/progress/progress.service';
 import { InformationDialogComponent } from '@components/dialogs/information-dialog/information-dialog.component';
@@ -142,6 +143,7 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
   uploadingImageName: string = '';
   isUploading: boolean = false;
   isUpdatingAppliances: boolean = false;
+  private checksumCancelled = false;
 
   readonly paginator = viewChild(MatPaginator);
   readonly stepper = viewChild<MatStepper>('stepper');
@@ -331,12 +333,16 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
       headers: ParsedResponseHeaders
     ) => {
       this.toasterService.success('Image successfully imported');
-      this.refreshImages();
+      const uploadedFilename = this.uploadingImageName;
       this.progressService.deactivate();
       this.isUploading = false;
       this.uploadingImageName = '';
       this.uploaderImage.clearQueue();
       this.changeDetectorRef.markForCheck();
+      // The server computes the image checksum asynchronously after the upload
+      // finishes, so poll until the just-uploaded image shows up as installed
+      // (otherwise the dialog stays "missing" until a manual page refresh).
+      this.refreshImagesUntilReady(uploadedFilename);
     };
 
     this.uploaderImage.onProgressItem = (progress: any) => {
@@ -419,6 +425,23 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
         this.toasterService.error(message);
         this.changeDetectorRef.markForCheck();
       },
+    });
+  }
+
+  private refreshImagesUntilReady(filename: string, attempt = 0): void {
+    const MAX_ATTEMPTS = 15;
+    const service = this.applianceToInstall?.qemu
+      ? this.qemuService
+      : this.applianceToInstall?.dynamips
+        ? this.iosService
+        : this.iouService;
+    service.getImages(this.controller).subscribe((images: any[]) => {
+      if (this.applianceToInstall?.qemu) this.qemuImages = images;
+      else if (this.applianceToInstall?.dynamips) this.iosImages = images;
+      else this.iouImages = images;
+      this.changeDetectorRef.markForCheck();
+      if (this.checkImageFromVersion(filename) || attempt >= MAX_ATTEMPTS) return;
+      timer(1000).subscribe(() => this.refreshImagesUntilReady(filename, attempt + 1));
     });
   }
 
@@ -683,10 +706,26 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
 
   importImage(event, imageName) {
     this.uploadingImageName = imageName;
-    this.computeChecksumMd5(event.target.files[0], false).then((output) => {
+    this.checksumCancelled = false;
+    // Open the progress snackbar up front and drive it from the MD5 computation,
+    // so the user sees feedback during the (potentially long) local checksum phase.
+    this.uploadServiceService.setMessage('Computing checksum');
+    this.uploadServiceService.setComputing(true);
+    this.openSnackBar();
+    this.uploadServiceService.processBarCount(0);
+
+    this.computeChecksumMd5(event.target.files[0], false, (percent) => {
+      this.uploadServiceService.processBarCount(percent);
+    }).then((output) => {
+      if (this.checksumCancelled) return;
+
       let imageToInstall = this.applianceToInstall.images.filter((n) => n.filename === imageName)[0];
 
       if (imageToInstall.md5sum !== output) {
+        // Close the checksum snackbar so it does not linger behind the dialog.
+        this.uploadServiceService.processBarCount(null);
+        this.uploadServiceService.setMessage('');
+        this.uploadServiceService.setComputing(false);
         this.progressService.deactivate();
         const dialogRef = this.dialog.open(InformationDialogComponent, {
           autoFocus: false,
@@ -697,8 +736,10 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
                     The MD5 sum is ${output} and should be ${imageToInstall.md5sum}. Do you want to accept it at your own risks?`;
         dialogRef.afterClosed().subscribe((answer: boolean) => {
           if (answer) {
-            this.importImageFile(event, imageName);
             this.openSnackBar();
+            this.uploadServiceService.setMessage('Uploading');
+            this.uploadServiceService.setComputing(false);
+            this.importImageFile(event, imageName);
           } else {
             this.isUploading = false;
             this.uploadingImageName = '';
@@ -707,8 +748,10 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
           }
         });
       } else {
+        this.uploadServiceService.setMessage('Uploading');
+        this.uploadServiceService.setComputing(false);
+        this.uploadServiceService.processBarCount(0);
         this.importImageFile(event, imageName);
-        this.openSnackBar();
       }
     });
   }
@@ -742,8 +785,11 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
   }
 
   cancelUploading() {
+    this.checksumCancelled = true;
     this.uploaderImage.clearQueue();
     this.uploadServiceService.processBarCount(null);
+    this.uploadServiceService.setMessage('');
+    this.uploadServiceService.setComputing(false);
     this.toasterService.warning('File upload cancelled');
     this.uploadServiceService.cancelFileUploading(false);
   }
@@ -1076,7 +1122,11 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private computeChecksumMd5(file: File, encode = false): Promise<string> {
+  private computeChecksumMd5(
+    file: File,
+    encode = false,
+    onProgress?: (percent: number) => void,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const chunkSize = 2097152;
       const spark = new SparkMD5.ArrayBuffer();
@@ -1095,6 +1145,10 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
       fileReader.onload = function (e: any): void {
         spark.append(e.target.result);
         cursor += chunkSize;
+        if (onProgress) {
+          const pct = Math.min(100, Math.floor((Math.min(cursor, file.size) / file.size) * 100));
+          onProgress(pct);
+        }
         if (cursor < file.size) {
           processChunk(cursor);
         } else {
