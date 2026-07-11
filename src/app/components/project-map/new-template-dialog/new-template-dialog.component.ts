@@ -439,11 +439,6 @@ export class NewTemplateDialogComponent implements OnInit, AfterViewInit {
       if (this.applianceToInstall?.qemu) this.qemuImages = images;
       else if (this.applianceToInstall?.dynamips) this.iosImages = images;
       else this.iouImages = images;
-      // TEMP diagnostic — remove once checksum-timing root cause is confirmed.
-      if (attempt === 0) {
-        const hasChecksum = images.some((i: any) => i.checksum);
-        console.log('[refreshImagesUntilReady] attempt 0 — checksum present:', hasChecksum);
-      }
       this.changeDetectorRef.markForCheck();
       if (this.checkImageFromVersion(filename) || attempt >= MAX_ATTEMPTS) return;
       timer(1000).subscribe(() => this.refreshImagesUntilReady(filename, attempt + 1));
