@@ -72,6 +72,8 @@ import { Controller } from '@models/controller';
 import { Symbol } from '@models/symbol';
 import { DrawingService } from '@services/drawing.service';
 import { LinkService } from '@services/link.service';
+import { MarkerFlashService } from '@services/marker-flash.service';
+import { MarkerRegistryService } from '@services/marker-registry.service';
 import { MapScaleService } from '@services/mapScale.service';
 import { MapSettingsService } from '@services/mapsettings.service';
 import { NodeService } from '@services/node.service';
@@ -123,6 +125,7 @@ import { LinkCreatedComponent } from '../drawings-listeners/link-created/link-cr
 import { NodeDraggedComponent } from '../drawings-listeners/node-dragged/node-dragged.component';
 import { NodeLabelDraggedComponent } from '../drawings-listeners/node-label-dragged/node-label-dragged.component';
 import { TextAddedComponent } from '../drawings-listeners/text-added/text-added.component';
+import { MarkerLegendComponent } from './marker-legend/marker-legend.component';
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
 
 @Component({
@@ -161,6 +164,7 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     NodeLabelDraggedComponent,
     TextAddedComponent,
     TextEditedComponent,
+    MarkerLegendComponent,
   ],
 })
 export class ProjectMapComponent implements OnInit, OnDestroy {
@@ -287,6 +291,8 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private mapNodesDataSource = inject(MapNodesDataSource);
   private mapLinksDataSource = inject(MapLinksDataSource);
+  private markerRegistryService = inject(MarkerRegistryService);
+  private markerFlashService = inject(MarkerFlashService);
   private mapDrawingsDataSource = inject(MapDrawingsDataSource);
   private mapSymbolsDataSource = inject(MapSymbolsDataSource);
   private mapSettingsService = inject(MapSettingsService);
@@ -718,6 +724,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
         }),
         mergeMap((links: Link[]) => {
           this.linksDataSource.set(links);
+          this.markerRegistryService.rebuildAll(links);
           return this.projectService.drawings(this.controller, project.project_id);
         })
       )

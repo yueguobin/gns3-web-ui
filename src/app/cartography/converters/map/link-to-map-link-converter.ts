@@ -41,6 +41,7 @@ export class LinkToMapLinkConverter implements Converter<Link, MapLink> {
     mapLink.suspend = link.suspend;
     mapLink.show_filters_icon = link.show_filters_icon;
     mapLink.wireshark = link.wireshark;
+    mapLink.markers = link.markers;
     return mapLink;
   }
 }

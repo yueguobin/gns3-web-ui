@@ -44,6 +44,7 @@ import { PacketFiltersActionComponent } from './actions/packet-filters-action/pa
 import { ResumeLinkActionComponent } from './actions/resume-link-action/resume-link-action.component';
 import { SuspendLinkActionComponent } from './actions/suspend-link/suspend-link-action.component';
 import { ToggleShowFiltersIconActionComponent } from './actions/toggle-show-filters-icon-action/toggle-show-filters-icon-action.component';
+import { TrafficInsightActionComponent } from './actions/traffic-insight-action/traffic-insight-action.component';
 import { ResetLinkActionComponent } from './actions/reset-link/reset-link-action.component';
 import { EditLinkStyleActionComponent } from './actions/edit-link-style-action/edit-link-style-action.component';
 import { LockActionComponent } from './actions/lock-action/lock-action.component';
@@ -92,6 +93,7 @@ import { ShowInFileManagerActionComponent } from './actions/show-in-file-manager
     ResumeLinkActionComponent,
     SuspendLinkActionComponent,
     ToggleShowFiltersIconActionComponent,
+    TrafficInsightActionComponent,
     ResetLinkActionComponent,
     EditLinkStyleActionComponent,
     LockActionComponent,

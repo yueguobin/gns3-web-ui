@@ -3,6 +3,8 @@ import { ProjectWebServiceHandler, WebServiceMessage } from './project-web-servi
 import { NodesDataSource } from '../cartography/datasources/nodes-datasource';
 import { LinksDataSource } from '../cartography/datasources/links-datasource';
 import { DrawingsDataSource } from '../cartography/datasources/drawings-datasource';
+import { MarkerFlashService } from '@services/marker-flash.service';
+import { MarkerRegistryService } from '@services/marker-registry.service';
 import { Node } from '../cartography/models/node';
 import { Link } from '@models/link';
 import { Drawing } from '../cartography/models/drawing';
@@ -15,6 +17,10 @@ describe('ProjectWebServiceHandler', () => {
   let mockLinksDataSource: Record<string, any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockDrawingsDataSource: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockMarkerFlashService: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockMarkerRegistryService: Record<string, any>;
 
   const createMockNode = (id = 'node-1'): Node => ({ node_id: id, name: 'Test Node' } as Node);
 
@@ -35,6 +41,7 @@ describe('ProjectWebServiceHandler', () => {
       update: vi.fn(),
       add: vi.fn(),
       remove: vi.fn(),
+      get: vi.fn(),
     };
 
     mockDrawingsDataSource = {
@@ -43,10 +50,21 @@ describe('ProjectWebServiceHandler', () => {
       remove: vi.fn(),
     };
 
+    mockMarkerFlashService = {
+      flash: vi.fn(),
+    };
+
+    mockMarkerRegistryService = {
+      reconcileLink: vi.fn(),
+      removeLink: vi.fn(),
+    };
+
     handler = new ProjectWebServiceHandler(
       mockNodesDataSource as unknown as NodesDataSource,
       mockLinksDataSource as unknown as LinksDataSource,
-      mockDrawingsDataSource as unknown as DrawingsDataSource
+      mockDrawingsDataSource as unknown as DrawingsDataSource,
+      mockMarkerRegistryService as unknown as MarkerRegistryService,
+      mockMarkerFlashService as unknown as MarkerFlashService
     );
   });
 
@@ -477,6 +495,64 @@ describe('ProjectWebServiceHandler', () => {
       handler.handleMessage(message);
 
       expect(mockNodesDataSource.update).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe('handleMessage - marker.match', () => {
+    it('should call markerFlashService.flash with color from link markers', () => {
+      const link = createMockLink('l-1');
+      link.markers = { 'marker-l1': { bpf: 'arp', color: '#ff0000' } } as any;
+      mockLinksDataSource.get = vi.fn().mockReturnValue(link);
+
+      const event = { project_id: 'p-1', node_id: 'n-1', link_id: 'l-1', filter: 'marker-l1', tag: null, ts: 1, len: 64 };
+      const message: WebServiceMessage = { action: 'marker.match', event };
+
+      handler.handleMessage(message);
+
+      expect(mockLinksDataSource.get).toHaveBeenCalledWith('l-1');
+      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-1', '#ff0000');
+    });
+
+    it('should flash with null when marker has no color', () => {
+      const link = createMockLink('l-2');
+      link.markers = { 'marker-l2': { bpf: 'arp' } } as any;
+      mockLinksDataSource.get = vi.fn().mockReturnValue(link);
+
+      const event = { project_id: 'p-1', node_id: 'n-1', link_id: 'l-2', filter: 'marker-l2', tag: null, ts: 1, len: 64 };
+      const message: WebServiceMessage = { action: 'marker.match', event };
+
+      handler.handleMessage(message);
+
+      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-2', null);
+    });
+  });
+
+  describe('handleMessage - marker registry reconcile on link events', () => {
+    it('should call reconcileLink on link.created', () => {
+      const link = createMockLink('link-1');
+      const message: WebServiceMessage = { action: 'link.created', event: link };
+
+      handler.handleMessage(message);
+
+      expect(mockMarkerRegistryService.reconcileLink).toHaveBeenCalledWith(link);
+    });
+
+    it('should call reconcileLink on link.updated', () => {
+      const link = createMockLink('link-2');
+      const message: WebServiceMessage = { action: 'link.updated', event: link };
+
+      handler.handleMessage(message);
+
+      expect(mockMarkerRegistryService.reconcileLink).toHaveBeenCalledWith(link);
+    });
+
+    it('should call removeLink on link.deleted', () => {
+      const link = createMockLink('link-3');
+      const message: WebServiceMessage = { action: 'link.deleted', event: link };
+
+      handler.handleMessage(message);
+
+      expect(mockMarkerRegistryService.removeLink).toHaveBeenCalledWith(link.link_id);
     });
   });
 });

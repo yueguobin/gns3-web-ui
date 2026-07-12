@@ -1,0 +1,43 @@
+.marker-legend {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent);
+  max-width: 240px;
+
+  &__title {
+    font-weight: 500;
+    font-size: 12px;
+    display: block;
+    margin-bottom: 6px;
+    opacity: 0.85;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+
+  &__swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+
+    &--default {
+      background-color: var(--mat-sys-primary);
+    }
+  }
+
+  &__name {
+    word-break: break-all;
+  }
+}

@@ -298,6 +298,28 @@ body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.template-menu 
 }
 
 /* =============================================
+// Marker Traffic Insight — link flash on match
+// Color is set inline by MarkerFlashService (user-chosen hex, or none).
+// When no inline color is set, the default theme color applies.
+// CSS only animates stroke-width → no color literal needed.
+// ============================================= */
+@keyframes marker-pulse {
+  0%,
+  100% {
+    stroke-width: 3px;
+  }
+  50% {
+    stroke-width: 6px;
+  }
+}
+
+.ethernet_link.marker-pulse,
+.serial_link.marker-pulse {
+  stroke: var(--mat-sys-primary);
+  animation: marker-pulse 0.8s ease-in-out infinite;
+}
+
+/* =============================================
 // Curviness Anchor (Link Drag Handle)
 // ============================================= */
 .curviness-anchor {

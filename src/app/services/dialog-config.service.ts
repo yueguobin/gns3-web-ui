@@ -122,6 +122,12 @@ export class DialogConfigService {
       panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
     });
 
+    // Traffic Insight Marker CRUD Dialog - simple dialog (500px)
+    this.configs.set('trafficInsight', {
+      ...simpleConfig,
+      panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
+    });
+
     // Help Dialog - simple dialog (500px)
     this.configs.set('helpDialog', {
       ...simpleConfig,

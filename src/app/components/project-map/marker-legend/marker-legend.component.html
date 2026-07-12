@@ -1,0 +1,15 @@
+@if (entries().length > 0) {
+<div class="marker-legend">
+  <span class="marker-legend__title">Traffic insight</span>
+  @for (entry of entries(); track entry.name) {
+  <div class="marker-legend__item">
+    <span
+      class="marker-legend__swatch"
+      [style.background]="entry.color"
+      [class.marker-legend__swatch--default]="!entry.color"
+    ></span>
+    <span class="marker-legend__name">{{ entry.name }}</span>
+  </div>
+  }
+</div>
+}
