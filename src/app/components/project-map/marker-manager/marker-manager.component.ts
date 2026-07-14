@@ -155,6 +155,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly editingDefinition = signal<string | null>(null);
   /** linkId currently showing its inline "add private marker" form (Links tab). */
   readonly addingToLink = signal<string | null>(null);
+  /** Marker currently being edited: { linkId, name }. */
+  readonly editingMarker = signal<{ linkId: string; name: string } | null>(null);
   // ---- Node selector (first step in Links tab) ----
   /** Node options (id + display name). Built once from NodesDataSource. */
   readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
@@ -210,6 +212,15 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   });
 
   readonly markerForm = new UntypedFormGroup({
+    name: new UntypedFormControl('', [Validators.required, notGlobalName]),
+    bpf: new UntypedFormControl('', [Validators.required]),
+    tag: new UntypedFormControl(null),
+    color: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
+  });
+
+  readonly markerEditForm = new UntypedFormGroup({
+    name: new UntypedFormControl({ value: '', disabled: true }, [Validators.required, notGlobalName]),
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
@@ -522,7 +533,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.linkError.set(null);
 
     const v = this.markerForm.getRawValue();
-    const body: MarkerWriteBody = { bpf: v.bpf.trim() };
+    const body: MarkerWriteBody = { bpf: v.bpf.trim(), name: v.name.trim() };
     const tag = this.asNumber(v.tag);
     if (tag !== null) body.tag = tag;
     if (v.color) body.color = v.color;
@@ -558,6 +569,58 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.linkError.set(err.error?.message || err.message || 'Failed to delete marker');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  startEditMarker(linkId: string, marker: GroupMarker) {
+    this.editingMarker.set({ linkId, name: marker.name });
+    this.linkError.set(null);
+    this.markerEditForm.reset({
+      name: marker.name,
+      bpf: marker.bpf,
+      tag: marker.tag ?? null,
+      color: marker.color ?? null,
+      highlight_duration: marker.highlight_duration ?? 500,
+    });
+    this.markerEditForm.get('name')?.disable();
+    this.cdr.markForCheck();
+  }
+
+  cancelEditMarker() {
+    this.editingMarker.set(null);
+    this.cdr.markForCheck();
+  }
+
+  submitEditMarker(linkId: string) {
+    if (this.markerEditForm.invalid) {
+      this.markerEditForm.markAllAsTouched();
+      return;
+    }
+    const editing = this.editingMarker();
+    if (!editing) return;
+    const controller = this.controller();
+    const project = this.project();
+    if (!controller || !project) return;
+    this.linkError.set(null);
+
+    const v = this.markerEditForm.getRawValue();
+    const body: MarkerWriteBody = { bpf: v.bpf.trim() };
+    const tag = this.asNumber(v.tag);
+    if (tag !== null) body.tag = tag;
+    if (v.color) body.color = v.color;
+    const hd = this.asNumber(v.highlight_duration);
+    if (hd !== null) body.highlight_duration = hd;
+
+    this.markerService.update(controller, project.project_id, linkId, editing.name, body).subscribe({
+      next: () => {
+        this.editingMarker.set(null);
+        this.refreshLink(linkId);
+        this.loadAggregate();
+      },
+      error: (err) => {
+        this.linkError.set(err.error?.message || err.message || 'Failed to update marker');
         this.cdr.markForCheck();
       },
     });
