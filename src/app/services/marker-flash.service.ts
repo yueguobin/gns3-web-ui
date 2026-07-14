@@ -1,12 +1,12 @@
-import { Injectable, OnDestroy, signal, effect, EffectRef, DestroyRef, inject } from '@angular/core';
+import { Injectable, signal, effect, EffectRef, DestroyRef, inject } from '@angular/core';
 import { select } from 'd3-selection';
 
 /**
  * Flashes a link when its marker matches live traffic.
  *
- * State is a signal of `linkId → color`. On each `flash(linkId, color)`:
+ * State is a signal of `linkId → color`. On each `flash(linkId, color, durationMs?)`:
  *   - the entry is (re)added to the map with the latest color
- *   - a 100ms timer is (re)set for that linkId (debounce-style续命)
+ *   - a per-link timer is (re)set for `durationMs ?? DEFAULT_FLASH_MS` (debounce-style续命)
  *
  * An `effect()` diffs the new map against the previous one and mutates ONLY the
  * changed link's DOM — add/keep → apply color + `.marker-pulse`; remove → clear.
@@ -14,14 +14,16 @@ import { select } from 'd3-selection';
  *
  * Color comes from the caller (resolved as `marker.color ?? null`). `null` means
  * "use the default theme color" (handled in CSS via the class, no inline color).
+ * `durationMs` comes from the marker's `highlight_duration` (`null` ⇒ UI default).
  */
 @Injectable()
-export class MarkerFlashService implements OnDestroy {
+export class MarkerFlashService {
   /** linkId → color (hex) or null (use default theme color). */
   private readonly _flashing = signal<ReadonlyMap<string, string | null>>(new Map());
   /** Per-link debounce timers (续命). */
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly FLASH_MS = 100;
+  /** UI default highlight duration when a marker has no `highlight_duration`. */
+  private readonly DEFAULT_FLASH_MS = 800;
   private readonly effectRef: EffectRef;
   /** Previous snapshot for diffing. */
   private prev = new Map<string, string | null>();
@@ -39,20 +41,21 @@ export class MarkerFlashService implements OnDestroy {
   }
 
   /**
-   * Flash a link. Repeated calls within FLASH_ms keep it lit (timer续命).
+   * Flash a link. Repeated calls within the duration window keep it lit (timer续命);
+   * each call (re)sets the timer, so the latest `durationMs` wins.
    * @param color resolved marker color (hex), or null to use the default theme color.
+   * @param durationMs how long to stay lit after the last match
+   *   (`marker.highlight_duration`, or null for the UI default).
    */
-  flash(linkId: string, color: string | null) {
+  flash(linkId: string, color: string | null, durationMs?: number | null) {
     this._flashing.update((m) => {
       const next = new Map(m);
       next.set(linkId, color);
       return next;
     });
+    const ms = durationMs && durationMs > 0 ? durationMs : this.DEFAULT_FLASH_MS;
     clearTimeout(this.timers.get(linkId));
-    this.timers.set(
-      linkId,
-      setTimeout(() => this.expire(linkId), this.FLASH_MS)
-    );
+    this.timers.set(linkId, setTimeout(() => this.expire(linkId), ms));
   }
 
   private expire(linkId: string) {
@@ -102,6 +105,4 @@ export class MarkerFlashService implements OnDestroy {
       .select(`g.link[link_id="${id}"]`)
       .select('path.ethernet_link, path.serial_link');
   }
-
-  ngOnDestroy() {}
 }

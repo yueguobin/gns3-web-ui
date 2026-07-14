@@ -237,6 +237,20 @@
         (aiChatOpened)="onAIChatOpened()"
       ></app-project-map-menu>
     </div>
+    <div class="section">
+      <button
+        matTooltip="Marker manager"
+        matTooltipClass="custom-tooltip"
+        matTooltipPosition="left"
+        mat-icon-button
+        class="menu-button"
+        [class.tool-active]="isMarkerManagerVisible"
+        [color]="isMarkerManagerVisible ? 'primary' : 'basic'"
+        (click)="toggleMarkerManager()"
+      >
+        <mat-icon>insights</mat-icon>
+      </button>
+    </div>
     @if (!readonly) {
     <div class="section">
       <app-snapshot-menu-item [controller]="controller" [project]="project"> </app-snapshot-menu-item>
@@ -245,6 +259,16 @@
   </div>
 
   <app-marker-legend></app-marker-legend>
+
+  @if (project && isMarkerManagerVisible) {
+  <app-marker-manager
+    [controller]="controller"
+    [project]="project"
+    [zIndex]="markerManagerZIndex"
+    (closeWindow)="closeMarkerManager()"
+    (windowFocused)="bringMarkerManagerToFront()"
+  ></app-marker-manager>
+  }
 
   <app-progress></app-progress>
   @if (tools.draw_link) {

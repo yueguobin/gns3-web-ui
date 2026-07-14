@@ -501,7 +501,7 @@ describe('ProjectWebServiceHandler', () => {
   describe('handleMessage - marker.match', () => {
     it('should call markerFlashService.flash with color from link markers', () => {
       const link = createMockLink('l-1');
-      link.markers = { 'marker-l1': { bpf: 'arp', color: '#ff0000' } } as any;
+      link.markers = { 'marker-l1': { bpf: 'arp', color: 'red' } } as any;
       mockLinksDataSource.get = vi.fn().mockReturnValue(link);
 
       const event = { project_id: 'p-1', node_id: 'n-1', link_id: 'l-1', filter: 'marker-l1', tag: null, ts: 1, len: 64 };
@@ -510,7 +510,7 @@ describe('ProjectWebServiceHandler', () => {
       handler.handleMessage(message);
 
       expect(mockLinksDataSource.get).toHaveBeenCalledWith('l-1');
-      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-1', '#ff0000');
+      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-1', 'red', null);
     });
 
     it('should flash with null when marker has no color', () => {
@@ -523,7 +523,20 @@ describe('ProjectWebServiceHandler', () => {
 
       handler.handleMessage(message);
 
-      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-2', null);
+      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-2', null, null);
+    });
+
+    it('should pass the marker highlight_duration to flash', () => {
+      const link = createMockLink('l-3');
+      link.markers = { 'marker-l3': { bpf: 'icmp', highlight_duration: 1200 } } as any;
+      mockLinksDataSource.get = vi.fn().mockReturnValue(link);
+
+      const event = { project_id: 'p-1', node_id: 'n-1', link_id: 'l-3', filter: 'marker-l3', tag: null, ts: 1, len: 64 };
+      const message: WebServiceMessage = { action: 'marker.match', event };
+
+      handler.handleMessage(message);
+
+      expect(mockMarkerFlashService.flash).toHaveBeenCalledWith('l-3', null, 1200);
     });
   });
 

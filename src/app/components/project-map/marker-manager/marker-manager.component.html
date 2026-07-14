@@ -1,0 +1,236 @@
+<div
+  #windowWrapper
+  class="marker-manager"
+  [class.is-dragging]="isDragging()"
+  [class.is-resizing]="isResizing()"
+  [class.is-minimized]="isMinimized()"
+  [ngStyle]="style"
+  [style.z-index]="zIndex()"
+  (mousedown)="onWindowFocus()"
+  mwlResizable
+  [validateResize]="validate"
+  [enableGhostResize]="false"
+  (resizeStart)="onResizeStart()"
+  (resizeEnd)="onResizeEnd($event)"
+>
+  @if (!isMinimized()) {
+  <div class="resize-handle resize-handle-top" mwlResizeHandle [resizeEdges]="{ top: true }"></div>
+  <div class="resize-handle resize-handle-right" mwlResizeHandle [resizeEdges]="{ right: true }"></div>
+  <div class="resize-handle resize-handle-bottom" mwlResizeHandle [resizeEdges]="{ bottom: true }"></div>
+  <div class="resize-handle resize-handle-left" mwlResizeHandle [resizeEdges]="{ left: true }"></div>
+  <div class="resize-handle resize-handle-top-left" mwlResizeHandle [resizeEdges]="{ top: true, left: true }"></div>
+  <div class="resize-handle resize-handle-top-right" mwlResizeHandle [resizeEdges]="{ top: true, right: true }"></div>
+  <div class="resize-handle resize-handle-bottom-left" mwlResizeHandle [resizeEdges]="{ bottom: true, left: true }"></div>
+  <div class="resize-handle resize-handle-bottom-right" mwlResizeHandle [resizeEdges]="{ bottom: true, right: true }"></div>
+  }
+
+  <div class="marker-manager__content">
+    <div class="marker-manager__header">
+      <div class="marker-manager__header-title">
+        <mat-icon class="header-icon">insights</mat-icon>
+        <span>Marker Manager</span>
+      </div>
+      <div class="marker-manager__header-actions">
+        <button mat-icon-button class="minimize-button" (click)="toggleMinimize()" title="Minimize">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <button mat-icon-button class="close-button" (click)="close()" title="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="marker-manager__body">
+      <mat-tab-group>
+        <!-- ===================== Definitions ===================== -->
+        <mat-tab label="Definitions">
+          <div class="marker-manager__panel">
+            <!-- Create / edit form -->
+            <form class="marker-manager__form" [formGroup]="definitionForm" (ngSubmit)="submitDefinition()">
+              <div class="marker-manager__form-title">
+                {{ editingDefinition() ? 'Edit definition' : 'New definition' }}
+              </div>
+              <div class="marker-manager__form-row">
+                <mat-form-field appearance="outline" class="field field--name">
+                  <mat-label>Name</mat-label>
+                  <input matInput formControlName="name" placeholder="arp" />
+                  @if (definitionForm.get('name')?.hasError('required')) {
+                  <mat-error>Name is required</mat-error>
+                  } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
+                  <mat-error>Name cannot start with "global"</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field field--bpf">
+                  <mat-label>BPF expression</mat-label>
+                  <input matInput formControlName="bpf" placeholder="arp or icmp" />
+                  @if (definitionForm.get('bpf')?.hasError('required')) {
+                  <mat-error>BPF is required</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="marker-manager__form-row">
+                <mat-form-field appearance="outline" class="field field--tag">
+                  <mat-label>Tag</mat-label>
+                  <input matInput type="number" formControlName="tag" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field field--color">
+                  <mat-label>Color</mat-label>
+                  <input matInput type="color" formControlName="color" class="color-input" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="field field--hd">
+                  <mat-label>Highlight ms</mat-label>
+                  <input matInput type="number" formControlName="highlight_duration" placeholder="800" />
+                </mat-form-field>
+              </div>
+              <div class="marker-manager__form-actions">
+                <button mat-flat-button color="primary" type="submit" [disabled]="definitionForm.invalid">
+                  {{ editingDefinition() ? 'Save' : 'Create' }}
+                </button>
+                @if (editingDefinition()) {
+                <button mat-stroked-button type="button" (click)="cancelEditDefinition()">Cancel</button>
+                }
+              </div>
+            </form>
+
+            <mat-divider></mat-divider>
+
+            @if (defError()) {
+            <div class="marker-manager__error">{{ defError() }}</div>
+            }
+
+            <!-- Existing definitions -->
+            <div class="marker-manager__list">
+              @if (loading()) {
+              <div class="marker-manager__empty">Loading…</div>
+              } @if (!loading() && definitions().length === 0) {
+              <div class="marker-manager__empty">No definitions. Create one above — it applies to all capable links.</div>
+              }
+              @for (row of definitions(); track row.name) {
+              <div class="marker-manager__row" [class.marker-manager__row--editing]="editingDefinition() === row.name">
+                <span
+                  class="marker-manager__swatch"
+                  [style.background]="row.color"
+                  [class.marker-manager__swatch--default]="!row.color"
+                  [title]="row.color || 'default color'"
+                ></span>
+                <span class="marker-manager__row-name">{{ row.name }}</span>
+                <span class="marker-manager__row-bpf">{{ row.bpf }}</span>
+                @if (row.tag !== null) {
+                <span class="marker-manager__chip">tag {{ row.tag }}</span>
+                }
+                @if (row.highlight_duration !== null) {
+                <span class="marker-manager__chip">{{ row.highlight_duration }}ms</span>
+                }
+                <span class="marker-manager__chip marker-manager__chip--links" title="Links carrying this definition">
+                  → {{ row.linkCount }} link{{ row.linkCount === 1 ? '' : 's' }}
+                </span>
+                <span class="marker-manager__row-spacer"></span>
+                <button mat-icon-button (click)="startEditDefinition(row)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteDefinition(row)" matTooltip="Delete (clears all copies)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ===================== Links (aggregate) ===================== -->
+        <mat-tab label="Links">
+          <div class="marker-manager__panel">
+            @if (linkError()) {
+            <div class="marker-manager__error">{{ linkError() }}</div>
+            }
+            <div class="marker-manager__list">
+              @if (linkGroups().length === 0) {
+              <div class="marker-manager__empty">No markers on any link yet.</div>
+              }
+              @for (group of linkGroups(); track group.linkId) {
+              <div class="marker-manager__group">
+                <div class="marker-manager__group-header">
+                  <span class="marker-manager__group-name" [title]="group.linkId">{{ group.name }}</span>
+                  <span class="marker-manager__group-count">{{ group.markers.length }}</span>
+                  <span class="marker-manager__row-spacer"></span>
+                  <button
+                    mat-stroked-button
+                    class="add-button"
+                    (click)="toggleAddMarker(group.linkId)"
+                    [class.add-button--active]="addingToLink() === group.linkId"
+                  >
+                    <mat-icon>add</mat-icon>
+                    Marker
+                  </button>
+                </div>
+
+                @if (addingToLink() === group.linkId) {
+                <form
+                  class="marker-manager__form marker-manager__form--inline"
+                  [formGroup]="markerForm"
+                  (ngSubmit)="submitMarker(group.linkId)"
+                >
+                  <mat-form-field appearance="outline" class="field field--bpf">
+                    <mat-label>BPF expression</mat-label>
+                    <input matInput formControlName="bpf" placeholder="tcp port 80" />
+                    @if (markerForm.get('bpf')?.hasError('required')) {
+                    <mat-error>BPF is required</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="field field--tag">
+                    <mat-label>Tag</mat-label>
+                    <input matInput type="number" formControlName="tag" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="field field--color">
+                    <mat-label>Color</mat-label>
+                    <input matInput type="color" formControlName="color" class="color-input" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="field field--hd">
+                    <mat-label>Highlight ms</mat-label>
+                    <input matInput type="number" formControlName="highlight_duration" placeholder="800" />
+                  </mat-form-field>
+                  <div class="marker-manager__form-actions">
+                    <button mat-flat-button color="primary" type="submit" [disabled]="markerForm.invalid">Add</button>
+                    <button mat-stroked-button type="button" (click)="toggleAddMarker(group.linkId)">Cancel</button>
+                  </div>
+                </form>
+                }
+
+                @for (m of group.markers; track m.name) {
+                <div class="marker-manager__row">
+                  <span
+                    class="marker-manager__swatch"
+                    [style.background]="m.color"
+                    [class.marker-manager__swatch--default]="!m.color"
+                  ></span>
+                  <span class="marker-manager__row-name">{{ m.inherited_from ? m.inherited_from : m.name }}</span>
+                  <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
+                  @if (m.tag !== null && m.tag !== undefined) {
+                  <span class="marker-manager__chip">tag {{ m.tag }}</span>
+                  }
+                  @if (m.inherited_from) {
+                  <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
+                    inherited
+                  </span>
+                  }
+                  <span class="marker-manager__row-spacer"></span>
+                  @if (m.inherited_from) {
+                  <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
+                    <mat-icon>lock</mat-icon>
+                  </button>
+                  } @else {
+                  <button mat-icon-button (click)="deleteMarker(group.linkId, m.name)" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                  }
+                </div>
+                }
+              </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </div>
+</div>

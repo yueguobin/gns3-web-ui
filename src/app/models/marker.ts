@@ -11,6 +11,10 @@ export interface Marker {
   /** User-chosen highlight color (hex, persisted by backend). Defaults to theme primary. */
   color?: string;
   enabled?: boolean;
+  /** UI highlight duration (ms) after a match; `null` ⇒ UI default. Never sent to uBridge. */
+  highlight_duration?: number | null;
+  /** Source definition name — present on inherited markers only (`null` for private). */
+  inherited_from?: string | null;
   /** Capture-side node chosen by the server. */
   capture_node_id?: string;
   capture_adapter?: number;
@@ -20,8 +24,48 @@ export interface Marker {
 /**
  * Markers keyed by name, as serialized on the {@link Link} object.
  * `link.markers` non-empty ⇒ show the traffic-insight icon on the link.
+ * Inherited markers are keyed `global-{definitionName}` with `inherited_from` set.
  */
 export type MarkerMap = { [name: string]: Marker };
+
+/**
+ * A project-level marker definition — a global rule the controller fans out to every
+ * capable link as an inherited marker (`global-{name}`). Editing a definition syncs all
+ * copies; deleting clears them; new links inherit automatically. Managed via
+ * `/projects/{pid}/marker-definitions`.
+ */
+export interface MarkerDefinition {
+  bpf: string;
+  tag?: number | null;
+  color?: string | null;
+  highlight_duration?: number | null;
+  /** Links currently carrying an inherited copy (GET only). */
+  link_ids?: string[];
+}
+
+/** Definitions keyed by name. */
+export type MarkerDefinitionMap = { [name: string]: MarkerDefinition };
+
+/** Body for creating/updating a definition (shared by POST and PUT). */
+export interface MarkerDefinitionCreateBody {
+  name: string;
+  bpf: string;
+  tag?: number | null;
+  color?: string;
+  highlight_duration?: number | null;
+}
+
+/**
+ * A marker in the flat aggregate view (`GET /projects/{pid}/markers`), keyed by
+ * `"{link_id}/{name}"`. Extends {@link Marker} with the owning link/node ids.
+ */
+export interface AggregateMarkerEntry extends Marker {
+  link_id: string;
+  node_id?: string;
+}
+
+/** Aggregate markers keyed by `"{link_id}/{name}"`. */
+export type AggregateMarkerMap = { [key: string]: AggregateMarkerEntry };
 
 /**
  * Wire shape of the `marker.match` project WebSocket event.

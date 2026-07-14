@@ -126,6 +126,7 @@ import { NodeDraggedComponent } from '../drawings-listeners/node-dragged/node-dr
 import { NodeLabelDraggedComponent } from '../drawings-listeners/node-label-dragged/node-label-dragged.component';
 import { TextAddedComponent } from '../drawings-listeners/text-added/text-added.component';
 import { MarkerLegendComponent } from './marker-legend/marker-legend.component';
+import { MarkerManagerComponent } from './marker-manager/marker-manager.component';
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
 
 @Component({
@@ -165,6 +166,7 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     TextAddedComponent,
     TextEditedComponent,
     MarkerLegendComponent,
+    MarkerManagerComponent,
   ],
 })
 export class ProjectMapComponent implements OnInit, OnDestroy {
@@ -187,6 +189,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public toolbarVisibility: boolean = true;
   public symbolScaling: boolean = true;
   public isAIChatVisible: boolean = false;
+  public isMarkerManagerVisible: boolean = false;
 
   // Track multiple Web Wireshark inline windows
   // Key is link_id, value is the Link object
@@ -209,6 +212,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   // Z-index for console and AI chat windows
   public consoleZIndex: number = this.baseZIndex;
   public aiChatZIndex: number = this.baseZIndex;
+  public markerManagerZIndex: number = this.baseZIndex;
 
   // Taskbar icon positioning
   private readonly TASKBAR_BASE_LEFT = 20;
@@ -1211,6 +1215,44 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public bringAIChatToFront() {
     this.zIndexCounter++;
     this.aiChatZIndex = this.baseZIndex + this.zIndexCounter;
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Toggle the singleton Marker Manager floating window.
+   * If it is open but minimized, restore it instead of closing.
+   */
+  public toggleMarkerManager() {
+    if (this.isMarkerManagerVisible && this.windowManagement.isMinimized('marker-manager')) {
+      this.windowManagement.restoreWindow('marker-manager');
+      this.bringMarkerManagerToFront();
+      return;
+    }
+    if (this.isMarkerManagerVisible) {
+      this.closeMarkerManager();
+      return;
+    }
+    this.isMarkerManagerVisible = true;
+    this.zIndexCounter++;
+    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Close the Marker Manager window and clear its minimize state.
+   */
+  public closeMarkerManager() {
+    this.isMarkerManagerVisible = false;
+    this.windowManagement.restoreWindow('marker-manager');
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Bring the Marker Manager window to front.
+   */
+  public bringMarkerManagerToFront() {
+    this.zIndexCounter++;
+    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
     this.cd.markForCheck();
   }
 

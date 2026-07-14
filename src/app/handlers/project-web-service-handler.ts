@@ -65,11 +65,16 @@ export class ProjectWebServiceHandler {
     }
     if (message.action === 'marker.match') {
       const event = message.event as MarkerMatchEvent;
-      // Resolve the marker's color from link state (event carries no color).
-      // `filter` is the marker name; null color ⇒ use default theme color.
+      // Resolve the marker's color + highlight_duration from link state (event carries
+      // neither). `filter` is the marker name; null color ⇒ default theme color;
+      // null duration ⇒ UI default (see MarkerFlashService).
       const link = this.linksDataSource.get(event.link_id);
       const marker = link?.markers?.[event.filter];
-      this.markerFlashService.flash(event.link_id, marker?.color ?? null);
+      this.markerFlashService.flash(
+        event.link_id,
+        marker?.color ?? null,
+        marker?.highlight_duration ?? null
+      );
     }
     if (message.action === 'drawing.created') {
       this.drawingsDataSource.add(message.event as Drawing);
