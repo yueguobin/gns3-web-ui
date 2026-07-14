@@ -522,3 +522,8 @@ mat-form-field {
     align-items: flex-start;
   }
 }
+
+/* Vertically center text prefix (e.g. "global-" in marker name field) */
+.mat-mdc-form-field-text-prefix {
+  align-self: center;
+}

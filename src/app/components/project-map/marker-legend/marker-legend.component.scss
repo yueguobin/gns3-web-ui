@@ -1,34 +1,42 @@
 .marker-legend {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  padding: 8px 12px;
+  position: fixed;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
   border-radius: 8px;
   background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  box-shadow: 0 2px 4px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent);
-  max-width: 240px;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--mat-sys-shadow) 15%, transparent),
+    0 0 0 1px var(--mat-sys-outline-variant);
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.15s ease;
 
-  &__title {
-    font-weight: 500;
-    font-size: 12px;
-    display: block;
-    margin-bottom: 6px;
-    opacity: 0.85;
+  &:hover {
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent),
+      0 0 0 1px var(--mat-sys-outline);
   }
 
-  &__item {
+  &__pill {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
-    font-size: 11px;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background-color 0.1s ease;
+
+    &:hover {
+      background-color: var(--mat-sys-surface-container-highest);
+    }
   }
 
   &__swatch {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 2px;
     flex-shrink: 0;
 
@@ -38,6 +46,18 @@
   }
 
   &__name {
-    word-break: break-all;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+    white-space: nowrap;
+  }
+
+  &__label {
+    font-size: 10px;
+    color: var(--mat-sys-on-surface-variant);
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: 1px solid var(--mat-sys-outline-variant);
+    white-space: nowrap;
   }
 }

@@ -59,15 +59,16 @@
                   }
                 </mat-form-field>
               </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 16px; align-items: start;">
+              <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
                 <mat-form-field class="form-field">
                   <mat-label>Name</mat-label>
+                  <span matTextPrefix class="global-prefix">global-&nbsp;</span>
                   <input matInput formControlName="name" placeholder="auto" />
-                  @if (definitionForm.get('name')?.hasError('required')) {
-                  <mat-error>Name is required</mat-error>
-                  } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
-                  <mat-error>Name cannot start with "global"</mat-error>
-                  }
+                    @if (definitionForm.get('name')?.hasError('required')) {
+                    <mat-error>Name is required</mat-error>
+                    } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
+                    <mat-error>Name cannot start with "global"</mat-error>
+                    }
                 </mat-form-field>
                 <mat-form-field class="form-field">
                   <mat-label>Tag</mat-label>
@@ -117,7 +118,7 @@
                   [class.marker-manager__swatch--default]="!row.color"
                   [title]="row.color || 'default color'"
                 ></span>
-                <span class="marker-manager__row-name">{{ row.name }}</span>
+                <span class="marker-manager__row-name">global-{{ row.name }}</span>
                 <span class="marker-manager__row-bpf">{{ row.bpf }}</span>
                 @if (row.tag !== null) {
                 <span class="marker-manager__chip">tag {{ row.tag }}</span>
@@ -251,7 +252,7 @@
                   [style.background]="m.color"
                   [class.marker-manager__swatch--default]="!m.color"
                 ></span>
-                <span class="marker-manager__row-name">{{ m.inherited_from ? m.inherited_from : m.name }}</span>
+                <span class="marker-manager__row-name">{{ m.name }}</span>
                 <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
                 @if (m.tag !== null && m.tag !== undefined) {
                 <span class="marker-manager__chip">tag {{ m.tag }}</span>
@@ -348,7 +349,7 @@
                     [style.background]="m.color"
                     [class.marker-manager__swatch--default]="!m.color"
                   ></span>
-                  <span class="marker-manager__row-name">{{ m.inherited_from ? m.inherited_from : m.name }}</span>
+                  <span class="marker-manager__row-name">{{ m.name }}</span>
                   <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
                   @if (m.tag !== null && m.tag !== undefined) {
                   <span class="marker-manager__chip">tag {{ m.tag }}</span>
