@@ -23,7 +23,7 @@ export interface Marker {
 
 /**
  * Markers keyed by name, as serialized on the {@link Link} object.
- * `link.markers` non-empty ⇒ show the traffic-insight icon on the link.
+ * `link.markers` non-empty ⇒ the link has markers and flashes on a `marker.match`.
  * Inherited markers are keyed `global-{definitionName}` with `inherited_from` set.
  */
 export type MarkerMap = { [name: string]: Marker };

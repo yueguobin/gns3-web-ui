@@ -34,7 +34,6 @@ export class LinkWidget implements Widget, OnDestroy {
   ) {
     this.subscription = this.mapLinksDataSource.itemChanged.subscribe((mapLink: MapLink) => {
       this.updateFilterIconsVisibility(mapLink);
-      this.updateMarkersIconVisibility(mapLink);
     });
   }
 
@@ -50,15 +49,6 @@ export class LinkWidget implements Widget, OnDestroy {
       .selectAll<SVGGElement, MapLink>('g.link_body')
       .filter((d) => d && d.id === mapLink.id)
       .selectAll('.filter-capture-icon, .filter-icon')
-      .style('display', show ? null : 'none');
-  }
-
-  private updateMarkersIconVisibility(mapLink: MapLink) {
-    const show = !!(mapLink.markers && Object.keys(mapLink.markers).length > 0);
-    select('svg#map')
-      .selectAll<SVGGElement, MapLink>('g.link_body')
-      .filter((d) => d && d.id === mapLink.id)
-      .selectAll('.markers-icon')
       .style('display', show ? null : 'none');
   }
 
@@ -198,7 +188,6 @@ export class LinkWidget implements Widget, OnDestroy {
       .append<SVGImageElement>('image')
       .attr('xlink:href', 'assets/resources/images/pause.svg');
 
-    this.drawMarkersIcon(link_body_merge);
     this.serialLinkWidget.draw(link_body_merge);
     this.ethernetLinkWidget.draw(link_body_merge);
 
@@ -306,10 +295,6 @@ export class LinkWidget implements Widget, OnDestroy {
               if (!pauseIcon.empty()) {
                 pauseIcon.attr('transform', `translate (${controlX - 5}, ${controlY - 5}) scale(0.5)`);
               }
-              const markersIcon = linkGroup.select<SVGGElement>('g.markers-icon');
-              if (!markersIcon.empty()) {
-                markersIcon.attr('transform', `translate (${controlX - 5}, ${controlY - 5}) scale(0.5)`);
-              }
 
               // Store mouse position directly as control_offset
               if (!l.link_style) {
@@ -327,35 +312,5 @@ export class LinkWidget implements Widget, OnDestroy {
 
     this.interfaceLabelWidget.draw(link_body_merge);
     this.interfaceStatusWidget.draw(link_body_merge);
-  }
-
-  /** Always appends the markers-icon group — visibility is controlled via display style. */
-  private drawMarkersIcon(link_body: any) {
-    link_body.each((l: MapLink, i: number, nodes: SVGGElement[]) => {
-      const group = select(nodes[i]);
-      group.select('.markers-icon').remove();
-      const hasMarkers = !!(l.markers && Object.keys(l.markers).length > 0) && !l.suspend;
-      group
-        .append<SVGGElement>('g')
-        .on('contextmenu', (event: any, datum: MapLink) => {
-          const evt = event;
-          this.onContextMenu.emit(new LinkContextMenu(evt, datum));
-        })
-        .attr('class', 'markers-icon')
-        .style('display', hasMarkers ? null : 'none')
-        .attr('transform', (link: MapLink) => {
-          if (link.link_style?.link_type === 'freeform' && link.link_style?.control_offset) {
-            return `translate (${link.link_style.control_offset[0] - 5}, ${
-              link.link_style.control_offset[1] - 5
-            }) scale(0.5)`;
-          }
-          return `translate (${(link.source.x + link.target.x) / 2 + 24}, ${
-            (link.source.y + link.target.y) / 2 + 24
-          }) scale(0.5)`;
-        })
-        .attr('viewBox', '0 0 20 20')
-        .append<SVGImageElement>('image')
-        .attr('xlink:href', 'assets/resources/images/traffic-insight.svg');
-    });
   }
 }
