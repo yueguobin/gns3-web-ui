@@ -141,7 +141,7 @@ describe('MarkerManagerComponent', () => {
         bpf: 'foo bar',
         tag: null,
         color: null,
-        highlight_duration: null,
+        highlight_duration: 500,
       });
       component.submitDefinition();
       expect(component.defError()).toContain('Invalid BPF expression');

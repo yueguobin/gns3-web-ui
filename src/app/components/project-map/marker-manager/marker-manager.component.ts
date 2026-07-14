@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  HostListener,
   OnDestroy,
   OnInit,
   Output,
@@ -674,8 +675,17 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
         const dx = mouseMoveEvent.clientX - this.dragStartX;
         const dy = mouseMoveEvent.clientY - this.dragStartY;
 
-        const newLeft = this.dragStartLeft + dx;
-        const newTop = this.dragStartTop + dy;
+        let newLeft = this.dragStartLeft + dx;
+        let newTop = this.dragStartTop + dy;
+
+        // Constrain drag to viewport (mirrors web-console-inline)
+        const w = this.resizedWidth;
+        const h = this.resizedHeight;
+        const maxLeft = window.innerWidth - w;
+        const topOffset = this.boundaryService.getConfigValue().topOffset || 0;
+        const maxTop = window.innerHeight - h - topOffset;
+        newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+        newTop = Math.max(topOffset, Math.min(maxTop, newTop));
 
         this.style = {
           position: 'fixed',
@@ -702,5 +712,10 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (body) {
       body.style.pointerEvents = value;
     }
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.style = this.boundaryService.constrainWindowPosition(this.style);
   }
 }
