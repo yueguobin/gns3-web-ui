@@ -98,15 +98,12 @@
 
   &__body {
     flex: 1;
-    overflow: hidden;
+    overflow: auto;
     min-height: 0;
   }
 
   &__panel {
     padding: 12px 16px 16px;
-    overflow: auto;
-    height: 100%;
-    box-sizing: border-box;
   }
 
   &__form {
@@ -149,6 +146,24 @@
     color: var(--mat-sys-on-error-container);
     border-radius: 4px;
     font-size: 12px;
+  }
+
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+    padding: 4px 8px;
+    background: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+    border-radius: 4px;
+    font-size: 11px;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
   }
 
   &__empty {
@@ -262,32 +277,17 @@
     }
   }
 
-  .field {
-    flex: 1;
-    min-width: 80px;
-  }
-
-  .field--name {
-    flex: 0 0 140px;
-  }
-
-  .field--bpf {
-    flex: 2 1 160px;
-  }
-
-  .field--tag,
-  .field--hd {
-    flex: 0 0 110px;
-  }
-
-  .field--color {
-    flex: 0 0 90px;
+  // Match the configurator-dialog style: no appearance, full-width cells
+  .form-field {
+    width: 100%;
+    margin-bottom: 4px;
   }
 
   .color-input {
-    height: 24px;
-    padding: 0;
     cursor: pointer;
+    block-size: 20px;
+    inline-size: 100%;
+    box-sizing: border-box;
   }
 
   .add-button {

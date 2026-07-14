@@ -46,9 +46,9 @@ describe('MarkerManagerComponent', () => {
       providers: [
         { provide: MarkerService, useValue: markerService },
         { provide: LinkService, useValue: linkService },
-        { provide: LinksDataSource, useValue: { get: vi.fn(), update: vi.fn() } },
+        { provide: LinksDataSource, useValue: { get: vi.fn(), update: vi.fn(), getItems: vi.fn(() => []) } },
         { provide: MapLinksDataSource, useValue: { get: vi.fn(), update: vi.fn() } },
-        { provide: NodesDataSource, useValue: { get: vi.fn() } },
+        { provide: NodesDataSource, useValue: { get: vi.fn(), getItems: vi.fn(() => []) } },
         { provide: MarkerRegistryService, useValue: registry },
         { provide: ToasterService, useValue: { error: vi.fn() } },
         {

@@ -1257,6 +1257,33 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Taskbar left position for the Marker Manager icon (after console / wireshark /
+   * web-console / file-manager icons).
+   */
+  public getMarkerManagerTaskbarLeft(): number {
+    const offset = this.TASKBAR_ICON_WIDTH + this.TASKBAR_ICON_GAP;
+    let base = this.TASKBAR_BASE_LEFT;
+    if (this.isConsoleVisible) base += offset;
+    base += this.webWiresharkInlineWindows.size * offset;
+    base += this.webConsoleInlineWindows.size * offset;
+    base += this.fileManagerInlineWindows.size * offset;
+    return base;
+  }
+
+  /**
+   * Minimize / restore the Marker Manager window via the taskbar icon.
+   */
+  public toggleMarkerManagerMinimize() {
+    const id = 'marker-manager';
+    if (this.windowManagement.minimizedWindows().some((w) => w.id === id)) {
+      this.windowManagement.restoreWindow(id);
+    } else {
+      this.windowManagement.minimizeWindow(id, 'marker');
+    }
+    this.cd.markForCheck();
+  }
+
+  /**
    * Restore console window from minimized state
    */
   public restoreConsole(): void {

@@ -403,6 +403,20 @@
         <span class="inline-taskbar__label">{{ node.name }}</span>
       </div>
     }
+
+    <!-- Marker Manager taskbar icon (singleton, like console) -->
+    @if (project && isMarkerManagerVisible) {
+      <div
+        class="inline-taskbar__icon"
+        [class.inline-taskbar__icon--minimized]="windowManagement.minimizedWindows().some(w => w.id === 'marker-manager')"
+        [style.left.px]="getMarkerManagerTaskbarLeft()"
+        (click)="toggleMarkerManagerMinimize()"
+        [title]="windowManagement.minimizedWindows().some(w => w.id === 'marker-manager') ? 'Marker Manager - Click to restore' : 'Marker Manager - Click to minimize'"
+      >
+        <mat-icon class="inline-taskbar__icon-type">insights</mat-icon>
+        <span class="inline-taskbar__label">Markers</span>
+      </div>
+    }
   </div>
 </div>
 

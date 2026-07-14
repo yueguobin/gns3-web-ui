@@ -48,7 +48,7 @@ export type MarkerDefinitionMap = { [name: string]: MarkerDefinition };
 
 /** Body for creating/updating a definition (shared by POST and PUT). */
 export interface MarkerDefinitionCreateBody {
-  name: string;
+  name?: string;
   bpf: string;
   tag?: number | null;
   color?: string;

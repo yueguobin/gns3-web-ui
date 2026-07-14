@@ -7,6 +7,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  computed,
   effect,
   inject,
   input,
@@ -20,8 +21,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { Subject, animationFrameScheduler, fromEvent } from 'rxjs';
 import { auditTime, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { ResizeEvent, ResizableDirective, ResizeHandleDirective } from 'angular-resizable-element';
@@ -97,20 +100,22 @@ function notGlobalName(control: UntypedFormControl): { notGlobalName: true } | n
     MatTabsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatAutocompleteModule,
     MatTooltipModule,
     MatDividerModule,
+    CdkTextareaAutosize,
     ResizableDirective,
     ResizeHandleDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerManagerComponent implements OnInit, OnDestroy {
-  private readonly DEFAULT_WIDTH = 760;
-  private readonly DEFAULT_HEIGHT = 560;
+  private readonly DEFAULT_WIDTH = 800;
+  private readonly DEFAULT_HEIGHT = 600;
   private readonly DEFAULT_LEFT = '120px';
   private readonly DEFAULT_TOP = '80px';
-  private readonly MIN_WIDTH = 520;
-  private readonly MIN_HEIGHT = 360;
+  private readonly MIN_WIDTH = 560;
+  private readonly MIN_HEIGHT = 400;
   private readonly WINDOW_ID = 'marker-manager';
 
   private destroy$ = new Subject<void>();
@@ -149,6 +154,50 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly editingDefinition = signal<string | null>(null);
   /** linkId currently showing its inline "add private marker" form (Links tab). */
   readonly addingToLink = signal<string | null>(null);
+  // ---- Node selector (first step in Links tab) ----
+  /** Node options (id + display name). Built once from NodesDataSource. */
+  readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
+  /** Current text in the searchable node input. */
+  readonly nodeSearchText = signal('');
+  /** Node options filtered by `nodeSearchText`. */
+  readonly filteredNodeOptions = computed(() => {
+    const filter = this.nodeSearchText().trim().toLowerCase();
+    const all = this.nodeOptions();
+    if (!filter) return all;
+    return all.filter((o) => o.name.toLowerCase().includes(filter));
+  });
+  /** Currently selected node; resets link selection on change. */
+  readonly selectedNodeId = signal<string | null>(null);
+
+  // ---- Link selector (second step, filtered by selected node) ----
+  /** Link selector options (id + display name). Built once from LinksDataSource. */
+  readonly linkOptions = signal<{ id: string; name: string }[]>([]);
+  /** Current text in the searchable link input (autocomplete filter). */
+  readonly linkSearchText = signal('');
+  /** Link options filtered by search text AND (optionally) selected node. */
+  readonly filteredLinkOptions = computed(() => {
+    const filter = this.linkSearchText().trim().toLowerCase();
+    const node = this.selectedNodeId();
+    let source = this.linkOptions();
+    // If a node is selected, narrow to links connected to that node.
+    if (node) {
+      source = source.filter((o) => {
+        const link = this.linksDataSource.get(o.id);
+        return link?.nodes?.some((n) => n.node_id === node);
+      });
+    }
+    if (!filter) return source;
+    return source.filter((o) => o.name.toLowerCase().includes(filter));
+  });
+  /** Currently selected link in the Links tab dropdown; null = show all groups. */
+  readonly selectedLinkId = signal<string | null>(null);
+  /** When a link is selected, its group (synthetic if it has no markers yet). */
+  readonly selectedLinkGroup = computed<LinkGroup | null>(() => {
+    const sel = this.selectedLinkId();
+    if (!sel) return null;
+    const existing = this.linkGroups().find((g) => g.linkId === sel);
+    return existing ?? { linkId: sel, name: this.linkName(sel), markers: [] };
+  });
 
   // ---- forms ----
   readonly definitionForm = new UntypedFormGroup({
@@ -156,14 +205,14 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
   });
 
   readonly markerForm = new UntypedFormGroup({
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
   });
 
   private boundaryService = inject(WindowBoundaryService);
@@ -199,6 +248,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const toolbarHeight = window.innerWidth <= 768 ? 56 : 64;
     this.boundaryService.setConfig({ topOffset: toolbarHeight });
     this.setupDragHandling();
+    this.buildNodeOptions();
+    this.buildLinkOptions();
     this.loadDefinitions();
     this.loadAggregate();
   }
@@ -246,6 +297,28 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  private buildNodeOptions() {
+    const nodes = this.nodesDataSource.getItems();
+    const opts: { id: string; name: string }[] = [];
+    for (const n of nodes) {
+      if (!n) continue;
+      opts.push({ id: n.node_id, name: n.name });
+    }
+    opts.sort((a, b) => a.name.localeCompare(b.name));
+    this.nodeOptions.set(opts);
+  }
+
+  private buildLinkOptions() {
+    const links = this.linksDataSource.getItems();
+    const opts: { id: string; name: string }[] = [];
+    for (const link of links) {
+      if (!link) continue;
+      opts.push({ id: link.link_id, name: this.linkName(link.link_id) });
+    }
+    opts.sort((a, b) => a.name.localeCompare(b.name));
+    this.linkOptions.set(opts);
   }
 
   loadAggregate() {
@@ -394,6 +467,42 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
   // ---- private per-link marker create / delete (Links tab) ----
 
+  /** Node selected in the left autocomplete — reset link selection. */
+  onNodeSelect(nodeId: string | null) {
+    this.selectedNodeId.set(nodeId);
+    this.selectedLinkId.set(null);
+    this.linkSearchText.set('');
+    this.markerForm.reset();
+    this.linkError.set(null);
+    // Update the input to show the node's display name instead of its id.
+    if (nodeId) {
+      const n = this.nodeOptions().find((o) => o.id === nodeId);
+      if (n) this.nodeSearchText.set(n.name);
+    } else {
+      this.nodeSearchText.set('');
+    }
+    this.cdr.markForCheck();
+  }
+
+  onLinkSelect(linkId: string | null) {
+    this.selectedLinkId.set(linkId);
+    this.addingToLink.set(null);
+    this.markerForm.reset();
+    this.linkError.set(null);
+    this.linkSearchText.set(linkId ? this.linkName(linkId) : '');
+    this.cdr.markForCheck();
+  }
+
+  /** Clear autocomplete inputs and return to the aggregate view. */
+  resetLinkSelect() {
+    this.selectedNodeId.set(null);
+    this.nodeSearchText.set('');
+    this.selectedLinkId.set(null);
+    this.linkSearchText.set('');
+    this.linkError.set(null);
+    this.cdr.markForCheck();
+  }
+
   toggleAddMarker(linkId: string) {
     this.addingToLink.set(this.addingToLink() === linkId ? null : linkId);
     this.markerForm.reset();
@@ -421,7 +530,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
     this.markerService.create(controller, project.project_id, linkId, body).subscribe({
       next: () => {
-        this.toggleAddMarker(linkId);
+        if (this.selectedLinkId()) {
+          this.markerForm.reset();
+        } else {
+          this.toggleAddMarker(linkId);
+        }
         this.refreshLink(linkId);
         this.loadAggregate();
       },
