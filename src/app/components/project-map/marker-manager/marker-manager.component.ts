@@ -208,7 +208,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
+    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
   });
 
   readonly markerForm = new UntypedFormGroup({
@@ -216,7 +216,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
+    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
   });
 
   readonly markerEditForm = new UntypedFormGroup({
@@ -224,7 +224,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(500, [Validators.required, Validators.min(1)]),
+    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
   });
 
   private boundaryService = inject(WindowBoundaryService);
@@ -582,7 +582,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       bpf: marker.bpf,
       tag: marker.tag ?? null,
       color: marker.color ?? null,
-      highlight_duration: marker.highlight_duration ?? 500,
+      highlight_duration: marker.highlight_duration ?? 800,
     });
     this.markerEditForm.get('name')?.disable();
     this.cdr.markForCheck();
