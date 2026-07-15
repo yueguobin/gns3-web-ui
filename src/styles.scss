@@ -298,6 +298,20 @@ body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.template-menu 
 }
 
 /* =============================================
+// Marker Traffic Insight — link highlight on match (static, no animation)
+// Color is set inline by MarkerFlashService (user-chosen hex, or none);
+// when no inline color is set, the default theme color below applies.
+// Static highlight (like link :hover) — no keyframes, so many simultaneous
+// matches don't drive continuous repaint. The base .ethernet_link / .serial_link
+// transition still gives a smooth fade in/out when the class is toggled.
+// ============================================= */
+.ethernet_link.marker-pulse,
+.serial_link.marker-pulse {
+  stroke: var(--mat-sys-primary);
+  stroke-width: 5px;
+}
+
+/* =============================================
 // Curviness Anchor (Link Drag Handle)
 // ============================================= */
 .curviness-anchor {
@@ -499,4 +513,9 @@ mat-form-field {
   .mat-mdc-form-field-flex {
     align-items: flex-start;
   }
+}
+
+/* Vertically center text prefix (e.g. "global-" in marker name field) */
+.mat-mdc-form-field-text-prefix {
+  align-self: center;
 }

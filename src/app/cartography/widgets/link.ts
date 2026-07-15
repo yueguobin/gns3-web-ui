@@ -45,7 +45,7 @@ export class LinkWidget implements Widget, OnDestroy {
 
   private updateFilterIconsVisibility(mapLink: MapLink) {
     const show = mapLink.show_filters_icon !== false;
-    select('svg')
+    select('svg#map')
       .selectAll<SVGGElement, MapLink>('g.link_body')
       .filter((d) => d && d.id === mapLink.id)
       .selectAll('.filter-capture-icon, .filter-icon')

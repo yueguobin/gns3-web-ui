@@ -47,6 +47,8 @@ import { ControllerService } from '@services/controller.service';
 import { ProjectService } from '@services/project.service';
 import { NodeService } from '@services/node.service';
 import { LinkService } from '@services/link.service';
+import { MarkerRegistryService } from '@services/marker-registry.service';
+import { MarkerFlashService } from '@services/marker-flash.service';
 import { DrawingService } from '@services/drawing.service';
 import { ProgressService } from '../../common/progress/progress.service';
 import { ProjectWebServiceHandler } from '../../handlers/project-web-service-handler';
@@ -264,6 +266,8 @@ describe('ProjectMapComponent', () => {
   let mockInterfaceStatusWidget: any;
   let mockLabel: any;
   let mockNodesWidget: any;
+  let mockMarkerFlashService: any;
+  let mockMarkerRegistryService: any;
 
   // Mock data
   let mockController: Controller;
@@ -707,6 +711,8 @@ describe('ProjectMapComponent', () => {
     mockInterfaceStatusWidget = { };
     mockLabel = { };
     mockNodesWidget = { };
+    mockMarkerFlashService = { };
+    mockMarkerRegistryService = { };
 
     // Configure TestBed with cartography module and all required mocks
     // Note: CartographyModule provides 67+ services that are used by child components
@@ -743,6 +749,8 @@ describe('ProjectMapComponent', () => {
         { provide: MapLinksDataSource, useValue: mockMapLinksDataSource },
         { provide: MapDrawingsDataSource, useValue: mockMapDrawingsDataSource },
         { provide: MapSymbolsDataSource, useValue: mockMapSymbolsDataSource },
+        { provide: MarkerFlashService, useValue: mockMarkerFlashService },
+        { provide: MarkerRegistryService, useValue: mockMarkerRegistryService },
         { provide: SettingsService, useValue: mockSettingsService },
         { provide: ToolsService, useValue: mockToolsService },
         { provide: SelectionManager, useValue: mockSelectionManager },

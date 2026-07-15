@@ -72,6 +72,8 @@ import { Controller } from '@models/controller';
 import { Symbol } from '@models/symbol';
 import { DrawingService } from '@services/drawing.service';
 import { LinkService } from '@services/link.service';
+import { MarkerFlashService } from '@services/marker-flash.service';
+import { MarkerRegistryService } from '@services/marker-registry.service';
 import { MapScaleService } from '@services/mapScale.service';
 import { MapSettingsService } from '@services/mapsettings.service';
 import { NodeService } from '@services/node.service';
@@ -123,6 +125,8 @@ import { LinkCreatedComponent } from '../drawings-listeners/link-created/link-cr
 import { NodeDraggedComponent } from '../drawings-listeners/node-dragged/node-dragged.component';
 import { NodeLabelDraggedComponent } from '../drawings-listeners/node-label-dragged/node-label-dragged.component';
 import { TextAddedComponent } from '../drawings-listeners/text-added/text-added.component';
+import { MarkerLegendComponent } from './marker-legend/marker-legend.component';
+import { MarkerManagerComponent } from './marker-manager/marker-manager.component';
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
 
 @Component({
@@ -161,6 +165,8 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     NodeLabelDraggedComponent,
     TextAddedComponent,
     TextEditedComponent,
+    MarkerLegendComponent,
+    MarkerManagerComponent,
   ],
 })
 export class ProjectMapComponent implements OnInit, OnDestroy {
@@ -183,6 +189,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public toolbarVisibility: boolean = true;
   public symbolScaling: boolean = true;
   public isAIChatVisible: boolean = false;
+  public isMarkerManagerVisible: boolean = false;
 
   // Track multiple Web Wireshark inline windows
   // Key is link_id, value is the Link object
@@ -205,6 +212,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   // Z-index for console and AI chat windows
   public consoleZIndex: number = this.baseZIndex;
   public aiChatZIndex: number = this.baseZIndex;
+  public markerManagerZIndex: number = this.baseZIndex;
 
   // Taskbar icon positioning
   private readonly TASKBAR_BASE_LEFT = 20;
@@ -287,6 +295,8 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private mapNodesDataSource = inject(MapNodesDataSource);
   private mapLinksDataSource = inject(MapLinksDataSource);
+  private markerRegistryService = inject(MarkerRegistryService);
+  private markerFlashService = inject(MarkerFlashService);
   private mapDrawingsDataSource = inject(MapDrawingsDataSource);
   private mapSymbolsDataSource = inject(MapSymbolsDataSource);
   private mapSettingsService = inject(MapSettingsService);
@@ -718,6 +728,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
         }),
         mergeMap((links: Link[]) => {
           this.linksDataSource.set(links);
+          this.markerRegistryService.rebuildAll(links);
           return this.projectService.drawings(this.controller, project.project_id);
         })
       )
@@ -1204,6 +1215,71 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public bringAIChatToFront() {
     this.zIndexCounter++;
     this.aiChatZIndex = this.baseZIndex + this.zIndexCounter;
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Toggle the singleton Marker Manager floating window.
+   * If it is open but minimized, restore it instead of closing.
+   */
+  public toggleMarkerManager() {
+    if (this.isMarkerManagerVisible && this.windowManagement.isMinimized('marker-manager')) {
+      this.windowManagement.restoreWindow('marker-manager');
+      this.bringMarkerManagerToFront();
+      return;
+    }
+    if (this.isMarkerManagerVisible) {
+      this.closeMarkerManager();
+      return;
+    }
+    this.isMarkerManagerVisible = true;
+    this.zIndexCounter++;
+    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Close the Marker Manager window and clear its minimize state.
+   */
+  public closeMarkerManager() {
+    this.isMarkerManagerVisible = false;
+    this.windowManagement.restoreWindow('marker-manager');
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Bring the Marker Manager window to front.
+   */
+  public bringMarkerManagerToFront() {
+    this.zIndexCounter++;
+    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
+    this.cd.markForCheck();
+  }
+
+  /**
+   * Taskbar left position for the Marker Manager icon (after console / wireshark /
+   * web-console / file-manager icons).
+   */
+  public getMarkerManagerTaskbarLeft(): number {
+    const offset = this.TASKBAR_ICON_WIDTH + this.TASKBAR_ICON_GAP;
+    let base = this.TASKBAR_BASE_LEFT;
+    if (this.isConsoleVisible) base += offset;
+    base += this.webWiresharkInlineWindows.size * offset;
+    base += this.webConsoleInlineWindows.size * offset;
+    base += this.fileManagerInlineWindows.size * offset;
+    return base;
+  }
+
+  /**
+   * Minimize / restore the Marker Manager window via the taskbar icon.
+   */
+  public toggleMarkerManagerMinimize() {
+    const id = 'marker-manager';
+    if (this.windowManagement.minimizedWindows().some((w) => w.id === id)) {
+      this.windowManagement.restoreWindow(id);
+    } else {
+      this.windowManagement.minimizeWindow(id, 'marker');
+    }
     this.cd.markForCheck();
   }
 

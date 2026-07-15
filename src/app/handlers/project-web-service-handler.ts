@@ -5,6 +5,9 @@ import { NodesDataSource } from '../cartography/datasources/nodes-datasource';
 import { Drawing } from '../cartography/models/drawing';
 import { Node } from '../cartography/models/node';
 import { Link } from '@models/link';
+import { MarkerMatchEvent } from '@models/marker';
+import { MarkerFlashService } from '@services/marker-flash.service';
+import { MarkerRegistryService } from '@services/marker-registry.service';
 
 export class WebServiceMessage {
   action: string;
@@ -24,7 +27,9 @@ export class ProjectWebServiceHandler {
   constructor(
     private nodesDataSource: NodesDataSource,
     private linksDataSource: LinksDataSource,
-    private drawingsDataSource: DrawingsDataSource
+    private drawingsDataSource: DrawingsDataSource,
+    private markerRegistryService: MarkerRegistryService,
+    private markerFlashService: MarkerFlashService
   ) {}
 
   public handleMessage(message: WebServiceMessage) {
@@ -41,16 +46,35 @@ export class ProjectWebServiceHandler {
       this.nodeNotificationEmitter.emit(message);
     }
     if (message.action === 'link.created') {
-      this.linksDataSource.add(message.event as Link);
+      const link = message.event as Link;
+      this.linksDataSource.add(link);
+      this.markerRegistryService.reconcileLink(link);
       this.linkNotificationEmitter.emit(message);
     }
     if (message.action === 'link.updated') {
-      this.linksDataSource.update(message.event as Link);
+      const link = message.event as Link;
+      this.linksDataSource.update(link);
+      this.markerRegistryService.reconcileLink(link);
       this.linkNotificationEmitter.emit(message);
     }
     if (message.action === 'link.deleted') {
-      this.linksDataSource.remove(message.event as Link);
+      const link = message.event as Link;
+      this.linksDataSource.remove(link);
+      this.markerRegistryService.removeLink(link.link_id);
       this.linkNotificationEmitter.emit(message);
+    }
+    if (message.action === 'marker.match') {
+      const event = message.event as MarkerMatchEvent;
+      // Resolve the marker's color + highlight_duration from link state (event carries
+      // neither). `filter` is the marker name; null color ⇒ default theme color;
+      // null duration ⇒ UI default (see MarkerFlashService).
+      const link = this.linksDataSource.get(event.link_id);
+      const marker = link?.markers?.[event.filter];
+      this.markerFlashService.flash(
+        event.link_id,
+        marker?.color ?? null,
+        marker?.highlight_duration ?? null
+      );
     }
     if (message.action === 'drawing.created') {
       this.drawingsDataSource.add(message.event as Drawing);

@@ -1,4 +1,5 @@
 import { Filter } from '@models/filter';
+import { MarkerMap } from '@models/marker';
 import { Indexed } from '../../datasources/map-datasource';
 import { MapLinkNode } from './map-link-node';
 import { MapNode } from './map-node';
@@ -17,6 +18,7 @@ export class MapLink implements Indexed {
   show_filters_icon: boolean; // Control visibility of filter icons on the link (from server)
   link_style?: LinkStyle;
   wireshark: boolean; // true for Web Wireshark, false for traditional Wireshark
+  markers?: MarkerMap; // Traffic-insight markers (non-empty ⇒ show the markers icon)
 
   distance: number; // this is not from controller
   length: number; // this is not from controller

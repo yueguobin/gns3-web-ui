@@ -1,0 +1,20 @@
+@if (entries().length > 0) {
+<div class="marker-legend" (click)="onClick()" title="Click to open Marker Manager">
+  @for (entry of entries(); track entry.name) {
+  <span
+    class="marker-legend__pill"
+    [matTooltip]="entry.bpf"
+    matTooltipPosition="above"
+    matTooltipClass="marker-legend-tooltip"
+  >
+    <span
+      class="marker-legend__swatch"
+      [style.background]="entry.color"
+      [class.marker-legend__swatch--default]="!entry.color"
+    ></span>
+    <span class="marker-legend__name">{{ entry.name }}</span>
+  </span>
+  }
+  <span class="marker-legend__label">Markers</span>
+</div>
+}

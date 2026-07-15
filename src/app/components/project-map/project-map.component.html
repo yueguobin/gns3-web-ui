@@ -237,12 +237,38 @@
         (aiChatOpened)="onAIChatOpened()"
       ></app-project-map-menu>
     </div>
+    <div class="section">
+      <button
+        matTooltip="Marker manager"
+        matTooltipClass="custom-tooltip"
+        matTooltipPosition="left"
+        mat-icon-button
+        class="menu-button"
+        [class.tool-active]="isMarkerManagerVisible"
+        [color]="isMarkerManagerVisible ? 'primary' : 'basic'"
+        (click)="toggleMarkerManager()"
+      >
+        <mat-icon>insights</mat-icon>
+      </button>
+    </div>
     @if (!readonly) {
     <div class="section">
       <app-snapshot-menu-item [controller]="controller" [project]="project"> </app-snapshot-menu-item>
     </div>
     }
   </div>
+
+  <app-marker-legend (openMarkerManager)="toggleMarkerManager()"></app-marker-legend>
+
+  @if (project && isMarkerManagerVisible) {
+  <app-marker-manager
+    [controller]="controller"
+    [project]="project"
+    [zIndex]="markerManagerZIndex"
+    (closeWindow)="closeMarkerManager()"
+    (windowFocused)="bringMarkerManagerToFront()"
+  ></app-marker-manager>
+  }
 
   <app-progress></app-progress>
   @if (tools.draw_link) {
@@ -375,6 +401,20 @@
       >
         <mat-icon class="inline-taskbar__icon-type">folder</mat-icon>
         <span class="inline-taskbar__label">{{ node.name }}</span>
+      </div>
+    }
+
+    <!-- Marker Manager taskbar icon (singleton, like console) -->
+    @if (project && isMarkerManagerVisible) {
+      <div
+        class="inline-taskbar__icon"
+        [class.inline-taskbar__icon--minimized]="windowManagement.minimizedWindows().some(w => w.id === 'marker-manager')"
+        [style.left.px]="getMarkerManagerTaskbarLeft()"
+        (click)="toggleMarkerManagerMinimize()"
+        [title]="windowManagement.minimizedWindows().some(w => w.id === 'marker-manager') ? 'Marker Manager - Click to restore' : 'Marker Manager - Click to minimize'"
+      >
+        <mat-icon class="inline-taskbar__icon-type">insights</mat-icon>
+        <span class="inline-taskbar__label">Markers</span>
       </div>
     }
   </div>

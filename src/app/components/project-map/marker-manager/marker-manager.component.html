@@ -1,0 +1,501 @@
+<div
+  #windowWrapper
+  class="marker-manager"
+  [class.is-dragging]="isDragging()"
+  [class.is-resizing]="isResizing()"
+  [class.is-minimized]="isMinimized()"
+  [ngStyle]="style"
+  [style.z-index]="zIndex()"
+  (mousedown)="onWindowFocus()"
+  mwlResizable
+  [validateResize]="validate"
+  [enableGhostResize]="false"
+  (resizeStart)="onResizeStart()"
+  (resizeEnd)="onResizeEnd($event)"
+>
+  @if (!isMinimized()) {
+  <div class="resize-handle resize-handle-top" mwlResizeHandle [resizeEdges]="{ top: true }"></div>
+  <div class="resize-handle resize-handle-right" mwlResizeHandle [resizeEdges]="{ right: true }"></div>
+  <div class="resize-handle resize-handle-bottom" mwlResizeHandle [resizeEdges]="{ bottom: true }"></div>
+  <div class="resize-handle resize-handle-left" mwlResizeHandle [resizeEdges]="{ left: true }"></div>
+  <div class="resize-handle resize-handle-top-left" mwlResizeHandle [resizeEdges]="{ top: true, left: true }"></div>
+  <div class="resize-handle resize-handle-top-right" mwlResizeHandle [resizeEdges]="{ top: true, right: true }"></div>
+  <div class="resize-handle resize-handle-bottom-left" mwlResizeHandle [resizeEdges]="{ bottom: true, left: true }"></div>
+  <div class="resize-handle resize-handle-bottom-right" mwlResizeHandle [resizeEdges]="{ bottom: true, right: true }"></div>
+  }
+
+  <div class="marker-manager__content">
+    <div class="marker-manager__header">
+      <div class="marker-manager__header-title">
+        <mat-icon class="header-icon">insights</mat-icon>
+        <span>Marker Manager</span>
+      </div>
+      <div class="marker-manager__header-actions">
+        <button mat-icon-button class="minimize-button" (click)="toggleMinimize()" title="Minimize">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <button mat-icon-button class="close-button" (click)="close()" title="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="marker-manager__body">
+      <mat-tab-group>
+        <!-- ===================== Definitions ===================== -->
+        <mat-tab label="Definitions">
+          <div class="marker-manager__panel">
+            <!-- Create / edit form -->
+            <form [formGroup]="definitionForm" (ngSubmit)="submitDefinition()">
+              <div class="marker-manager__form-title">
+                {{ editingDefinition() ? 'Edit definition' : 'New definition' }}
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;">
+                <mat-form-field class="form-field">
+                  <mat-label>BPF expression</mat-label>
+                  <textarea matInput formControlName="bpf" placeholder="arp or icmp" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="4"></textarea>
+                  @if (definitionForm.get('bpf')?.hasError('required')) {
+                  <mat-error>BPF is required</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                <mat-form-field class="form-field">
+                  <mat-label>Name</mat-label>
+                  <span matTextPrefix class="global-prefix">global-&nbsp;</span>
+                  <input matInput formControlName="name" placeholder="auto" />
+                    @if (definitionForm.get('name')?.hasError('required')) {
+                    <mat-error>Name is required</mat-error>
+                    } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
+                    <mat-error>Name cannot start with "global"</mat-error>
+                    }
+                </mat-form-field>
+                <mat-form-field class="form-field">
+                  <mat-label>Tag</mat-label>
+                  <input matInput type="number" formControlName="tag" />
+                </mat-form-field>
+                <mat-form-field class="form-field">
+                  <mat-label>Highlight ms</mat-label>
+                  <input matInput type="number" formControlName="highlight_duration" placeholder="500" />
+                  @if (definitionForm.get('highlight_duration')?.hasError('required')) {
+                  <mat-error>Required</mat-error>
+                  }
+                  @if (definitionForm.get('highlight_duration')?.hasError('min')) {
+                  <mat-error>Must be ≥ 1</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field class="form-field">
+                  <mat-label>Color</mat-label>
+                  <input matInput type="color" formControlName="color" class="color-input" />
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="submit" [disabled]="definitionForm.invalid" style="align-self: start; margin-top: 18px;">
+                  {{ editingDefinition() ? 'Save' : 'Create' }}
+                </button>
+                @if (editingDefinition()) {
+                <button mat-stroked-button type="button" (click)="cancelEditDefinition()" style="align-self: start; margin-top: 18px;">Cancel</button>
+                }
+              </div>
+            </form>
+
+            <mat-divider></mat-divider>
+
+            @if (defError()) {
+            <div class="marker-manager__error">{{ defError() }}</div>
+            }
+
+            <!-- Existing definitions -->
+            <div class="marker-manager__list">
+              @if (loading()) {
+              <div class="marker-manager__empty">Loading…</div>
+              } @if (!loading() && definitions().length === 0) {
+              <div class="marker-manager__empty">No definitions. Create one above — it applies to all capable links.</div>
+              }
+              @for (row of definitions(); track row.name) {
+              <div class="marker-manager__row" [class.marker-manager__row--editing]="editingDefinition() === row.name">
+                <span
+                  class="marker-manager__swatch"
+                  [style.background]="row.color"
+                  [class.marker-manager__swatch--default]="!row.color"
+                  [title]="row.color || 'default color'"
+                ></span>
+                <span class="marker-manager__row-name">global-{{ row.name }}</span>
+                <span class="marker-manager__row-bpf">{{ row.bpf }}</span>
+                @if (row.tag !== null) {
+                <span class="marker-manager__chip">tag {{ row.tag }}</span>
+                }
+                @if (row.highlight_duration !== null) {
+                <span class="marker-manager__chip">{{ row.highlight_duration }}ms</span>
+                }
+                <span class="marker-manager__chip marker-manager__chip--links" title="Links carrying this definition">
+                  → {{ row.linkCount }} link{{ row.linkCount === 1 ? '' : 's' }}
+                </span>
+                <span class="marker-manager__row-spacer"></span>
+                <button mat-icon-button (click)="startEditDefinition(row)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteDefinition(row)" matTooltip="Delete (clears all copies)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ===================== Links (aggregate) ===================== -->
+        <mat-tab label="Links">
+          <div class="marker-manager__panel">
+            @if (linkError()) {
+            <div class="marker-manager__error">{{ linkError() }}</div>
+            }
+
+            <!-- Node + Link selector (cascading filter) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
+              <mat-form-field class="form-field">
+                <mat-label>Node</mat-label>
+                <input
+                  matInput
+                  [value]="nodeSearchText()"
+                  (input)="nodeSearchText.set($event.target.value)"
+                  [matAutocomplete]="nodeAuto"
+                  placeholder="Filter by node…"
+                />
+                <mat-autocomplete #nodeAuto="matAutocomplete" (optionSelected)="onNodeSelect($event.option.value)">
+                  <mat-option [value]="null">All nodes</mat-option>
+                  @for (opt of filteredNodeOptions(); track opt.id) {
+                  <mat-option [value]="opt.id">{{ opt.name }}</mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+              <mat-form-field class="form-field">
+                <mat-label>Link</mat-label>
+                <input
+                  matInput
+                  [value]="linkSearchText()"
+                  (input)="linkSearchText.set($event.target.value)"
+                  [matAutocomplete]="linkAuto"
+                  [placeholder]="selectedNodeId() ? 'Select a link…' : 'Pick a node first…'"
+                />
+                <mat-autocomplete #linkAuto="matAutocomplete" (optionSelected)="onLinkSelect($event.option.value)">
+                  <mat-option [value]="null">All links</mat-option>
+                  @for (opt of filteredLinkOptions(); track opt.id) {
+                  <mat-option [value]="opt.id">{{ opt.name }}</mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+
+            <!-- Selected-link view (always-visible create form + marker list) -->
+            @if (selectedLinkGroup(); as group) {
+            <div class="marker-manager__group">
+              <div class="marker-manager__group-header">
+                <span class="marker-manager__group-name" [title]="group.linkId">{{ group.name }}</span>
+                <span class="marker-manager__group-count">{{ group.markers.length }}</span>
+                <span class="marker-manager__row-spacer"></span>
+                <button mat-icon-button (click)="resetLinkSelect()" matTooltip="Back to all links">
+                  <mat-icon>arrow_back</mat-icon>
+                </button>
+              </div>
+
+              @if (linkError()) {
+              <div class="marker-manager__error">{{ linkError() }}</div>
+              }
+              @if (definitions().length > 0) {
+              <div class="marker-manager__hint">
+                <mat-icon>info</mat-icon>
+                Definitions are active — inherited markers on this link are managed via the Definitions tab.
+              </div>
+              }
+
+                            <form
+                class="marker-manager__form--inline"
+                [formGroup]="markerForm"
+                (ngSubmit)="submitMarker(group.linkId)"
+              >
+                <div style="display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;">
+                  <mat-form-field class="form-field">
+                    <mat-label>BPF expression</mat-label>
+                    <textarea matInput formControlName="bpf" placeholder="tcp port 80" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="4"></textarea>
+                    @if (markerForm.get('bpf')?.hasError('required')) {
+                    <mat-error>BPF is required</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+                <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <mat-form-field class="form-field">
+                    <mat-label>Name</mat-label>
+                    <input matInput formControlName="name" placeholder="my-filter" />
+                    @if (markerForm.get('name')?.hasError('required')) {
+                    <mat-error>Name is required</mat-error>
+                    } @if (markerForm.get('name')?.hasError('notGlobalName')) {
+                    <mat-error>Name cannot start with "global"</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Tag</mat-label>
+                    <input matInput type="number" formControlName="tag" />
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Highlight ms</mat-label>
+                    <input matInput type="number" formControlName="highlight_duration" placeholder="500" />
+                    @if (markerForm.get('highlight_duration')?.hasError('required')) {
+                    <mat-error>Required</mat-error>
+                    }
+                    @if (markerForm.get('highlight_duration')?.hasError('min')) {
+                    <mat-error>Must be ≥ 1</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Color</mat-label>
+                    <input matInput type="color" formControlName="color" class="color-input" />
+                  </mat-form-field>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="markerForm.invalid" style="align-self: start; margin-top: 18px;">Add</button>
+                  <button mat-stroked-button type="button" (click)="markerForm.reset(); linkError.set(null); selectedLinkId.set(null)" style="align-self: start; margin-top: 18px;">Back</button>
+                </div>
+              </form>
+
+              @for (m of group.markers; track m.name) {
+                @if (editingMarker(); as edit) {
+                  @if (edit.linkId === group.linkId && edit.name === m.name) {
+              <form class="marker-manager__form--inline" [formGroup]="markerEditForm" (ngSubmit)="submitEditMarker(group.linkId)">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;">
+                  <mat-form-field class="form-field">
+                    <mat-label>BPF expression</mat-label>
+                    <textarea matInput formControlName="bpf" placeholder="tcp port 80" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="4"></textarea>
+                    @if (markerEditForm.get('bpf')?.hasError('required')) {
+                    <mat-error>BPF is required</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+                <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <mat-form-field class="form-field">
+                    <mat-label>Name</mat-label>
+                    <input matInput formControlName="name" />
+                    @if (markerEditForm.get('name')?.hasError('required')) {
+                    <mat-error>Name is required</mat-error>
+                    } @if (markerEditForm.get('name')?.hasError('notGlobalName')) {
+                    <mat-error>Name cannot start with "global"</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Tag</mat-label>
+                    <input matInput type="number" formControlName="tag" />
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Highlight ms</mat-label>
+                    <input matInput type="number" formControlName="highlight_duration" placeholder="500" />
+                    @if (markerEditForm.get('highlight_duration')?.hasError('required')) {
+                    <mat-error>Required</mat-error>
+                    }
+                    @if (markerEditForm.get('highlight_duration')?.hasError('min')) {
+                    <mat-error>Must be ≥ 1</mat-error>
+                    }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                    <mat-label>Color</mat-label>
+                    <input matInput type="color" formControlName="color" class="color-input" />
+                  </mat-form-field>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="markerEditForm.invalid" style="align-self: start; margin-top: 18px;">Save</button>
+                  <button mat-stroked-button type="button" (click)="cancelEditMarker()" style="align-self: start; margin-top: 18px;">Cancel</button>
+                </div>
+              </form>
+                  }
+                } @else {
+              <div class="marker-manager__row">
+                <span
+                  class="marker-manager__swatch"
+                  [style.background]="m.color"
+                  [class.marker-manager__swatch--default]="!m.color"
+                ></span>
+                <span class="marker-manager__row-name">{{ m.name }}</span>
+                <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
+                @if (m.tag !== null && m.tag !== undefined) {
+                <span class="marker-manager__chip">tag {{ m.tag }}</span>
+                }
+                @if (m.inherited_from) {
+                <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
+                  inherited
+                </span>
+                }
+                <span class="marker-manager__row-spacer"></span>
+                @if (m.inherited_from) {
+                <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
+                  <mat-icon>lock</mat-icon>
+                </button>
+                } @else {
+                <button mat-icon-button (click)="startEditMarker(group.linkId, m)" matTooltip="Edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteMarker(group.linkId, m.name)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+                }
+              </div>
+                }
+              }
+            </div>
+            }
+
+            <!-- Aggregate view (when no link selected) -->
+            @if (!selectedLinkId()) {
+            <div class="marker-manager__list">
+              @if (linkGroups().length === 0) {
+              <div class="marker-manager__empty">
+                No markers on any link yet. Use the selector above to pick a link and add one.
+              </div>
+              }
+              @for (group of linkGroups(); track group.linkId) {
+              <div class="marker-manager__group">
+                <div class="marker-manager__group-header">
+                  <span class="marker-manager__group-name" [title]="group.linkId">{{ group.name }}</span>
+                  <span class="marker-manager__group-count">{{ group.markers.length }}</span>
+                  <span class="marker-manager__row-spacer"></span>
+                  <button
+                    mat-stroked-button
+                    class="add-button"
+                    (click)="toggleAddMarker(group.linkId)"
+                    [class.add-button--active]="addingToLink() === group.linkId"
+                  >
+                    <mat-icon>add</mat-icon>
+                    Marker
+                  </button>
+                </div>
+
+                @if (addingToLink() === group.linkId) {
+                <form
+                  class="marker-manager__form--inline"
+                  [formGroup]="markerForm"
+                  (ngSubmit)="submitMarker(group.linkId)"
+                >
+                  <div style="display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;">
+                    <mat-form-field class="form-field">
+                      <mat-label>BPF expression</mat-label>
+                      <textarea matInput formControlName="bpf" placeholder="tcp port 80" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="4"></textarea>
+                      @if (markerForm.get('bpf')?.hasError('required')) {
+                      <mat-error>BPF is required</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                    <mat-form-field class="form-field">
+                      <mat-label>Name</mat-label>
+                      <input matInput formControlName="name" placeholder="my-filter" />
+                      @if (markerForm.get('name')?.hasError('required')) {
+                      <mat-error>Name is required</mat-error>
+                      } @if (markerForm.get('name')?.hasError('notGlobalName')) {
+                      <mat-error>Name cannot start with "global"</mat-error>
+                      }
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Tag</mat-label>
+                      <input matInput type="number" formControlName="tag" />
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Highlight ms</mat-label>
+                      <input matInput type="number" formControlName="highlight_duration" placeholder="500" />
+                      @if (markerForm.get('highlight_duration')?.hasError('required')) {
+                      <mat-error>Required</mat-error>
+                      }
+                      @if (markerForm.get('highlight_duration')?.hasError('min')) {
+                      <mat-error>Must be ≥ 1</mat-error>
+                      }
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Color</mat-label>
+                      <input matInput type="color" formControlName="color" class="color-input" />
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" type="submit" [disabled]="markerForm.invalid" style="align-self: start; margin-top: 18px;">Add</button>
+                    <button mat-stroked-button type="button" (click)="toggleAddMarker(group.linkId)" style="align-self: start; margin-top: 18px;">Cancel</button>
+                  </div>
+                </form>
+                }
+
+                @for (m of group.markers; track m.name) {
+                  @if (editingMarker(); as edit) {
+                    @if (edit.linkId === group.linkId && edit.name === m.name) {
+                <form class="marker-manager__form--inline" [formGroup]="markerEditForm" (ngSubmit)="submitEditMarker(group.linkId)">
+                  <div style="display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;">
+                    <mat-form-field class="form-field">
+                      <mat-label>BPF expression</mat-label>
+                      <textarea matInput formControlName="bpf" placeholder="tcp port 80" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="4"></textarea>
+                      @if (markerEditForm.get('bpf')?.hasError('required')) {
+                      <mat-error>BPF is required</mat-error>
+                      }
+                    </mat-form-field>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                    <mat-form-field class="form-field">
+                      <mat-label>Name</mat-label>
+                      <input matInput formControlName="name" />
+                      @if (markerEditForm.get('name')?.hasError('required')) {
+                      <mat-error>Name is required</mat-error>
+                      } @if (markerEditForm.get('name')?.hasError('notGlobalName')) {
+                      <mat-error>Name cannot start with "global"</mat-error>
+                      }
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Tag</mat-label>
+                      <input matInput type="number" formControlName="tag" />
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Highlight ms</mat-label>
+                      <input matInput type="number" formControlName="highlight_duration" placeholder="500" />
+                      @if (markerEditForm.get('highlight_duration')?.hasError('required')) {
+                      <mat-error>Required</mat-error>
+                      }
+                      @if (markerEditForm.get('highlight_duration')?.hasError('min')) {
+                      <mat-error>Must be ≥ 1</mat-error>
+                      }
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                      <mat-label>Color</mat-label>
+                      <input matInput type="color" formControlName="color" class="color-input" />
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" type="submit" [disabled]="markerEditForm.invalid" style="align-self: start; margin-top: 18px;">Save</button>
+                    <button mat-stroked-button type="button" (click)="cancelEditMarker()" style="align-self: start; margin-top: 18px;">Cancel</button>
+                  </div>
+                </form>
+                    }
+                  } @else {
+                <div class="marker-manager__row">
+                  <span
+                    class="marker-manager__swatch"
+                    [style.background]="m.color"
+                    [class.marker-manager__swatch--default]="!m.color"
+                  ></span>
+                  <span class="marker-manager__row-name">{{ m.name }}</span>
+                  <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
+                  @if (m.tag !== null && m.tag !== undefined) {
+                  <span class="marker-manager__chip">tag {{ m.tag }}</span>
+                  }
+                  @if (m.inherited_from) {
+                  <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
+                    inherited
+                  </span>
+                  }
+                  <span class="marker-manager__row-spacer"></span>
+                  @if (m.inherited_from) {
+                  <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
+                    <mat-icon>lock</mat-icon>
+                  </button>
+                  } @else {
+                  <button mat-icon-button (click)="startEditMarker(group.linkId, m)" matTooltip="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="deleteMarker(group.linkId, m.name)" matTooltip="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                  }
+                </div>
+                  }
+                }
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </div>
+</div>
