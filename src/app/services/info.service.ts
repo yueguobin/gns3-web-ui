@@ -34,8 +34,9 @@ export class InfoService {
     } else if (node.node_type === 'vpcs') {
       infoList.push(`Node ${node.name} is ${node.status}.`);
     }
+    infoList.push(`Node ID: ${node.node_id}`);
     infoList.push(`Running on controller ${controller.name} with port ${controller.port}.`);
-    infoList.push(`Controller ID is ${controller.id}.`);
+    infoList.push(`Controller ID: ${controller.id}`);
     if (node.console_type !== 'none' && node.console_type !== 'null') {
       infoList.push(`Console is on port ${node.console} and type is ${node.console_type}.`);
     }

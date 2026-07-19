@@ -159,7 +159,7 @@ describe('ConfiguratorDialogCloudComponent', () => {
     component = fixture.componentInstance;
     component.controller = mockController;
     component.node = mockNode;
-    component.portsMappingUdp = mockUdpTunnelsData;
+    component.portsMappingUdp.set(mockUdpTunnelsData);
     component.name = 'Cloud-1';
   });
 
@@ -200,16 +200,16 @@ describe('ConfiguratorDialogCloudComponent', () => {
       component.ngOnInit();
       fixture.detectChanges();
 
-      expect(component.portsMappingEthernet.length).toBeGreaterThan(0);
-      expect(component.portsMappingEthernet[0].type).toBe('ethernet');
+      expect(component.portsMappingEthernet().length).toBeGreaterThan(0);
+      expect(component.portsMappingEthernet()[0].type).toBe('ethernet');
     });
 
     it('should populate portsMappingTap from node properties', () => {
       component.ngOnInit();
       fixture.detectChanges();
 
-      expect(component.portsMappingTap.length).toBeGreaterThan(0);
-      expect(component.portsMappingTap[0].type).toBe('tap');
+      expect(component.portsMappingTap().length).toBeGreaterThan(0);
+      expect(component.portsMappingTap()[0].type).toBe('tap');
     });
 
     it('should populate all model signals with node data', () => {
@@ -279,22 +279,22 @@ describe('ConfiguratorDialogCloudComponent', () => {
 
     it('should add ethernet interface to portsMappingEthernet when interface is selected', () => {
       component.ethernetInterface.set('Ethernet 2');
-      const initialLength = component.portsMappingEthernet.length;
+      const initialLength = component.portsMappingEthernet().length;
 
       component.onAddEthernetInterface();
 
-      expect(component.portsMappingEthernet.length).toBe(initialLength + 1);
-      expect(component.portsMappingEthernet[component.portsMappingEthernet.length - 1].interface).toBe('Ethernet 2');
-      expect(component.portsMappingEthernet[component.portsMappingEthernet.length - 1].type).toBe('ethernet');
+      expect(component.portsMappingEthernet().length).toBe(initialLength + 1);
+      expect(component.portsMappingEthernet()[component.portsMappingEthernet().length - 1].interface).toBe('Ethernet 2');
+      expect(component.portsMappingEthernet()[component.portsMappingEthernet().length - 1].type).toBe('ethernet');
     });
 
     it('should not add ethernet interface when ethernetInterface is empty', () => {
       component.ethernetInterface.set('');
-      const initialLength = component.portsMappingEthernet.length;
+      const initialLength = component.portsMappingEthernet().length;
 
       component.onAddEthernetInterface();
 
-      expect(component.portsMappingEthernet.length).toBe(initialLength);
+      expect(component.portsMappingEthernet().length).toBe(initialLength);
     });
 
     it('should validate interface name before adding', () => {
@@ -311,19 +311,19 @@ describe('ConfiguratorDialogCloudComponent', () => {
         errorMessage: 'Interface name is required',
       });
       component.ethernetInterface.set('   '); // Whitespace only, not empty
-      const initialLength = component.portsMappingEthernet.length;
+      const initialLength = component.portsMappingEthernet().length;
 
       component.onAddEthernetInterface();
 
-      expect(component.portsMappingEthernet.length).toBe(initialLength);
+      expect(component.portsMappingEthernet().length).toBe(initialLength);
       expect(mockToasterService.error).toHaveBeenCalledWith('Interface name is required');
     });
 
     it('should check for duplicate interface names', () => {
       component.ethernetInterface.set('eth0');
-      component.portsMappingEthernet = [
+      component.portsMappingEthernet.set([
         { interface: 'eth0', name: 'eth0', port_number: 0, type: 'ethernet' },
-      ];
+      ]);
 
       component.onAddEthernetInterface();
 
@@ -336,9 +336,9 @@ describe('ConfiguratorDialogCloudComponent', () => {
         errorMessage: 'Interface eth0 already configured.',
       });
       component.ethernetInterface.set('eth0');
-      component.portsMappingEthernet = [
+      component.portsMappingEthernet.set([
         { interface: 'eth0', name: 'eth0', port_number: 0, type: 'ethernet' },
-      ];
+      ]);
 
       component.onAddEthernetInterface();
 
@@ -354,22 +354,22 @@ describe('ConfiguratorDialogCloudComponent', () => {
 
     it('should add tap interface to portsMappingTap when interface is specified', () => {
       component.tapInterface.set('tap0');
-      const initialLength = component.portsMappingTap.length;
+      const initialLength = component.portsMappingTap().length;
 
       component.onAddTapInterface();
 
-      expect(component.portsMappingTap.length).toBe(initialLength + 1);
-      expect(component.portsMappingTap[component.portsMappingTap.length - 1].interface).toBe('tap0');
-      expect(component.portsMappingTap[component.portsMappingTap.length - 1].type).toBe('tap');
+      expect(component.portsMappingTap().length).toBe(initialLength + 1);
+      expect(component.portsMappingTap()[component.portsMappingTap().length - 1].interface).toBe('tap0');
+      expect(component.portsMappingTap()[component.portsMappingTap().length - 1].type).toBe('tap');
     });
 
     it('should not add tap interface when tapInterface is empty', () => {
       component.tapInterface.set('');
-      const initialLength = component.portsMappingTap.length;
+      const initialLength = component.portsMappingTap().length;
 
       component.onAddTapInterface();
 
-      expect(component.portsMappingTap.length).toBe(initialLength);
+      expect(component.portsMappingTap().length).toBe(initialLength);
     });
 
     it('should validate interface name before adding', () => {
@@ -386,19 +386,19 @@ describe('ConfiguratorDialogCloudComponent', () => {
         errorMessage: 'Interface name is required',
       });
       component.tapInterface.set('   '); // Whitespace only, not empty
-      const initialLength = component.portsMappingTap.length;
+      const initialLength = component.portsMappingTap().length;
 
       component.onAddTapInterface();
 
-      expect(component.portsMappingTap.length).toBe(initialLength);
+      expect(component.portsMappingTap().length).toBe(initialLength);
       expect(mockToasterService.error).toHaveBeenCalledWith('Interface name is required');
     });
 
     it('should check for duplicate interface names', () => {
       component.tapInterface.set('tap0');
-      component.portsMappingTap = [
+      component.portsMappingTap.set([
         { interface: 'tap0', name: 'tap0', port_number: 0, type: 'tap' },
-      ];
+      ]);
 
       component.onAddTapInterface();
 
@@ -411,9 +411,9 @@ describe('ConfiguratorDialogCloudComponent', () => {
         errorMessage: 'Interface tap0 already configured.',
       });
       component.tapInterface.set('tap0');
-      component.portsMappingTap = [
+      component.portsMappingTap.set([
         { interface: 'tap0', name: 'tap0', port_number: 0, type: 'tap' },
-      ];
+      ]);
 
       component.onAddTapInterface();
 
@@ -669,7 +669,7 @@ describe('ConfiguratorDialogCloudComponent', () => {
       component.remoteConsoleHttpPath.set('/');
       component.usage.set('Test');
       component.node = { ...mockNode };
-      component.portsMappingUdp = mockUdpTunnelsData;
+      component.portsMappingUdp.set(mockUdpTunnelsData);
 
       // Mock udpTunnels viewChild
       Object.defineProperty(component, 'udpTunnels', {

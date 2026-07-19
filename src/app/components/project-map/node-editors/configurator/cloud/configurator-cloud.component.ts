@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, model, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, model, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -65,9 +65,9 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
   bootPriorities = [];
   diskInterfaces: string[] = [];
 
-  portsMappingEthernet: PortsMappingEntity[] = [];
-  portsMappingTap: PortsMappingEntity[] = [];
-  portsMappingUdp: PortsMappingEntity[] = [];
+  portsMappingEthernet = signal<PortsMappingEntity[]>([]);
+  portsMappingTap = signal<PortsMappingEntity[]>([]);
+  portsMappingUdp = signal<PortsMappingEntity[]>([]);
 
   ethernetDisplayColumns: string[] = ['name', 'ipAddresses', 'actions'];
   tapDisplayColumns: string[] = ['name', 'actions'];
@@ -75,7 +75,7 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
   networkTypes = [];
   readonly tapInterface = model('');
   readonly ethernetInterface = model('');
-  availableEthernetInterfaces: NetworkInterface[] = [];
+  availableEthernetInterfaces = signal<NetworkInterface[]>([]);
 
   // Model signals for form fields
   readonly nodeName = model('');
@@ -109,16 +109,22 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
 
         // Populate available ethernet interfaces from gns3server
         if (this.node.properties.interfaces) {
-          this.availableEthernetInterfaces = this.node.properties.interfaces.filter(
-            (iface) => iface.type === 'ethernet'
+          this.availableEthernetInterfaces.set(
+            this.node.properties.interfaces.filter((iface) => iface.type === 'ethernet')
           );
         }
 
-        this.portsMappingEthernet = this.node.properties.ports_mapping.filter((elem) => elem.type === 'ethernet');
+        this.portsMappingEthernet.set(
+          this.node.properties.ports_mapping.filter((elem) => elem.type === 'ethernet')
+        );
 
-        this.portsMappingTap = this.node.properties.ports_mapping.filter((elem) => elem.type === 'tap');
+        this.portsMappingTap.set(
+          this.node.properties.ports_mapping.filter((elem) => elem.type === 'tap')
+        );
 
-        this.portsMappingUdp = this.node.properties.ports_mapping.filter((elem) => elem.type === 'udp');
+        this.portsMappingUdp.set(
+          this.node.properties.ports_mapping.filter((elem) => elem.type === 'udp')
+        );
 
         this.cd.markForCheck();
       },
@@ -160,29 +166,28 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
       }
 
       // Check if interface already exists
-      const existingNames = this.portsMappingEthernet.map((port) => port.name);
+      const existingNames = this.portsMappingEthernet().map((port) => port.name);
       const uniqueValidation = this.validationService.validateUniqueInterface(this.ethernetInterface(), existingNames);
       if (!uniqueValidation.isValid) {
         this.toasterService.error(uniqueValidation.errorMessage || `Interface ${this.ethernetInterface()} already configured.`);
         return;
       }
 
-      this.portsMappingEthernet.push({
-        interface: this.ethernetInterface(),
-        name: this.ethernetInterface(),
-        port_number: 0,
-        type: 'ethernet',
-      });
-      // Force array refresh for change detection
-      this.portsMappingEthernet = [...this.portsMappingEthernet];
+      this.portsMappingEthernet.update((arr) => [
+        ...arr,
+        {
+          interface: this.ethernetInterface(),
+          name: this.ethernetInterface(),
+          port_number: 0,
+          type: 'ethernet',
+        },
+      ]);
       this.ethernetInterface.set('');
-      this.cd.markForCheck();
     }
   }
 
   onDeleteEthernetInterface(port: PortsMappingEntity) {
-    this.portsMappingEthernet = this.portsMappingEthernet.filter((p) => p !== port);
-    this.cd.markForCheck();
+    this.portsMappingEthernet.update((arr) => arr.filter((p) => p !== port));
   }
 
   onAddTapInterface() {
@@ -195,29 +200,28 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
       }
 
       // Check if interface already exists
-      const existingNames = this.portsMappingTap.map((port) => port.name);
+      const existingNames = this.portsMappingTap().map((port) => port.name);
       const uniqueValidation = this.validationService.validateUniqueInterface(this.tapInterface(), existingNames);
       if (!uniqueValidation.isValid) {
         this.toasterService.error(uniqueValidation.errorMessage || `Interface ${this.tapInterface()} already configured.`);
         return;
       }
 
-      this.portsMappingTap.push({
-        interface: this.tapInterface(),
-        name: this.tapInterface(),
-        port_number: 0,
-        type: 'tap',
-      });
-      // Force array refresh for change detection
-      this.portsMappingTap = [...this.portsMappingTap];
+      this.portsMappingTap.update((arr) => [
+        ...arr,
+        {
+          interface: this.tapInterface(),
+          name: this.tapInterface(),
+          port_number: 0,
+          type: 'tap',
+        },
+      ]);
       this.tapInterface.set('');
-      this.cd.markForCheck();
     }
   }
 
   onDeleteTapInterface(port: PortsMappingEntity) {
-    this.portsMappingTap = this.portsMappingTap.filter((p) => p !== port);
-    this.cd.markForCheck();
+    this.portsMappingTap.update((arr) => arr.filter((p) => p !== port));
   }
 
   onSaveClick() {
@@ -274,11 +278,11 @@ export class ConfiguratorDialogCloudComponent implements OnInit {
     this.node.properties.remote_console_http_path = this.remoteConsoleHttpPath();
     this.node.properties.usage = this.usage();
 
-    this.portsMappingUdp = this.udpTunnels().dataSourceUdp;
+    this.portsMappingUdp.set(this.udpTunnels().dataSourceUdp);
 
-    this.node.properties.ports_mapping = this.portsMappingUdp
-      .concat(this.portsMappingEthernet)
-      .concat(this.portsMappingTap);
+    this.node.properties.ports_mapping = this.portsMappingUdp()
+      .concat(this.portsMappingEthernet())
+      .concat(this.portsMappingTap());
 
     this.nodeService.updateNode(this.controller, this.node).subscribe({
       next: () => {

@@ -39,6 +39,7 @@ describe('InfoService', () => {
 
     // Mock Node
     mockNode = {
+      node_id: 'test-node-uuid',
       name: 'Test Node',
       node_type: 'qemu',
       status: 'started',
@@ -73,7 +74,7 @@ describe('InfoService', () => {
         const result = service.getInfoAboutNode(cloudNode, mockController);
 
         expect(result).toContain('Running on controller Test Controller with port 3080.');
-        expect(result).toContain('Controller ID is 1.');
+        expect(result).toContain('Controller ID: 1');
       });
     });
 
@@ -199,10 +200,16 @@ describe('InfoService', () => {
         expect(result).toContain('Running on controller Test Controller with port 3080.');
       });
 
+      it('should include node ID', () => {
+        const result = service.getInfoAboutNode(mockNode, mockController);
+
+        expect(result).toContain('Node ID: test-node-uuid');
+      });
+
       it('should include controller ID', () => {
         const result = service.getInfoAboutNode(mockNode, mockController);
 
-        expect(result).toContain('Controller ID is 1.');
+        expect(result).toContain('Controller ID: 1');
       });
 
       it('should work with different controller ports', () => {

@@ -17,7 +17,7 @@
                     (selectionChange)="ethernetInterface.set($event.value)"
                   >
                     <mat-select-trigger>{{ ethernetInterface() }}</mat-select-trigger>
-                    @for (iface of availableEthernetInterfaces; track iface.name) {
+                    @for (iface of availableEthernetInterfaces(); track iface.name) {
                     <mat-option [value]="iface.name">
                       <div class="cloud-iface-option">
                         <div class="cloud-iface-option__head">
@@ -39,7 +39,7 @@
                 <button mat-button (click)="onAddEthernetInterface()">Add</button>
               </div>
 
-              <table mat-table [dataSource]="portsMappingEthernet" class="interfaces-table">
+              <table mat-table [dataSource]="portsMappingEthernet()" class="interfaces-table">
                 <ng-container matColumnDef="name">
                   <th mat-header-cell *matHeaderCellDef>Interface</th>
                   <td mat-cell *matCellDef="let element">
@@ -98,7 +98,7 @@
                 <button mat-button (click)="onAddTapInterface()">Add</button>
               </div>
 
-              <table mat-table [dataSource]="portsMappingTap" class="interfaces-table">
+              <table mat-table [dataSource]="portsMappingTap()" class="interfaces-table">
                 <ng-container matColumnDef="name">
                   <th mat-header-cell *matHeaderCellDef>Interface</th>
                   <td mat-cell *matCellDef="let element">{{ element.name }}</td>
@@ -120,7 +120,7 @@
           </mat-tab>
 
           <mat-tab label="UDP tunnels">
-            <app-udp-tunnels #udpTunnels [dataSourceUdp]="portsMappingUdp"></app-udp-tunnels>
+            <app-udp-tunnels #udpTunnels [dataSourceUdp]="portsMappingUdp()"></app-udp-tunnels>
           </mat-tab>
 
           <mat-tab label="Miscellaneous">
