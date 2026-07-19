@@ -10,6 +10,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatStepperModule } from '@angular/material/stepper';
 import { UploadServiceService } from '../../../../common/uploading-processbar/upload-service.service';
 import { UploadingProcessbarComponent } from 'app/common/uploading-processbar/uploading-processbar.component';
@@ -43,6 +44,7 @@ import { ToasterService } from '@services/toaster.service';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatStepperModule,
     FileUploadModule,
   ],
@@ -69,6 +71,7 @@ export class AddQemuVmTemplateComponent implements OnInit, OnDestroy {
   readonly newImageSelected = signal<boolean>(false);
   readonly qemuImages = signal<QemuImage[]>([]);
   readonly selectedImage = signal<QemuImage | undefined>(undefined);
+  readonly filteredImages = signal<QemuImage[]>([]);
   readonly chosenImage = signal<string>('');
   readonly qemuTemplate = signal<QemuTemplate>(new QemuTemplate());
   readonly uploader = signal<FileUploader | undefined>(undefined);
@@ -110,6 +113,7 @@ export class AddQemuVmTemplateComponent implements OnInit, OnDestroy {
     ) => {
       this.qemuService.getImages(this.controller()).subscribe((qemuImages: QemuImage[]) => {
         this.qemuImages.set(qemuImages);
+        this.filteredImages.set(qemuImages);
       });
       this.toasterService.success('Image uploaded');
     };
@@ -136,6 +140,7 @@ export class AddQemuVmTemplateComponent implements OnInit, OnDestroy {
         this.qemuService.getImages(this.controller()).subscribe({
           next: (qemuImages: QemuImage[]) => {
             this.qemuImages.set(qemuImages);
+            this.filteredImages.set(qemuImages);
           },
           error: (err) => {
             const message = err.error?.message || err.message || 'Failed to load QEMU images';
@@ -171,6 +176,26 @@ export class AddQemuVmTemplateComponent implements OnInit, OnDestroy {
 
   setDiskImage(value: string) {
     this.newImageSelected.set(value === 'newImage');
+    if (value === 'newImage') {
+      this.selectedImage.set(undefined);
+    }
+  }
+
+  filterImages(event: Event): QemuImage[] {
+    const filterValue = (event.target as HTMLInputElement).value.toLowerCase();
+    return this.qemuImages().filter((image) => image.filename.toLowerCase().includes(filterValue));
+  }
+
+  onDiskImageInput(event: Event) {
+    this.filteredImages.set(this.filterImages(event));
+    // Typing free text invalidates any previously picked image so we never
+    // save a stale path. A valid selection is only restored via onDiskImageSelected.
+    this.selectedImage.set(undefined);
+  }
+
+  onDiskImageSelected(filename: string) {
+    const image = this.qemuImages().find((img) => img.filename === filename);
+    this.selectedImage.set(image);
   }
 
   uploadImageFile(event) {
