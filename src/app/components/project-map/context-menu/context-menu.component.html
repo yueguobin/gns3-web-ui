@@ -3,7 +3,7 @@
   <mat-menu #contextMenu="matMenu" class="context-menu-items">
     @if (nodes.length === 1) {
     <app-show-node-action [controller]="controller" [node]="nodes[0]"></app-show-node-action>
-    } @if (nodes.length === 1 && nodes[0].node_type !== 'cloud') {
+    } @if (nodes.length === 1 && !isCloudLikeNode(nodes[0].node_type)) {
     <app-show-in-file-manager-action [controller]="controller" [node]="nodes[0]" (openFileManagerInline)="onOpenFileManagerInline($event)"></app-show-in-file-manager-action>
     } @if (nodes.length === 1) {
     <app-config-node-action [controller]="controller" [node]="nodes[0]"></app-config-node-action>
@@ -15,16 +15,16 @@
     <app-stop-node-action [controller]="controller" [nodes]="nodes"></app-stop-node-action>
     } @if (nodes.length) {
     <app-reload-node-action [controller]="controller" [nodes]="nodes"></app-reload-node-action>
-    } @if (!projectService.isReadOnly(project) && nodes.length > 0 && nodes[0].node_type !== 'cloud') {
+    } @if (!projectService.isReadOnly(project) && nodes.length > 0 && !isCloudLikeNode(nodes[0].node_type)) {
     <app-http-console-action
       [controller]="controller"
       [project]="project"
       [nodes]="nodes"
       (openWebConsoleInline)="onOpenWebConsoleInline($event)"
     ></app-http-console-action>
-    } @if (!projectService.isReadOnly(project) && nodes.length > 0 && nodes[0].node_type !== 'cloud') {
+    } @if (!projectService.isReadOnly(project) && nodes.length > 0 && !isCloudLikeNode(nodes[0].node_type)) {
     <app-http-console-new-tab-action [controller]="controller" [nodes]="nodes"></app-http-console-new-tab-action>
-    } @if (!projectService.isReadOnly(project) && nodes.length === 1 && nodes[0].node_type !== 'cloud') {
+    } @if (!projectService.isReadOnly(project) && nodes.length === 1 && !isCloudLikeNode(nodes[0].node_type)) {
     <app-console-device-action-browser [controller]="controller" [node]="nodes[0]"></app-console-device-action-browser>
     } @if (nodes.length === 1) {
     <app-isolate-node-action [controller]="controller" [node]="nodes[0]"></app-isolate-node-action>

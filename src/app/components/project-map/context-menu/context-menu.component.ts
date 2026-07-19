@@ -199,6 +199,14 @@ export class ContextMenuComponent implements OnInit {
     this.contextMenu.openMenu();
   }
 
+  /**
+   * Node types that don't support file manager, web console, or console browser —
+   * same behavior as cloud nodes in the context menu.
+   */
+  isCloudLikeNode(nodeType: string): boolean {
+    return nodeType === 'cloud' || nodeType === 'ethernet_switch' || nodeType === 'ethernet_hub' || nodeType === 'nat';
+  }
+
   private resetCapabilities() {
     this.drawings = [];
     this.nodes = [];

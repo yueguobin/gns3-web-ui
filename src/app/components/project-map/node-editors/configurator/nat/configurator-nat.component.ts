@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, model } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, model, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -6,14 +6,19 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { MatChipGrid, MatChipInputEvent, MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { COMMA, ENTER } from '@angular/cdk/keycodes';
+import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips';
 import { Node } from '../../../../../cartography/models/node';
+import type { HostInterfaceIPAddress, NetworkInterface } from '../../../../../cartography/models/node';
+import { PortsMappingEntity } from '@models/ethernetHub/ports-mapping-enity';
 import { Controller } from '@models/controller';
 import { NodeService } from '@services/node.service';
 import { ToasterService } from '@services/toaster.service';
 import { ValidationService } from '@services/validation';
+import { formatFlags, formatIpAddress, formatIpAddresses, formatInterfaceMeta } from '../cloud/ip-address.util';
 
 @Component({
   standalone: true,
@@ -31,6 +36,8 @@ import { ValidationService } from '@services/validation';
     MatButtonModule,
     MatChipsModule,
     MatIconModule,
+    MatTableModule,
+    MatTooltipModule,
   ],
 })
 export class ConfiguratorDialogNatComponent implements OnInit {
@@ -45,8 +52,17 @@ export class ConfiguratorDialogNatComponent implements OnInit {
   name: string;
   readonly separatorKeysCodes: number[] = [ENTER, COMMA];
 
+  portsMappingEthernet = signal<PortsMappingEntity[]>([]);
+  ethernetDisplayColumns: string[] = ['name', 'ipAddresses'];
+
   // Model signals
   readonly nodeName = model('');
+
+  /** Expose the interface formatters to the template. */
+  formatIpAddresses = formatIpAddresses;
+  formatIpAddress = formatIpAddress;
+  formatInterfaceMeta = formatInterfaceMeta;
+  formatFlags = formatFlags;
 
   ngOnInit() {
     this.nodeService.getNode(this.controller, this.node).subscribe({
@@ -54,12 +70,16 @@ export class ConfiguratorDialogNatComponent implements OnInit {
         this.node = node;
         this.name = node.name;
 
-        // Update model signals with node data
         this.nodeName.set(node.name || '');
 
         if (!this.node.tags) {
           this.node.tags = [];
         }
+
+        this.portsMappingEthernet.set(
+          this.node.properties.ports_mapping.filter((elem) => elem.type === 'ethernet')
+        );
+
         this.cd.markForCheck();
       },
       error: (err) => {
@@ -68,6 +88,16 @@ export class ConfiguratorDialogNatComponent implements OnInit {
         this.cd.markForCheck();
       },
     });
+  }
+
+  /** Look up the full host interface bridged by a configured ethernet port. */
+  getHostInterface(hostInterfaceName: string): NetworkInterface | undefined {
+    return this.node?.properties?.interfaces?.find((iface) => iface.name === hostInterfaceName);
+  }
+
+  /** Look up the host interface IP addresses bridged by a configured ethernet port. */
+  getHostInterfaceIps(hostInterfaceName: string): HostInterfaceIPAddress[] {
+    return this.getHostInterface(hostInterfaceName)?.ip_addresses ?? [];
   }
 
   onSaveClick() {
@@ -79,6 +109,8 @@ export class ConfiguratorDialogNatComponent implements OnInit {
 
     this.node.name = this.nodeName();
 
+    this.node.properties.ports_mapping = this.portsMappingEthernet();
+
     this.nodeService.updateNode(this.controller, this.node).subscribe({
       next: () => {
         this.toasterService.success(`Node ${this.node.name} updated.`);
@@ -87,6 +119,7 @@ export class ConfiguratorDialogNatComponent implements OnInit {
       error: (error: unknown) => {
         const errorMessage = (error as any)?.error?.message || (error as any)?.message || 'Failed to update node';
         this.toasterService.error(errorMessage);
+        this.cd.markForCheck();
       },
     });
   }
@@ -105,7 +138,6 @@ export class ConfiguratorDialogNatComponent implements OnInit {
       this.node.tags.push(value);
     }
 
-    // Clear the input value
     if (event.chipInput) {
       event.chipInput.clear();
     }
