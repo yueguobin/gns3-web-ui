@@ -3,7 +3,7 @@
   <mat-menu #contextMenu="matMenu" class="context-menu-items">
     @if (nodes.length === 1) {
     <app-show-node-action [controller]="controller" [node]="nodes[0]"></app-show-node-action>
-    } @if (nodes.length === 1 && nodes[0].node_type !== 'cloud') {
+    } @if (nodes.length === 1 && nodes[0].node_type !== 'cloud' && nodes[0].node_type !== 'ethernet_switch' && nodes[0].node_type !== 'ethernet_hub' && nodes[0].node_type !== 'nat') {
     <app-show-in-file-manager-action [controller]="controller" [node]="nodes[0]" (openFileManagerInline)="onOpenFileManagerInline($event)"></app-show-in-file-manager-action>
     } @if (nodes.length === 1) {
     <app-config-node-action [controller]="controller" [node]="nodes[0]"></app-config-node-action>
