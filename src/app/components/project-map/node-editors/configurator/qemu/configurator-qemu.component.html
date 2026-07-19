@@ -128,7 +128,7 @@
                         (input)="onHdaImageInput($event)"
                         (focus)="filteredImages = qemuImages; refreshQemuImages()"
                       />
-                      <mat-autocomplete #hdaAuto="matAutocomplete">
+                      <mat-autocomplete #hdaAuto="matAutocomplete" (optionSelected)="hdaDiskImage.set($event.option.value)">
                         @if (projectDiskFiles.length) {
                         <mat-optgroup label="This device files">
                           @for (file of projectDiskFiles; track file) {
@@ -173,7 +173,7 @@
                         (input)="onHdbImageInput($event)"
                         (focus)="filteredImages = qemuImages; refreshQemuImages()"
                       />
-                      <mat-autocomplete #hdbAuto="matAutocomplete">
+                      <mat-autocomplete #hdbAuto="matAutocomplete" (optionSelected)="hdbDiskImage.set($event.option.value)">
                         @if (projectDiskFiles.length) {
                         <mat-optgroup label="This device files">
                           @for (file of projectDiskFiles; track file) {
@@ -218,7 +218,7 @@
                         (input)="onHdcImageInput($event)"
                         (focus)="filteredImages = qemuImages; refreshQemuImages()"
                       />
-                      <mat-autocomplete #hdcAuto="matAutocomplete">
+                      <mat-autocomplete #hdcAuto="matAutocomplete" (optionSelected)="hdcDiskImage.set($event.option.value)">
                         @if (projectDiskFiles.length) {
                         <mat-optgroup label="This device files">
                           @for (file of projectDiskFiles; track file) {
@@ -263,7 +263,7 @@
                         (input)="onHddImageInput($event)"
                         (focus)="filteredImages = qemuImages; refreshQemuImages()"
                       />
-                      <mat-autocomplete #hddAuto="matAutocomplete">
+                      <mat-autocomplete #hddAuto="matAutocomplete" (optionSelected)="hddDiskImage.set($event.option.value)">
                         @if (projectDiskFiles.length) {
                         <mat-optgroup label="This device files">
                           @for (file of projectDiskFiles; track file) {
@@ -307,7 +307,7 @@
                 <mat-form-field class="form-field">
                   <mat-label>Image</mat-label>
                   <input matInput type="text" [value]="cdromImage()" (input)="cdromImage.set($event.target.value); onCdromInput($event)" [matAutocomplete]="isoAuto" #isoTrigger="matAutocompleteTrigger" (focus)="filteredIsoFiles = projectIsoFiles; filteredGlobalIsoImages = globalIsoImages; isoTrigger.openPanel(); refreshNodeFiles(); refreshGlobalImages()" />
-                  <mat-autocomplete #isoAuto="matAutocomplete">
+                  <mat-autocomplete #isoAuto="matAutocomplete" (optionSelected)="cdromImage.set($event.option.value)">
                     @if (filteredIsoFiles.length) {
                     <mat-optgroup label="This device files">
                       @for (file of filteredIsoFiles; track file) {
@@ -369,7 +369,7 @@
                         <mat-form-field class="form-field" style="flex: 1;">
                           <mat-label>Initial RAM disk (initrd)</mat-label>
                           <input matInput type="text" [value]="initrd()" (input)="initrd.set($event.target.value); onAdvancedFileInput($event)" [matAutocomplete]="initrdAuto" #initrdTrigger="matAutocompleteTrigger" (focus)="filteredNodeFiles = allNodeFiles; filteredGlobalFiles = allGlobalFiles; initrdTrigger.openPanel(); refreshNodeFiles(); refreshQemuImages()" />
-                          <mat-autocomplete #initrdAuto="matAutocomplete">
+                          <mat-autocomplete #initrdAuto="matAutocomplete" (optionSelected)="initrd.set($event.option.value)">
                             @if (filteredNodeFiles.length) {
                             <mat-optgroup label="This device files">
                               @for (file of filteredNodeFiles; track file) {
@@ -398,7 +398,7 @@
                         <mat-form-field class="form-field" style="flex: 1;">
                           <mat-label>Kernel image</mat-label>
                           <input matInput type="text" [value]="kernelImage()" (input)="kernelImage.set($event.target.value); onAdvancedFileInput($event)" [matAutocomplete]="kernelAuto" #kernelTrigger="matAutocompleteTrigger" (focus)="filteredNodeFiles = allNodeFiles; filteredGlobalFiles = allGlobalFiles; kernelTrigger.openPanel(); refreshNodeFiles(); refreshQemuImages()" />
-                          <mat-autocomplete #kernelAuto="matAutocomplete">
+                          <mat-autocomplete #kernelAuto="matAutocomplete" (optionSelected)="kernelImage.set($event.option.value)">
                             @if (filteredNodeFiles.length) {
                             <mat-optgroup label="This device files">
                               @for (file of filteredNodeFiles; track file) {
@@ -439,7 +439,7 @@
                         <mat-form-field class="form-field" style="flex: 1;">
                           <mat-label>Bios image</mat-label>
                           <input matInput type="text" [value]="biosImage()" (input)="biosImage.set($event.target.value); onAdvancedFileInput($event)" [matAutocomplete]="biosAuto" #biosTrigger="matAutocompleteTrigger" (focus)="filteredNodeFiles = allNodeFiles; filteredGlobalFiles = allGlobalFiles; biosTrigger.openPanel(); refreshNodeFiles(); refreshQemuImages()" />
-                          <mat-autocomplete #biosAuto="matAutocomplete">
+                          <mat-autocomplete #biosAuto="matAutocomplete" (optionSelected)="biosImage.set($event.option.value)">
                             @if (filteredNodeFiles.length) {
                             <mat-optgroup label="This device files">
                               @for (file of filteredNodeFiles; track file) {
