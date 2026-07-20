@@ -124,17 +124,20 @@
             @if (!newImageSelected()) {
             <mat-form-field appearance="fill" class="qemu-add__field">
               <mat-label>Disk image (hda)</mat-label>
-              <mat-select
+              <input
+                matInput
+                type="text"
+                [matAutocomplete]="hdaAuto"
+                (input)="onDiskImageInput($event)"
                 placeholder="Disk image (hda)"
-                [value]="selectedImage()"
-                (selectionChange)="selectedImage.set($event.value)"
-              >
-                @for (image of qemuImages(); track image.filename) {
-                <mat-option [value]="image">
+              />
+              <mat-autocomplete #hdaAuto="matAutocomplete" (optionSelected)="onDiskImageSelected($event.option.value)">
+                @for (image of filteredImages(); track image.filename) {
+                <mat-option [value]="image.filename">
                   {{ image.filename }}
                 </mat-option>
                 }
-              </mat-select>
+              </mat-autocomplete>
             </mat-form-field>
             } @if (newImageSelected()) {
             <div class="qemu-add__file-row">
