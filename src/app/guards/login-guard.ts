@@ -20,10 +20,18 @@ export class LoginGuard implements CanActivate {
       await this.loginService.getLoggedUser(controller);
     } catch (e) {}
     return this.controllerService.get(parseInt(controller_id, 10)).then((controller: Controller) => {
+      // Controller is absent from local storage (e.g. after clearing site data).
+      // There is nothing to authenticate against, so go back to the server list
+      // instead of dereferencing a null controller.
+      if (!controller) {
+        this.router.navigate(['/controllers']);
+        return false;
+      }
       if (controller.authToken && !controller.tokenExpired) {
         return true;
       }
       this.router.navigate(['/controller', controller.id, 'login'], { queryParams: { returnUrl: state.url } });
+      return false;
     });
   }
 }
