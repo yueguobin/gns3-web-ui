@@ -54,6 +54,7 @@ describe('ConfiguratorDialogIouComponent', () => {
       properties: {
         ethernet_adapters: 2,
         serial_adapters: 0,
+        l1_keepalives: false,
         use_default_iou_values: true,
         ram: '',
         nvram: '',
@@ -258,6 +259,14 @@ describe('ConfiguratorDialogIouComponent', () => {
 
       expect(newComponent.node.tags).toEqual([]);
     });
+
+    it('should initialize L1 keepalives from node properties', () => {
+      mockNode.properties.l1_keepalives = true;
+
+      component.ngOnInit();
+
+      expect(component.l1Keepalives()).toBe(true);
+    });
   });
 
   describe('getConfiguration', () => {
@@ -323,6 +332,7 @@ describe('ConfiguratorDialogIouComponent', () => {
         properties: {
           ethernet_adapters: 4,
           serial_adapters: 2,
+          l1_keepalives: false,
           use_default_iou_values: false,
           ram: '256',
           nvram: '64',
@@ -360,6 +370,7 @@ describe('ConfiguratorDialogIouComponent', () => {
       newComponent.nodeName.set('TestNode');
       newComponent.consoleType.set('vnc');
       newComponent.consoleAutoStart.set(true);
+      newComponent.l1Keepalives.set(true);
       newComponent.useDefaultIouValues.set(false);
       newComponent.ram.set('512');
       newComponent.nvram.set('128');
@@ -371,6 +382,7 @@ describe('ConfiguratorDialogIouComponent', () => {
 
       expect(newComponent.node.properties.ram).toBe(512);
       expect(newComponent.node.properties.nvram).toBe(128);
+      expect(newComponent.node.properties.l1_keepalives).toBe(true);
       expect(newComponent.node.properties.use_default_iou_values).toBe(false);
     });
   });

@@ -38,6 +38,10 @@
 
               <mat-checkbox [checked]="consoleAutoStart()" (change)="consoleAutoStart.set($event.checked)"> Auto start console </mat-checkbox>
 
+              <mat-checkbox [checked]="l1Keepalives()" (change)="l1Keepalives.set($event.checked)">
+                Enable Layer 1 keepalive messages
+              </mat-checkbox>
+
               <mat-checkbox [checked]="useDefaultIouValues()" (change)="useDefaultIouValues.set($event.checked)">
                 Use default IOU values for memories
               </mat-checkbox>
