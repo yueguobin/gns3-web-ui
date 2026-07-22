@@ -58,6 +58,7 @@ export class ConfiguratorDialogIouComponent implements OnInit {
   readonly nodeName = model('');
   readonly consoleType = model('');
   readonly consoleAutoStart = model(false);
+  readonly l1Keepalives = model(false);
   readonly useDefaultIouValues = model(true);
   readonly ram = model('');
   readonly nvram = model('');
@@ -74,6 +75,7 @@ export class ConfiguratorDialogIouComponent implements OnInit {
         this.nodeName.set(node.name || '');
         this.consoleType.set(node.console_type || '');
         this.consoleAutoStart.set(node.console_auto_start || false);
+        this.l1Keepalives.set(node.properties.l1_keepalives ?? false);
         this.useDefaultIouValues.set(
           node.properties.use_default_iou_values !== undefined ? node.properties.use_default_iou_values : true
         );
@@ -113,6 +115,7 @@ export class ConfiguratorDialogIouComponent implements OnInit {
     this.node.name = this.nodeName();
     this.node.console_type = this.consoleType();
     this.node.console_auto_start = this.consoleAutoStart();
+    this.node.properties.l1_keepalives = this.l1Keepalives();
     this.node.properties.use_default_iou_values = this.useDefaultIouValues();
     this.node.properties.ram = parseInt(this.ram(), 10) || 0;
     this.node.properties.nvram = parseInt(this.nvram(), 10) || 0;

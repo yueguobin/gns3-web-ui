@@ -113,6 +113,7 @@ export class Properties {
   remote_console_port?: number;
   remote_console_http_path?: string;
   use_default_iou_values?: boolean;
+  l1_keepalives?: boolean;
   console_resolution?: string;
   console_http_port?: number;
   console_http_path?: string;
