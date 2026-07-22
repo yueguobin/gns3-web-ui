@@ -1,6 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { select, pointer } from 'd3-selection';
-import { Subject } from 'rxjs';
 import { SelectionEventSource } from '../events/selection-event-source';
 import { Context } from '../models/context';
 import { Rectangle } from '../models/rectangle';
@@ -8,61 +7,50 @@ import { SVGSelection } from '../models/types';
 
 @Injectable()
 export class SelectionTool {
-  static readonly SELECTABLE_CLASS = '.selectable';
-
-  public rectangleSelected = new Subject<Rectangle>();
-  public contextMenuOpened = new EventEmitter<any>();
+  public contextMenuOpened = new EventEmitter<MouseEvent>();
 
   private path;
   private enabled = false;
 
   public constructor(private context: Context, private selectionEventSource: SelectionEventSource) {}
 
-  public disableContextMenu() {}
-
   public setEnabled(enabled) {
     this.enabled = enabled;
-    this.contextMenuOpened.emit(true);
   }
 
   private activate(selection) {
     const self = this;
     const svgNode = selection.node();
 
-    selection.on('mousedown', function (event: any) {
-      // prevent deselection on right click
-      if (event.button == 2) {
-        selection.on('contextmenu', () => {
-          event.preventDefault();
-        });
+    selection
+      .on('contextmenu.selection', (event: MouseEvent) => event.preventDefault())
+      .on('mousedown.selection', function (event: MouseEvent) {
+        // prevent deselection on right click
+        if (event.button === 2) {
+          self.contextMenuOpened.emit(event);
+          return;
+        }
 
-        self.contextMenuOpened.emit(event);
-        return;
-      }
+        const subject = select(window);
+        const start = self.transformation(pointer(event, svgNode));
+        self.startSelection(start);
 
-      const subject = select(window);
-      const start = self.transformation(pointer(event, svgNode));
-      self.startSelection(start);
-
-      // clear selection
-      selection.selectAll(SelectionTool.SELECTABLE_CLASS).classed('selected', false);
-
-      // In zoneless mode, mousemove events don't trigger Angular CD automatically
-      subject
-        .on('mousemove.selection', function (event: any) {
-          const end = self.transformation(pointer(event, svgNode));
-          self.moveSelection(start, end);
-        })
-        .on('mouseup.selection', function (event: any) {
-          const end = self.transformation(pointer(event, svgNode));
-          self.endSelection(start, end);
-          subject.on('mousemove.selection', null).on('mouseup.selection', null);
-        });
-    });
+        // In zoneless mode, mousemove events don't trigger Angular CD automatically
+        subject
+          .on('mousemove.selection', function (event: any) {
+            const end = self.transformation(pointer(event, svgNode));
+            self.moveSelection(start, end);
+          })
+          .on('mouseup.selection', function (event: any) {
+            const end = self.transformation(pointer(event, svgNode));
+            self.endSelection(start, end);
+            subject.on('mousemove.selection', null).on('mouseup.selection', null);
+          });
+      });
   }
 
   private deactivate(selection) {
-    selection.on('mousedown', null);
+    selection.on('mousedown.selection', null).on('contextmenu.selection', null);
   }
 
   public draw(selection: SVGSelection, context: Context) {
