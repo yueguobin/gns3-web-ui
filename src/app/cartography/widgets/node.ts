@@ -150,6 +150,11 @@ export class NodeWidget implements Widget {
     // update image of node
     node_body_merge
       .select<SVGImageElement>('image')
+      .on('mousedown.context-menu', function (this: SVGImageElement, event: MouseEvent) {
+        if (event.button === 2) {
+          event.stopPropagation();
+        }
+      })
       .on('contextmenu', function (this: SVGImageElement, event: MouseEvent, n: MapNode) {
         event.preventDefault();
         self.onContextMenu.emit(new NodeContextMenu(event, n));

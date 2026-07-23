@@ -815,6 +815,13 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     });
 
     const onNodeContextMenu = this.nodeWidget.onContextMenu.subscribe((eventNode: NodeContextMenu) => {
+      const selectedItems = this.selectionManager.getSelected();
+
+      if (this.selectionManager.isSelected(eventNode.node) && this.openMenuForSelection(selectedItems, eventNode.event)) {
+        return;
+      }
+
+      this.selectionManager.setSelected([eventNode.node]);
       const node = this.mapNodeToNode.convert(eventNode.node);
       this.contextMenu().openMenuForNode(node, eventNode.event.clientY, eventNode.event.clientX);
     });
@@ -825,6 +832,15 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     });
 
     const onLabelContextMenu = this.labelWidget.onContextMenu.subscribe((eventLabel: LabelContextMenu) => {
+      const selectedItems = this.selectionManager.getSelected();
+      const isLabelOrParentSelected =
+        this.selectionManager.isSelected(eventLabel.label) ||
+        selectedItems.some((item) => item instanceof MapNode && item.id === eventLabel.label.nodeId);
+
+      if (isLabelOrParentSelected && this.openMenuForSelection(selectedItems, eventLabel.event)) {
+        return;
+      }
+
       const label = this.mapLabelToLabel.convert(eventLabel.label);
       const node = this.nodes().find((n) => n.node_id === eventLabel.label.nodeId);
       this.contextMenu().openMenuForLabel(label, node, eventLabel.event.clientY, eventLabel.event.clientX);
@@ -845,26 +861,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
     const onContextMenu = this.selectionTool.contextMenuOpened.subscribe((event) => {
       const selectedItems = this.selectionManager.getSelected();
-      if (selectedItems.length < 2 || !(event instanceof MouseEvent)) return;
-
-      let drawings: Drawing[] = [];
-      let nodes: Node[] = [];
-      let labels: Label[] = [];
-      let links: Link[] = [];
-
-      selectedItems.forEach((elem) => {
-        if (elem instanceof MapDrawing) {
-          drawings.push(this.mapDrawingToDrawing.convert(elem));
-        } else if (elem instanceof MapNode) {
-          nodes.push(this.mapNodeToNode.convert(elem));
-        } else if (elem instanceof MapLabel) {
-          labels.push(this.mapLabelToLabel.convert(elem));
-        } else if (elem instanceof MapLink) {
-          links.push(this.mapLinkToLink.convert(elem));
-        }
-      });
-
-      this.contextMenu().openMenuForListOfElements(drawings, nodes, labels, links, event.clientY, event.clientX);
+      this.openMenuForSelection(selectedItems, event);
     });
 
     this.projectMapSubscription.add(onLinkContextMenu);
@@ -876,6 +873,32 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     this.projectMapSubscription.add(onLabelContextMenu);
     this.projectMapSubscription.add(onInterfaceLabelContextMenu);
     this.mapChangeDetectorRef.detectChanges();
+  }
+
+  private openMenuForSelection(selectedItems: Indexed[], event: Event): boolean {
+    if (selectedItems.length < 2 || !(event instanceof MouseEvent)) {
+      return false;
+    }
+
+    const drawings: Drawing[] = [];
+    const nodes: Node[] = [];
+    const labels: Label[] = [];
+    const links: Link[] = [];
+
+    selectedItems.forEach((elem) => {
+      if (elem instanceof MapDrawing) {
+        drawings.push(this.mapDrawingToDrawing.convert(elem));
+      } else if (elem instanceof MapNode) {
+        nodes.push(this.mapNodeToNode.convert(elem));
+      } else if (elem instanceof MapLabel) {
+        labels.push(this.mapLabelToLabel.convert(elem));
+      } else if (elem instanceof MapLink) {
+        links.push(this.mapLinkToLink.convert(elem));
+      }
+    });
+
+    this.contextMenu().openMenuForListOfElements(drawings, nodes, labels, links, event.clientY, event.clientX);
+    return true;
   }
 
   onNodeCreation(nodeAddedEvent: NodeAddedEvent) {

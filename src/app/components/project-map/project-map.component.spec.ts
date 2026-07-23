@@ -141,6 +141,10 @@ import { Symbol } from '@models/symbol';
 import { Controller } from '@models/controller';
 import { Project } from '@models/project';
 import { Node } from '../../cartography/models/node';
+import { MapNode } from '../../cartography/models/map/map-node';
+import { NodeContextMenu } from '../../cartography/events/nodes';
+import { MapLabel } from '../../cartography/models/map/map-label';
+import { LabelContextMenu } from '../../cartography/events/event-source';
 import { D3MapComponent } from '../../cartography/components/d3-map/d3-map.component';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -368,7 +372,7 @@ describe('ProjectMapComponent', () => {
     };
 
     mockNodeWidget = {
-      onContextMenu: of(null),
+      onContextMenu: new Subject<NodeContextMenu>(),
     };
 
     mockDrawingsWidget = {
@@ -380,7 +384,7 @@ describe('ProjectMapComponent', () => {
     };
 
     mockLabelWidget = {
-      onContextMenu: of(null),
+      onContextMenu: new Subject<LabelContextMenu>(),
     };
 
     mockInterfaceLabelWidget = {
@@ -467,10 +471,11 @@ describe('ProjectMapComponent', () => {
     mockSelectionManager = {
       setSelected: vi.fn(),
       getSelected: vi.fn().mockReturnValue([]),
+      isSelected: vi.fn().mockReturnValue(false),
     };
 
     mockSelectionTool = {
-      contextMenuOpened: of(null),
+      contextMenuOpened: new Subject<MouseEvent>(),
     };
 
     mockRecentlyOpenedProjectService = {
@@ -877,6 +882,93 @@ describe('ProjectMapComponent', () => {
       expect(component.toolbarVisibility).toBe(true);
       expect(component.symbolScaling).toBe(true);
       expect(component.isAIChatVisible).toBe(false);
+    });
+  });
+
+  describe('Node context menu selection', () => {
+    let mockContextMenu: any;
+
+    beforeEach(() => {
+      mockContextMenu = {
+        openMenuForNode: vi.fn(),
+        openMenuForLabel: vi.fn(),
+        openMenuForListOfElements: vi.fn(),
+      };
+      vi.spyOn(component as any, 'contextMenu').mockReturnValue(mockContextMenu);
+    });
+
+    it('should preserve a multi-selection when right-clicking one of its nodes', () => {
+      const firstNode = Object.assign(new MapNode(), { id: 'node-1' });
+      const secondNode = Object.assign(new MapNode(), { id: 'node-2' });
+      const firstConvertedNode = { node_id: 'node-1' } as Node;
+      const secondConvertedNode = { node_id: 'node-2' } as Node;
+      mockSelectionManager.getSelected.mockReturnValue([firstNode, secondNode]);
+      mockSelectionManager.isSelected.mockReturnValue(true);
+      mockMapNodeToNode.convert.mockImplementation((node: MapNode) =>
+        node.id === firstNode.id ? firstConvertedNode : secondConvertedNode
+      );
+      component.setUpMapCallbacks();
+
+      mockNodeWidget.onContextMenu.next(
+        new NodeContextMenu(new MouseEvent('contextmenu', { clientX: 10, clientY: 20 }), firstNode)
+      );
+
+      expect(mockSelectionManager.setSelected).not.toHaveBeenCalled();
+      expect(mockContextMenu.openMenuForNode).not.toHaveBeenCalled();
+      expect(mockContextMenu.openMenuForListOfElements).toHaveBeenCalledWith(
+        [],
+        [firstConvertedNode, secondConvertedNode],
+        [],
+        [],
+        20,
+        10
+      );
+    });
+
+    it('should select only an unselected right-clicked node', () => {
+      const selectedNode = Object.assign(new MapNode(), { id: 'node-1' });
+      const clickedNode = Object.assign(new MapNode(), { id: 'node-2' });
+      const convertedNode = { node_id: 'node-2' } as Node;
+      mockSelectionManager.getSelected.mockReturnValue([selectedNode]);
+      mockSelectionManager.isSelected.mockReturnValue(false);
+      mockMapNodeToNode.convert.mockReturnValue(convertedNode);
+      component.setUpMapCallbacks();
+
+      mockNodeWidget.onContextMenu.next(
+        new NodeContextMenu(new MouseEvent('contextmenu', { clientX: 30, clientY: 40 }), clickedNode)
+      );
+
+      expect(mockSelectionManager.setSelected).toHaveBeenCalledWith([clickedNode]);
+      expect(mockContextMenu.openMenuForNode).toHaveBeenCalledWith(convertedNode, 40, 30);
+      expect(mockContextMenu.openMenuForListOfElements).not.toHaveBeenCalled();
+    });
+
+    it('should preserve the node selection when right-clicking a selected node hostname', () => {
+      const firstNode = Object.assign(new MapNode(), { id: 'node-1' });
+      const secondNode = Object.assign(new MapNode(), { id: 'node-2' });
+      const firstLabel = Object.assign(new MapLabel(), { id: 'label-1', nodeId: 'node-1' });
+      const firstConvertedNode = { node_id: 'node-1' } as Node;
+      const secondConvertedNode = { node_id: 'node-2' } as Node;
+      mockSelectionManager.getSelected.mockReturnValue([firstNode, secondNode]);
+      mockSelectionManager.isSelected.mockReturnValue(false);
+      mockMapNodeToNode.convert.mockImplementation((node: MapNode) =>
+        node.id === firstNode.id ? firstConvertedNode : secondConvertedNode
+      );
+      component.setUpMapCallbacks();
+
+      mockLabelWidget.onContextMenu.next(
+        new LabelContextMenu(new MouseEvent('contextmenu', { clientX: 50, clientY: 60 }), firstLabel)
+      );
+
+      expect(mockContextMenu.openMenuForLabel).not.toHaveBeenCalled();
+      expect(mockContextMenu.openMenuForListOfElements).toHaveBeenCalledWith(
+        [],
+        [firstConvertedNode, secondConvertedNode],
+        [],
+        [],
+        60,
+        50
+      );
     });
   });
 

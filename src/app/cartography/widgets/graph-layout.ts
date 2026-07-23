@@ -12,6 +12,8 @@ import { NodesWidget } from './nodes';
 import { Widget } from './widget';
 import { CurveElement } from '../models/drawings/curve-element';
 import { MapDrawing } from '../models/map/map-drawing';
+import { MapLabel } from '../models/map/map-label';
+import { MapNode } from '../models/map/map-node';
 
 @Injectable()
 export class GraphLayout implements Widget {
@@ -68,6 +70,18 @@ export class GraphLayout implements Widget {
 
     canvas.selectAll<SVGGElement, any>('g.node_body').classed('selected', (n) => this.selectionManager.isSelected(n));
     canvas.selectAll<SVGGElement, any>('g.link_body').classed('selected', (l) => this.selectionManager.isSelected(l));
+
+    const selectedNodeIds = new Set(
+      this.selectionManager
+        .getSelected()
+        .filter((item): item is MapNode => item instanceof MapNode)
+        .map((node) => node.id)
+    );
+    canvas
+      .selectAll<SVGRectElement, MapLabel>('rect.label_selection')
+      .attr('visibility', (label) =>
+        this.selectionManager.isSelected(label) || selectedNodeIds.has(label.nodeId) ? 'visible' : 'hidden'
+      );
 
     const drawingBodies = canvas.selectAll<SVGGElement, MapDrawing>('g.drawing_body');
     drawingBodies.classed('drawing_selected', (d) => this.selectionManager.isSelected(d));

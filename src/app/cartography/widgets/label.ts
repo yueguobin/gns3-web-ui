@@ -43,6 +43,11 @@ export class LabelWidget implements Widget {
 
     const merge = label_view
       .merge(label_enter)
+      .on('mousedown.context-menu', function (this: SVGGElement, event: MouseEvent) {
+        if (event.button === 2) {
+          event.stopPropagation();
+        }
+      })
       .on('contextmenu', function (this: SVGGElement, event: MouseEvent, n: MapLabel) {
         event.preventDefault();
         self.onContextMenu.emit(new LabelContextMenu(event, n));
