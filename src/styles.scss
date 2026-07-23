@@ -519,3 +519,29 @@ mat-form-field {
 .mat-mdc-form-field-text-prefix {
   align-self: center;
 }
+
+/* =============================================
+// Menu Density
+// ============================================= */
+.mat-mdc-menu-panel {
+  --gns3-menu-item-min-height: 40px;
+}
+
+.mat-mdc-menu-panel.context-menu-items {
+  --gns3-menu-item-min-height: 36px;
+
+  .mat-mdc-menu-content {
+    padding: 4px 0;
+  }
+}
+
+.mat-mdc-menu-panel .mat-mdc-menu-item {
+  min-height: var(--gns3-menu-item-min-height);
+}
+
+// Restore Material's touch-friendly target size on coarse-pointer devices.
+@media (pointer: coarse) {
+  .mat-mdc-menu-panel {
+    --gns3-menu-item-min-height: 48px;
+  }
+}
