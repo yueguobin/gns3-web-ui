@@ -102,6 +102,20 @@ describe('DockerService', () => {
     });
   });
 
+  describe('pullImage', () => {
+    it('should pull the image on the selected compute', () => {
+      mockHttpController.post.mockReturnValue(of(undefined));
+
+      service.pullImage(mockController, 'nginx:latest', 'remote-compute');
+
+      expect(mockHttpController.post).toHaveBeenCalledWith(
+        mockController,
+        '/computes/remote-compute/docker/images/pull',
+        { image: 'nginx:latest' }
+      );
+    });
+  });
+
   describe('addTemplate', () => {
     it('should call httpController.post with template', () => {
       const template: DockerTemplate = { name: 'New Docker' } as DockerTemplate;

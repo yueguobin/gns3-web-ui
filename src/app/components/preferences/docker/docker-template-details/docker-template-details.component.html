@@ -41,16 +41,28 @@
             />
           </mat-form-field>
         </div>
-        <mat-form-field class="form-field">
-          <mat-label>Image</mat-label>
-          <input
-            matInput
-            [value]="image()"
-            (input)="image.set($event.target.value)"
-            type="text"
-            placeholder="Docker image name"
-          />
-        </mat-form-field>
+        <div class="docker-details__image-row">
+          <mat-form-field class="form-field">
+            <mat-label>Image</mat-label>
+            <input
+              matInput
+              [value]="image()"
+              (input)="image.set($event.target.value)"
+              type="text"
+              placeholder="Docker image name"
+            />
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            class="docker-details__pull-btn"
+            type="button"
+            [disabled]="isPulling() || !image().trim()"
+            (click)="pullImage()"
+          >
+            <mat-icon>cloud_download</mat-icon>
+            {{ isPulling() ? 'Pulling…' : 'Pull image' }}
+          </button>
+        </div>
         <div class="docker-details__symbol-row">
           <mat-form-field class="form-field">
             <mat-label>Category</mat-label>

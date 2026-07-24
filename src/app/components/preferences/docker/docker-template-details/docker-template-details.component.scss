@@ -142,6 +142,22 @@
   }
 }
 
+.docker-details__image-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  .form-field {
+    flex: 1;
+  }
+}
+
+.docker-details__pull-btn {
+  height: 48px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
 .docker-details__symbol-btn {
   margin-top: 4px;
   height: 48px;
@@ -236,6 +252,11 @@
     flex-direction: column;
   }
 
+  .docker-details__image-row {
+    flex-direction: column;
+  }
+
+  .docker-details__pull-btn,
   .docker-details__symbol-btn {
     width: 100%;
   }
