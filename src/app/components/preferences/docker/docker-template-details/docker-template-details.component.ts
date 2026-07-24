@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -11,6 +11,7 @@ import { MatChipsModule, MatChipInputEvent } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
+import { finalize } from 'rxjs';
 import { Controller } from '@models/controller';
 import { DockerTemplate } from '@models/templates/docker-template';
 import { DockerConfigurationService } from '@services/docker-configuration.service';
@@ -90,6 +91,7 @@ export class DockerTemplateDetailsComponent implements OnInit {
   extraHosts = model('');
   extraVolumes = model('');
   usage = model('');
+  readonly isPulling = signal(false);
 
   constructor() {}
 
@@ -261,6 +263,32 @@ export class DockerTemplateDetailsComponent implements OnInit {
         this.cd.markForCheck();
       },
     });
+  }
+
+  pullImage() {
+    const image = this.image().trim();
+    if (!image || this.isPulling()) {
+      return;
+    }
+
+    this.isPulling.set(true);
+    this.dockerService
+      .pullImage(this.controller, image, this.dockerTemplate.compute_id)
+      .pipe(
+        finalize(() => {
+          this.isPulling.set(false);
+          this.cd.markForCheck();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.toasterService.success(`Docker image '${image}' updated`);
+        },
+        error: (err) => {
+          const message = err.error?.message || err.message || `Failed to pull Docker image '${image}'`;
+          this.toasterService.error(message);
+        },
+      });
   }
 
   editCustomAdapters() {

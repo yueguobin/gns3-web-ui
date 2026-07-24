@@ -28,6 +28,12 @@ export class DockerService {
     ) as Observable<DockerImage[]>;
   }
 
+  pullImage(controller: Controller, image: string, computeId: string): Observable<void> {
+    return this.httpController.post<void>(controller, `/computes/${computeId}/docker/images/pull`, {
+      image,
+    }) as Observable<void>;
+  }
+
   addTemplate(controller: Controller, dockerTemplate: any): Observable<any> {
     const templateToSend = this.prepareTemplate(dockerTemplate);
     return this.httpController.post<DockerTemplate>(

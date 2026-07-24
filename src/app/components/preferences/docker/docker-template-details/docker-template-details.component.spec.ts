@@ -114,6 +114,7 @@ describe('DockerTemplateDetailsComponent', () => {
     mockDockerService = {
       getTemplate: vi.fn().mockReturnValue(of(createMockDockerTemplate())),
       saveTemplate: vi.fn().mockReturnValue(templateSavedSubject.asObservable()),
+      pullImage: vi.fn().mockReturnValue(of(undefined)),
     };
 
     mockDockerConfigurationService = {
@@ -306,6 +307,60 @@ describe('DockerTemplateDetailsComponent', () => {
       templateSavedSubject.next(createMockDockerTemplate());
 
       expect(mockToasterService.success).toHaveBeenCalledWith('Changes saved');
+    });
+  });
+
+  describe('pullImage', () => {
+    beforeEach(() => {
+      component.controller = createMockController(1);
+      component.dockerTemplate = createMockDockerTemplate();
+      component.image.set('nginx:latest');
+    });
+
+    it('should pull the current image on the template compute', () => {
+      component.dockerTemplate.compute_id = 'remote-compute';
+      component.image.set('  nginx:latest  ');
+
+      component.pullImage();
+
+      expect(mockDockerService.pullImage).toHaveBeenCalledWith(component.controller, 'nginx:latest', 'remote-compute');
+    });
+
+    it('should show a success message after pulling the image', () => {
+      component.pullImage();
+
+      expect(mockToasterService.success).toHaveBeenCalledWith("Docker image 'nginx:latest' updated");
+    });
+
+    it('should disable additional pulls while one is in progress', () => {
+      const pullSubject = new Subject<void>();
+      mockDockerService.pullImage.mockReturnValue(pullSubject.asObservable());
+
+      component.pullImage();
+      component.pullImage();
+
+      expect(component.isPulling()).toBe(true);
+      expect(mockDockerService.pullImage).toHaveBeenCalledTimes(1);
+
+      pullSubject.complete();
+      expect(component.isPulling()).toBe(false);
+    });
+
+    it('should show the server error and reset the pulling state', () => {
+      mockDockerService.pullImage.mockReturnValue(throwError(() => ({ error: { message: 'Pull failed' } })));
+
+      component.pullImage();
+
+      expect(mockToasterService.error).toHaveBeenCalledWith('Pull failed');
+      expect(component.isPulling()).toBe(false);
+    });
+
+    it('should not pull an empty image', () => {
+      component.image.set('   ');
+
+      component.pullImage();
+
+      expect(mockDockerService.pullImage).not.toHaveBeenCalled();
     });
   });
 
