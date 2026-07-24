@@ -458,38 +458,8 @@ g.node text,
   padding-right: 16px;
 }
 
-.context-menu-items .mat-menu-item {
-  line-height: 32px;
-  height: 32px;
-  font-size: 12px;
-  padding: 0 6px;
-  outline: none;
-}
-
-.context-menu-items .mat-menu-item .mat-icon {
-  margin-right: 3px;
-}
-
-.context-menu-items .mat-menu-item:focus {
-  background: none;
-}
-
-.context-menu-items .mat-menu-item.cdk-focused:not(:hover),
-.context-menu-items .mat-menu-item.cdk-program-focused:not(:hover),
-.context-menu-items .mat-menu-item.cdk-keyboard-focused:not(:hover) {
-  background: none;
-}
-
-.context-menu-items .mat-menu-item:hover {
-  background-color: var(--mat-sys-surface-container);
-}
-
 .visible {
   display: none;
-}
-
-mat-menu-panel {
-  min-height: 0;
 }
 
 .unmarked {
