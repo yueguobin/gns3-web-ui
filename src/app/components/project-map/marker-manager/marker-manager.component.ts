@@ -524,6 +524,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   onNodeSelect(nodeId: string | null) {
     this.selectedNodeId.set(nodeId);
     this.selectedLinkId.set(null);
+    this.addingToLink.set(null);
+    this.editingMarker.set(null);
     this.linkSearchText.set('');
     this.markerForm.reset();
     this.linkError.set(null);
@@ -540,6 +542,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   onLinkSelect(linkId: string | null) {
     this.selectedLinkId.set(linkId);
     this.addingToLink.set(null);
+    this.editingMarker.set(null);
     this.markerForm.reset();
     this.linkError.set(null);
     this.linkSearchText.set(linkId ? this.linkName(linkId) : '');
@@ -568,6 +571,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.selectedNodeId.set(null);
     this.nodeSearchText.set('');
     this.selectedLinkId.set(null);
+    this.addingToLink.set(null);
+    this.editingMarker.set(null);
     this.linkSearchText.set('');
     this.linkError.set(null);
     this.cdr.markForCheck();
@@ -629,11 +634,10 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
     this.markerService.create(controller, project.project_id, linkId, body).subscribe({
       next: () => {
-        if (this.selectedLinkId()) {
-          this.markerForm.reset();
-        } else {
-          this.toggleAddMarker(linkId);
-        }
+        // Close the create form and return to the list — same behavior in the
+        // selected-link and aggregate views. (The selected-link view previously
+        // kept the form open via markerForm.reset().)
+        this.toggleAddMarker(linkId);
         this.refreshLink(linkId);
         this.loadAggregate();
       },

@@ -196,6 +196,15 @@
                 <span class="marker-manager__group-name" [title]="group.linkId">{{ group.name }}</span>
                 <span class="marker-manager__group-count">{{ group.markers.length }}</span>
                 <span class="marker-manager__row-spacer"></span>
+                <button
+                  mat-stroked-button
+                  class="add-button"
+                  (click)="toggleAddMarker(group.linkId)"
+                  [class.add-button--active]="addingToLink() === group.linkId"
+                >
+                  <mat-icon>add</mat-icon>
+                  Marker
+                </button>
                 <button mat-icon-button (click)="resetLinkSelect()" matTooltip="Back to all links">
                   <mat-icon>arrow_back</mat-icon>
                 </button>
@@ -211,13 +220,15 @@
               </div>
               }
 
+              @if (addingToLink() === group.linkId) {
               <app-marker-form
                 [form]="markerForm"
                 mode="create"
                 [captureOptions]="linkEndpoints(group.linkId)"
                 (save)="submitMarker(group.linkId)"
-                (cancel)="markerForm.reset(); linkError.set(null); selectedLinkId.set(null)"
+                (cancel)="toggleAddMarker(group.linkId)"
               />
+              }
 
               @for (m of group.markers; track m.name) {
                 @if (editingMarker(); as edit) {
