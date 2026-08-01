@@ -48,6 +48,7 @@ import { MarkerRegistryService } from '@services/marker-registry.service';
 import { ToasterService } from '@services/toaster.service';
 import { WindowBoundaryService, WindowStyle } from '@services/window-boundary.service';
 import { WindowManagementService } from '@services/window-management.service';
+import { MarkerFormComponent } from './marker-form.component';
 
 interface DefinitionRow {
   name: string;
@@ -110,6 +111,7 @@ function notGlobalName(control: UntypedFormControl): { notGlobalName: true } | n
     CdkTextareaAutosize,
     ResizableDirective,
     ResizeHandleDirective,
+    MarkerFormComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -160,6 +162,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly addingToLink = signal<string | null>(null);
   /** Marker currently being edited: { linkId, name }. */
   readonly editingMarker = signal<{ linkId: string; name: string } | null>(null);
+  /** LinkIds whose marker list is collapsed in the aggregate Links view. */
+  readonly collapsedGroups = signal<Set<string>>(new Set());
   // ---- Node selector (first step in Links tab) ----
   /** Node options (id + display name). Built once from NodesDataSource. */
   readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
@@ -211,8 +215,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
-    direction: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(800, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    direction: new UntypedFormControl('both'),
   });
 
   readonly markerForm = new UntypedFormGroup({
@@ -220,8 +227,12 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
-    direction: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(800, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    direction: new UntypedFormControl('both'),
+    capture_node_id: new UntypedFormControl(null),
   });
 
   readonly markerEditForm = new UntypedFormGroup({
@@ -229,8 +240,12 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     bpf: new UntypedFormControl('', [Validators.required]),
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
-    highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
-    direction: new UntypedFormControl(null),
+    highlight_duration: new UntypedFormControl(800, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    direction: new UntypedFormControl('both'),
+    capture_node_id: new UntypedFormControl({ value: null, disabled: true }),
   });
 
   private boundaryService = inject(WindowBoundaryService);
@@ -397,6 +412,22 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     return `${src.name} ${sLabel} → ${dst.name} ${dLabel}`.replace(/\s+/g, ' ').trim();
   }
 
+  /** Endpoint nodes of a link — options for the per-link "Capture node" dropdown. */
+  linkEndpoints(linkId: string): { id: string; name: string }[] {
+    const link = this.linksDataSource.get(linkId);
+    const nodes = link?.nodes;
+    if (!nodes || nodes.length === 0) return [];
+    return nodes.map((n) => {
+      const node = this.nodesDataSource.get(n.node_id);
+      return { id: n.node_id, name: node?.name ?? n.node_id };
+    });
+  }
+
+  /** Resolve a node id to its display name (falls back to the raw id). */
+  nodeName(nodeId: string): string {
+    return this.nodesDataSource.get(nodeId)?.name ?? nodeId;
+  }
+
   // ---- definitions CRUD ----
 
   submitDefinition() {
@@ -416,7 +447,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
-    if (v.direction) body.direction = v.direction;
+    const dir = this.dirToBody(v.direction);
+    if (dir) body.direction = dir;
 
     const editing = this.editingDefinition();
     const done = () => {
@@ -453,7 +485,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       tag: row.tag,
       color: row.color,
       highlight_duration: row.highlight_duration,
-      direction: row.direction,
+      direction: this.dirFromMarker(row.direction),
     });
     // Name is immutable on update; disable to communicate that.
     this.definitionForm.get('name')?.disable();
@@ -514,6 +546,23 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  /**
+   * `displayWith` for the node autocomplete — maps the selected value (node id) back to
+   * its display name. Without this, mat-autocomplete writes the raw `[value]` (the UUID)
+   * into the input; on repeat selection of the same option the signal doesn't notify
+   * (equal value ⇒ no CD), so the `[value]` binding never overwrites it and the UUID sticks.
+   */
+  displayNode = (id: string | null): string => {
+    if (!id) return '';
+    return this.nodeOptions().find((o) => o.id === id)?.name ?? id;
+  };
+
+  /** `displayWith` for the link autocomplete — maps the selected link id to its display name. */
+  displayLink = (id: string | null): string => {
+    if (!id) return '';
+    return this.linkName(id);
+  };
+
   /** Clear autocomplete inputs and return to the aggregate view. */
   resetLinkSelect() {
     this.selectedNodeId.set(null);
@@ -524,8 +573,34 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  /** Whether a link group's marker list is collapsed in the aggregate view. */
+  isGroupCollapsed(linkId: string): boolean {
+    return this.collapsedGroups().has(linkId);
+  }
+
+  /** Toggle a link group's collapsed state (click on its header). */
+  toggleGroup(linkId: string) {
+    const next = new Set(this.collapsedGroups());
+    if (next.has(linkId)) next.delete(linkId);
+    else next.add(linkId);
+    this.collapsedGroups.set(next);
+  }
+
+  /** Ensure a group is expanded — used when opening its add/edit form so the form isn't hidden. */
+  private expandGroup(linkId: string) {
+    if (this.collapsedGroups().has(linkId)) {
+      const next = new Set(this.collapsedGroups());
+      next.delete(linkId);
+      this.collapsedGroups.set(next);
+    }
+  }
+
   toggleAddMarker(linkId: string) {
-    this.addingToLink.set(this.addingToLink() === linkId ? null : linkId);
+    const opening = this.addingToLink() !== linkId;
+    this.addingToLink.set(opening ? linkId : null);
+    // Add and edit are mutually exclusive — opening the add form closes any open edit.
+    this.editingMarker.set(null);
+    if (opening) this.expandGroup(linkId);
     this.markerForm.reset();
     this.linkError.set(null);
     this.cdr.markForCheck();
@@ -548,7 +623,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
-    if (v.direction) body.direction = v.direction;
+    const dir = this.dirToBody(v.direction);
+    if (dir) body.direction = dir;
+    if (v.capture_node_id) body.capture_node_id = v.capture_node_id;
 
     this.markerService.create(controller, project.project_id, linkId, body).subscribe({
       next: () => {
@@ -586,6 +663,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
   startEditMarker(linkId: string, marker: GroupMarker) {
     this.editingMarker.set({ linkId, name: marker.name });
+    // Add and edit are mutually exclusive — opening an edit closes any open add form.
+    this.addingToLink.set(null);
+    this.expandGroup(linkId);
     this.linkError.set(null);
     this.markerEditForm.reset({
       name: marker.name,
@@ -593,9 +673,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       tag: marker.tag ?? null,
       color: marker.color ?? null,
       highlight_duration: marker.highlight_duration ?? 800,
-      direction: marker.direction ?? null,
+      direction: this.dirFromMarker(marker.direction),
+      capture_node_id: marker.capture_node_id ?? null,
     });
     this.markerEditForm.get('name')?.disable();
+    this.markerEditForm.get('capture_node_id')?.disable();
     this.cdr.markForCheck();
   }
 
@@ -623,7 +705,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
-    if (v.direction) body.direction = v.direction;
+    const dir = this.dirToBody(v.direction);
+    if (dir) body.direction = dir;
 
     this.markerService.update(controller, project.project_id, linkId, editing.name, body).subscribe({
       next: () => {
@@ -662,6 +745,20 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v === null || v === undefined || v === '') return null;
     const n = Number(v);
     return isNaN(n) ? null : n;
+  }
+
+  /**
+   * Map a form direction value to the backend value. The form uses the `'both'` sentinel
+   * because mat-select clears its selection model on `null` — a null-valued option never
+   * displays in the trigger. `'both'` maps to absent/null (both directions) on the wire.
+   */
+  private dirToBody(d: unknown): 'tx' | 'rx' | null {
+    return d === 'tx' || d === 'rx' ? d : null;
+  }
+
+  /** Map a stored/backend direction back to the form value (`null`/`undefined` → `'both'`). */
+  private dirFromMarker(d: 'tx' | 'rx' | null | undefined): 'both' | 'tx' | 'rx' {
+    return d === 'tx' || d === 'rx' ? d : 'both';
   }
 
   // ---- window chrome (cloned from node-file-manager-inline) ----

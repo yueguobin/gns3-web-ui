@@ -18,6 +18,14 @@ export interface MarkerWriteBody {
   enabled?: boolean;
   /** Optional direction filter: `"tx"` | `"rx"` | null (both directions, default). */
   direction?: 'tx' | 'rx' | null;
+  /**
+   * Capture-side (observer) node id — the endpoint `direction` is measured from.
+   * Only honored on **create**; immutable afterwards (server ignores it on update —
+   * changing it would invert stored direction semantics). Omit/null ⇒ server
+   * auto-selects one of the link's endpoints. Not valid on project-level definitions
+   * (inherited copies always auto-select).
+   */
+  capture_node_id?: string | null;
 }
 
 /**
