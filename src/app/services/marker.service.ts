@@ -16,6 +16,8 @@ export interface MarkerWriteBody {
   color?: string;
   highlight_duration?: number | null;
   enabled?: boolean;
+  /** Optional direction filter: `"tx"` | `"rx"` | null (both directions, default). */
+  direction?: 'tx' | 'rx' | null;
 }
 
 /**

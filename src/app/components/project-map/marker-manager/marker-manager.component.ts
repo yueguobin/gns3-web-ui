@@ -23,6 +23,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
@@ -54,6 +55,7 @@ interface DefinitionRow {
   tag: number | null;
   color: string | null;
   highlight_duration: number | null;
+  direction: 'tx' | 'rx' | null;
   linkCount: number;
 }
 
@@ -102,6 +104,7 @@ function notGlobalName(control: UntypedFormControl): { notGlobalName: true } | n
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
+    MatSelectModule,
     MatTooltipModule,
     MatDividerModule,
     CdkTextareaAutosize,
@@ -209,6 +212,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
     highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
+    direction: new UntypedFormControl(null),
   });
 
   readonly markerForm = new UntypedFormGroup({
@@ -217,6 +221,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
     highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
+    direction: new UntypedFormControl(null),
   });
 
   readonly markerEditForm = new UntypedFormGroup({
@@ -225,6 +230,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
     highlight_duration: new UntypedFormControl(800, [Validators.required, Validators.min(1)]),
+    direction: new UntypedFormControl(null),
   });
 
   private boundaryService = inject(WindowBoundaryService);
@@ -356,6 +362,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       tag: d.tag ?? null,
       color: d.color ?? null,
       highlight_duration: d.highlight_duration ?? null,
+      direction: (d.direction as 'tx' | 'rx' | null) ?? null,
       linkCount: d.link_ids?.length ?? 0,
     }));
   }
@@ -409,6 +416,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
+    if (v.direction) body.direction = v.direction;
 
     const editing = this.editingDefinition();
     const done = () => {
@@ -445,6 +453,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       tag: row.tag,
       color: row.color,
       highlight_duration: row.highlight_duration,
+      direction: row.direction,
     });
     // Name is immutable on update; disable to communicate that.
     this.definitionForm.get('name')?.disable();
@@ -539,6 +548,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
+    if (v.direction) body.direction = v.direction;
 
     this.markerService.create(controller, project.project_id, linkId, body).subscribe({
       next: () => {
@@ -583,6 +593,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       tag: marker.tag ?? null,
       color: marker.color ?? null,
       highlight_duration: marker.highlight_duration ?? 800,
+      direction: marker.direction ?? null,
     });
     this.markerEditForm.get('name')?.disable();
     this.cdr.markForCheck();
@@ -612,6 +623,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.color) body.color = v.color;
     const hd = this.asNumber(v.highlight_duration);
     if (hd !== null) body.highlight_duration = hd;
+    if (v.direction) body.direction = v.direction;
 
     this.markerService.update(controller, project.project_id, linkId, editing.name, body).subscribe({
       next: () => {

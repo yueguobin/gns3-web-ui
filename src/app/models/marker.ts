@@ -15,6 +15,11 @@ export interface Marker {
   highlight_duration?: number | null;
   /** Source definition name — present on inherited markers only (`null` for private). */
   inherited_from?: string | null;
+  /**
+   * Optional direction filter: `"tx"` (capture sending only), `"rx"` (capture
+   * receiving only), or `null`/absent (both directions — default).
+   */
+  direction?: 'tx' | 'rx' | null;
   /** Capture-side node chosen by the server. */
   capture_node_id?: string;
   capture_adapter?: number;
@@ -39,6 +44,8 @@ export interface MarkerDefinition {
   tag?: number | null;
   color?: string | null;
   highlight_duration?: number | null;
+  /** Optional direction filter (same semantics as {@link Marker.direction}). */
+  direction?: 'tx' | 'rx' | null;
   /** Links currently carrying an inherited copy (GET only). */
   link_ids?: string[];
 }
@@ -53,6 +60,8 @@ export interface MarkerDefinitionCreateBody {
   tag?: number | null;
   color?: string;
   highlight_duration?: number | null;
+  /** Optional direction filter (same semantics as {@link Marker.direction}). */
+  direction?: 'tx' | 'rx' | null;
 }
 
 /**

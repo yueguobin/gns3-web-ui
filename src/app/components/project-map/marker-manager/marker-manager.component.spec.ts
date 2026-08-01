@@ -107,6 +107,7 @@ describe('MarkerManagerComponent', () => {
         tag: 1,
         color: null,
         highlight_duration: 800,
+        direction: null,
       });
       component.submitDefinition();
 
@@ -127,6 +128,7 @@ describe('MarkerManagerComponent', () => {
         tag: null,
         color: null,
         highlight_duration: null,
+        direction: null,
       });
       component.submitDefinition();
       expect(markerService.createDefinition).not.toHaveBeenCalled();
@@ -142,6 +144,7 @@ describe('MarkerManagerComponent', () => {
         tag: null,
         color: null,
         highlight_duration: 500,
+        direction: null,
       });
       component.submitDefinition();
       expect(component.defError()).toContain('Invalid BPF expression');

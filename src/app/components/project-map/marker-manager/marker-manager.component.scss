@@ -272,6 +272,12 @@
       color: var(--mat-sys-primary);
     }
 
+    &--dir {
+      color: var(--mat-sys-on-tertiary-container);
+      background: var(--mat-sys-tertiary-container);
+      text-transform: uppercase;
+    }
+
     &--inherited {
       color: var(--mat-sys-on-secondary-container);
       background: var(--mat-sys-secondary-container);
