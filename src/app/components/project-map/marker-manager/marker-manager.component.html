@@ -59,7 +59,7 @@
                   }
                 </mat-form-field>
               </div>
-              <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+              <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
                 <mat-form-field class="form-field">
                   <mat-label>Name</mat-label>
                   <span matTextPrefix class="global-prefix">global-&nbsp;</span>
@@ -69,10 +69,6 @@
                     } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
-                </mat-form-field>
-                <mat-form-field class="form-field">
-                  <mat-label>Tag</mat-label>
-                  <input matInput type="number" formControlName="tag" />
                 </mat-form-field>
                 <mat-form-field class="form-field">
                   <mat-label>Highlight ms</mat-label>
@@ -128,9 +124,7 @@
                 ></span>
                 <span class="marker-manager__row-name">global-{{ row.name }}</span>
                 <span class="marker-manager__row-bpf">{{ row.bpf }}</span>
-                @if (row.tag !== null) {
-                <span class="marker-manager__chip">tag {{ row.tag }}</span>
-                }
+
                 @if (row.highlight_duration !== null) {
                 <span class="marker-manager__chip">{{ row.highlight_duration }}ms</span>
                 }
@@ -232,7 +226,7 @@
                     }
                   </mat-form-field>
                 </div>
-                <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
                   <mat-form-field class="form-field">
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name" placeholder="my-filter" />
@@ -241,10 +235,6 @@
                     } @if (markerForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
-                  </mat-form-field>
-                  <mat-form-field class="form-field">
-                    <mat-label>Tag</mat-label>
-                    <input matInput type="number" formControlName="tag" />
                   </mat-form-field>
                   <mat-form-field class="form-field">
                     <mat-label>Highlight ms</mat-label>
@@ -286,7 +276,7 @@
                     }
                   </mat-form-field>
                 </div>
-                <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
                   <mat-form-field class="form-field">
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name" />
@@ -295,10 +285,6 @@
                     } @if (markerEditForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
-                  </mat-form-field>
-                  <mat-form-field class="form-field">
-                    <mat-label>Tag</mat-label>
-                    <input matInput type="number" formControlName="tag" />
                   </mat-form-field>
                   <mat-form-field class="form-field">
                     <mat-label>Highlight ms</mat-label>
@@ -336,9 +322,7 @@
                 ></span>
                 <span class="marker-manager__row-name">{{ m.name }}</span>
                 <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
-                @if (m.tag !== null && m.tag !== undefined) {
-                <span class="marker-manager__chip">tag {{ m.tag }}</span>
-                }
+
                 @if (m.direction) {
                 <span class="marker-manager__chip marker-manager__chip--dir" title="Direction filter">{{ m.direction }}</span>
                 }
@@ -406,7 +390,7 @@
                       }
                     </mat-form-field>
                   </div>
-                  <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
                     <mat-form-field class="form-field">
                       <mat-label>Name</mat-label>
                       <input matInput formControlName="name" placeholder="my-filter" />
@@ -415,10 +399,6 @@
                       } @if (markerForm.get('name')?.hasError('notGlobalName')) {
                       <mat-error>Name cannot start with "global"</mat-error>
                       }
-                    </mat-form-field>
-                    <mat-form-field class="form-field">
-                      <mat-label>Tag</mat-label>
-                      <input matInput type="number" formControlName="tag" />
                     </mat-form-field>
                     <mat-form-field class="form-field">
                       <mat-label>Highlight ms</mat-label>
@@ -461,7 +441,7 @@
                       }
                     </mat-form-field>
                   </div>
-                  <div style="display: grid; grid-template-columns: 3fr 0.8fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
                     <mat-form-field class="form-field">
                       <mat-label>Name</mat-label>
                       <input matInput formControlName="name" />
@@ -470,10 +450,6 @@
                       } @if (markerEditForm.get('name')?.hasError('notGlobalName')) {
                       <mat-error>Name cannot start with "global"</mat-error>
                       }
-                    </mat-form-field>
-                    <mat-form-field class="form-field">
-                      <mat-label>Tag</mat-label>
-                      <input matInput type="number" formControlName="tag" />
                     </mat-form-field>
                     <mat-form-field class="form-field">
                       <mat-label>Highlight ms</mat-label>
@@ -503,9 +479,7 @@
                   ></span>
                   <span class="marker-manager__row-name">{{ m.name }}</span>
                   <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
-                  @if (m.tag !== null && m.tag !== undefined) {
-                  <span class="marker-manager__chip">tag {{ m.tag }}</span>
-                  }
+
                   @if (m.direction) {
                   <span class="marker-manager__chip marker-manager__chip--dir" title="Direction filter">{{ m.direction }}</span>
                   }
