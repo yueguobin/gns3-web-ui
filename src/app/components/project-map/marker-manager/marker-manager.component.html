@@ -59,7 +59,7 @@
                   }
                 </mat-form-field>
               </div>
-              <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+              <div style="display: grid; grid-template-columns: 3.0fr 0.9fr 0.8fr 0.5fr auto auto; gap: 16px; align-items: start;">
                 <mat-form-field class="form-field">
                   <mat-label>Name</mat-label>
                   <span matTextPrefix class="global-prefix">global-&nbsp;</span>
@@ -69,6 +69,13 @@
                     } @if (definitionForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
+                </mat-form-field>
+                <mat-form-field class="form-field">
+                  <mat-select formControlName="direction">
+                    <mat-option [ngValue]="null">Both</mat-option>
+                    <mat-option value="tx">Tx →</mat-option>
+                    <mat-option value="rx">← Rx</mat-option>
+                  </mat-select>
                 </mat-form-field>
                 <mat-form-field class="form-field">
                   <mat-label>Highlight ms</mat-label>
@@ -83,14 +90,6 @@
                 <mat-form-field class="form-field">
                   <mat-label>Color</mat-label>
                   <input matInput type="color" formControlName="color" class="color-input" />
-                </mat-form-field>
-                <mat-form-field class="form-field">
-                  <mat-label>Direction</mat-label>
-                  <mat-select formControlName="direction">
-                    <mat-option [value]="null">Both</mat-option>
-                    <mat-option value="tx">Tx only</mat-option>
-                    <mat-option value="rx">Rx only</mat-option>
-                  </mat-select>
                 </mat-form-field>
                 <button mat-flat-button color="primary" type="submit" [disabled]="definitionForm.invalid" style="align-self: start; margin-top: 18px;">
                   {{ editingDefinition() ? 'Save' : 'Create' }}
@@ -226,7 +225,7 @@
                     }
                   </mat-form-field>
                 </div>
-                <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 3.0fr 0.9fr 0.8fr 0.5fr auto auto; gap: 16px; align-items: start;">
                   <mat-form-field class="form-field">
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name" placeholder="my-filter" />
@@ -235,6 +234,13 @@
                     } @if (markerForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                      <mat-select formControlName="direction">
+                      <mat-option [ngValue]="null">Both</mat-option>
+                      <mat-option value="tx">Tx →</mat-option>
+                      <mat-option value="rx">← Rx</mat-option>
+                    </mat-select>
                   </mat-form-field>
                   <mat-form-field class="form-field">
                     <mat-label>Highlight ms</mat-label>
@@ -249,14 +255,6 @@
                   <mat-form-field class="form-field">
                     <mat-label>Color</mat-label>
                     <input matInput type="color" formControlName="color" class="color-input" />
-                  </mat-form-field>
-                  <mat-form-field class="form-field">
-                    <mat-label>Direction</mat-label>
-                    <mat-select formControlName="direction">
-                      <mat-option [value]="null">Both</mat-option>
-                      <mat-option value="tx">Tx only</mat-option>
-                      <mat-option value="rx">Rx only</mat-option>
-                    </mat-select>
                   </mat-form-field>
                   <button mat-flat-button color="primary" type="submit" [disabled]="markerForm.invalid" style="align-self: start; margin-top: 18px;">Add</button>
                   <button mat-stroked-button type="button" (click)="markerForm.reset(); linkError.set(null); selectedLinkId.set(null)" style="align-self: start; margin-top: 18px;">Back</button>
@@ -276,7 +274,7 @@
                     }
                   </mat-form-field>
                 </div>
-                <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 3.0fr 0.9fr 0.8fr 0.5fr auto auto; gap: 16px; align-items: start;">
                   <mat-form-field class="form-field">
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name" />
@@ -285,6 +283,13 @@
                     } @if (markerEditForm.get('name')?.hasError('notGlobalName')) {
                     <mat-error>Name cannot start with "global"</mat-error>
                     }
+                  </mat-form-field>
+                  <mat-form-field class="form-field">
+                      <mat-select formControlName="direction">
+                      <mat-option [ngValue]="null">Both</mat-option>
+                      <mat-option value="tx">Tx →</mat-option>
+                      <mat-option value="rx">← Rx</mat-option>
+                    </mat-select>
                   </mat-form-field>
                   <mat-form-field class="form-field">
                     <mat-label>Highlight ms</mat-label>
@@ -299,14 +304,6 @@
                   <mat-form-field class="form-field">
                     <mat-label>Color</mat-label>
                     <input matInput type="color" formControlName="color" class="color-input" />
-                  </mat-form-field>
-                  <mat-form-field class="form-field">
-                    <mat-label>Direction</mat-label>
-                    <mat-select formControlName="direction">
-                      <mat-option [value]="null">Both</mat-option>
-                      <mat-option value="tx">Tx only</mat-option>
-                      <mat-option value="rx">Rx only</mat-option>
-                    </mat-select>
                   </mat-form-field>
                   <button mat-flat-button color="primary" type="submit" [disabled]="markerEditForm.invalid" style="align-self: start; margin-top: 18px;">Save</button>
                   <button mat-stroked-button type="button" (click)="cancelEditMarker()" style="align-self: start; margin-top: 18px;">Cancel</button>
@@ -390,7 +387,7 @@
                       }
                     </mat-form-field>
                   </div>
-                  <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <div style="display: grid; grid-template-columns: 3.0fr 0.9fr 0.8fr 0.5fr auto auto; gap: 16px; align-items: start;">
                     <mat-form-field class="form-field">
                       <mat-label>Name</mat-label>
                       <input matInput formControlName="name" placeholder="my-filter" />
@@ -399,6 +396,13 @@
                       } @if (markerForm.get('name')?.hasError('notGlobalName')) {
                       <mat-error>Name cannot start with "global"</mat-error>
                       }
+                    </mat-form-field>
+                    <mat-form-field class="form-field">
+                          <mat-select formControlName="direction">
+                        <mat-option [ngValue]="null">Both</mat-option>
+                        <mat-option value="tx">Tx →</mat-option>
+                        <mat-option value="rx">← Rx</mat-option>
+                      </mat-select>
                     </mat-form-field>
                     <mat-form-field class="form-field">
                       <mat-label>Highlight ms</mat-label>
@@ -413,14 +417,6 @@
                     <mat-form-field class="form-field">
                       <mat-label>Color</mat-label>
                       <input matInput type="color" formControlName="color" class="color-input" />
-                    </mat-form-field>
-                    <mat-form-field class="form-field">
-                      <mat-label>Direction</mat-label>
-                      <mat-select formControlName="direction">
-                        <mat-option [value]="null">Both</mat-option>
-                        <mat-option value="tx">Tx only</mat-option>
-                        <mat-option value="rx">Rx only</mat-option>
-                      </mat-select>
                     </mat-form-field>
                     <button mat-flat-button color="primary" type="submit" [disabled]="markerForm.invalid" style="align-self: start; margin-top: 18px;">Add</button>
                     <button mat-stroked-button type="button" (click)="toggleAddMarker(group.linkId)" style="align-self: start; margin-top: 18px;">Cancel</button>
@@ -441,7 +437,7 @@
                       }
                     </mat-form-field>
                   </div>
-                  <div style="display: grid; grid-template-columns: 3.2fr 0.8fr 0.6fr 0.6fr auto auto; gap: 16px; align-items: start;">
+                  <div style="display: grid; grid-template-columns: 3.0fr 0.9fr 0.8fr 0.5fr auto auto; gap: 16px; align-items: start;">
                     <mat-form-field class="form-field">
                       <mat-label>Name</mat-label>
                       <input matInput formControlName="name" />
