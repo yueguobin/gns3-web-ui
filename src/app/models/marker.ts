@@ -70,8 +70,8 @@ export type AggregateMarkerMap = { [key: string]: AggregateMarkerEntry };
 /**
  * Wire shape of the `marker.match` project WebSocket event.
  * The `filter` field IS the marker name (per backend contract).
- * `node_id` is the capture-side node; it is received but not highlighted
- * (per the feature's visualization decision — only the link flashes).
+ * `node_id` is the capture-side node (one of the link's two endpoints);
+ * it is not highlighted itself — it orients the direction arrow.
  */
 export interface MarkerMatchEvent {
   project_id: string;
@@ -81,4 +81,13 @@ export interface MarkerMatchEvent {
   tag?: number | null;
   ts: number;
   len: number;
+  /**
+   * Traffic direction relative to the capture node (`node_id`):
+   *  - `"tx"` → capture node is sending → flow is capture → peer
+   *  - `"rx"` → capture node is receiving → flow is peer → capture
+   *
+   * Absent or `null` for old uBridge builds that don't report direction;
+   * in that case the link flashes without an arrow (legacy behaviour).
+   */
+  dir?: 'tx' | 'rx' | null;
 }
