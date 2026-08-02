@@ -26,6 +26,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { Subject, animationFrameScheduler, fromEvent } from 'rxjs';
 import { auditTime, switchMap, takeUntil, tap } from 'rxjs/operators';
@@ -109,6 +110,7 @@ function notGlobalName(control: UntypedFormControl): { notGlobalName: true } | n
     MatSelectModule,
     MatTooltipModule,
     MatDividerModule,
+    MatProgressSpinnerModule,
     CdkTextareaAutosize,
     ResizableDirective,
     ResizeHandleDirective,
@@ -165,8 +167,10 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly editingMarker = signal<{ linkId: string; name: string } | null>(null);
   /** LinkIds whose marker list is collapsed in the aggregate Links view. */
   readonly collapsedGroups = signal<Set<string>>(new Set());
-  /** Definition name whose pause/resume request is in flight — disables just that row's button. */
+  /** Definition name whose pause/resume request is in flight — guards double-fires + drives that row's spinner. */
   readonly togglingDefinition = signal<string | null>(null);
+  /** `${linkId}/${name}` of the per-marker enable request in flight — guards + drives that row's spinner. */
+  readonly togglingMarker = signal<string | null>(null);
   // ---- Node selector (first step in Links tab) ----
   /** Node options (id + display name). Built once from NodesDataSource. */
   readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
@@ -590,6 +594,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     return this.collapsedGroups().has(linkId);
   }
 
+  /** Whether a per-marker enable request is in flight for this marker (drives its spinner). */
+  isTogglingMarker(linkId: string, name: string): boolean {
+    return this.togglingMarker() === `${linkId}/${name}`;
+  }
+
   /** Toggle a link group's collapsed state (click on its header). */
   toggleGroup(linkId: string) {
     const next = new Set(this.collapsedGroups());
@@ -740,13 +749,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     const wantPaused = !row.paused;
-    // Optimistically flip the row so the icon reacts instantly. We deliberately do NOT
-    // call loadDefinitions() on success — it sets `loading`, flashing the "Loading…"
-    // block and re-rendering the whole list (the "refresh" blink). The 204 confirms the
-    // server persisted `paused`, so the optimistic value is authoritative; loadAggregate
-    // still refreshes the Links tab, whose inherited copies flip `enabled` with the rule.
-    // Mirrors toggleMarkerEnabled / applyEnabledLocal (which never hit a loading flag).
-    this.applyDefinitionPausedLocal(row.name, wantPaused);
+    // Show the row's spinner while the request is in flight; don't touch the icon until
+    // the server confirms (204) — the displayed state is always authoritative. We never
+    // call loadDefinitions() here: it sets `loading` and flashes the "Loading…" block /
+    // re-renders the whole list. The 204 confirms `paused`, so we set it locally on
+    // success; loadAggregate refreshes the Links tab's inherited copies.
     this.togglingDefinition.set(row.name);
     const req$ = wantPaused
       ? this.markerService.pauseDefinition(controller, project.project_id, row.name)
@@ -754,11 +761,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.togglingDefinition.set(null);
+        this.applyDefinitionPausedLocal(row.name, wantPaused);
         this.loadAggregate();
       },
       error: (err) => {
         this.togglingDefinition.set(null);
-        this.applyDefinitionPausedLocal(row.name, !wantPaused); // revert optimistic flip
         this.defError.set(err.error?.message || err.message || 'Failed to toggle definition');
         this.cdr.markForCheck();
       },
@@ -780,22 +787,26 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const controller = this.controller();
     const project = this.project();
     if (!controller || !project) return;
+    // Guard against double-fires while a toggle is already in flight.
+    if (this.isTogglingMarker(linkId, marker.name)) return;
 
     // `enabled` defaults to true when undefined; only an explicit `false` is "off".
     const nextEnabled = marker.enabled === false;
-    // Optimistically flip the local row so the icon reacts before the round-trip.
-    this.applyEnabledLocal(linkId, marker.name, nextEnabled);
-
+    // Show the row's spinner while in flight; flip the icon only after the server
+    // confirms, so the displayed state is always authoritative.
+    this.togglingMarker.set(`${linkId}/${marker.name}`);
     this.markerService
       .setEnabled(controller, project.project_id, linkId, marker.name, nextEnabled)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
+          this.togglingMarker.set(null);
+          this.applyEnabledLocal(linkId, marker.name, nextEnabled);
           this.refreshLink(linkId);
           this.loadAggregate();
         },
         error: (err) => {
-          this.applyEnabledLocal(linkId, marker.name, !nextEnabled); // revert optimistic flip
+          this.togglingMarker.set(null);
           this.toasterService.error(err.error?.message || err.message || 'Failed to toggle marker');
           this.cdr.markForCheck();
         },

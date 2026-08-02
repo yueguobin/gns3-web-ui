@@ -144,7 +144,10 @@
                   (click)="toggleDefinitionPaused(row)"
                   [matTooltip]="row.paused ? 'Resume rule (all copies)' : 'Pause rule (disables all copies)'"
                 >
-                  <mat-icon>{{ row.paused ? 'sensors_off' : 'sensors' }}</mat-icon>
+                  <ng-container
+                    [ngTemplateOutlet]="onOffIcon"
+                    [ngTemplateOutletContext]="{ $implicit: togglingDefinition() === row.name, off: row.paused }"
+                  />
                 </button>
                 <button mat-icon-button (click)="startEditDefinition(row)" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
@@ -302,6 +305,17 @@
   </div>
 </div>
 
+<!-- Shared spinner-or-icon for the per-definition pause and per-marker enable toggles.
+     `$implicit` = a request is in flight (show a spinner); `off` = the toggle is in its
+     "off" state (paused / disabled) ⇒ sensors_off, else sensors. -->
+<ng-template #onOffIcon let-loading let-off="off">
+  @if (loading) {
+  <mat-spinner class="marker-manager__toggle-spinner" [diameter]="18" />
+  } @else {
+  <mat-icon>{{ off ? 'sensors_off' : 'sensors' }}</mat-icon>
+  }
+</ng-template>
+
 <!-- Shared per-marker slot: the edit form when this marker is being edited, otherwise
      the read-only row. Rendered in both the selected-link view and the aggregate view
      via [ngTemplateOutlet]="markerSlot" so the markup lives in one place. Kept inside
@@ -349,7 +363,10 @@
       (click)="toggleMarkerEnabled(linkId, m)"
       [matTooltip]="m.enabled === false ? 'Enable (signal + capture)' : 'Disable (signal + capture)'"
     >
-      <mat-icon>{{ m.enabled === false ? 'sensors_off' : 'sensors' }}</mat-icon>
+      <ng-container
+        [ngTemplateOutlet]="onOffIcon"
+        [ngTemplateOutletContext]="{ $implicit: isTogglingMarker(linkId, m.name), off: m.enabled === false }"
+      />
     </button>
     <button mat-icon-button (click)="startEditMarker(linkId, m)" matTooltip="Edit">
       <mat-icon>edit</mat-icon>

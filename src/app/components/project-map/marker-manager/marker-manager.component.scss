@@ -347,6 +347,10 @@
       vertical-align: middle;
     }
   }
+
+  &__toggle-spinner {
+    color: var(--mat-sys-primary);
+  }
 }
 
 // ---- resize handles (cloned from node-file-manager-inline) ----
