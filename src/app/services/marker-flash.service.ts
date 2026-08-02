@@ -98,16 +98,27 @@ export class MarkerFlashService {
     captureNodeId: string | null = null
   ) {
     const key = compKey(linkId, dir);
+    const ms = durationMs && durationMs > 0 ? durationMs : this.DEFAULT_FLASH_MS;
+    clearTimeout(this.timers.get(key));
+    this.timers.set(key, setTimeout(() => this.expire(key), ms));
+
+    // Same-state guard: under heavy traffic (e.g. ping -f),
+    // repeated matches with identical color / direction / capture node
+    // only extend the timer — no Map copy, no signal update, no effect.
+    // Without this, every match copies the Map and fires the full diff
+    // pipeline even though the DOM is unchanged; the churn leaks into
+    // GC pressure and browser memory climbs.
+    const existing = this._flashing().get(key);
+    if (existing && existing.color === color && existing.dir === dir && existing.captureNodeId === captureNodeId) {
+      return;
+    }
+
     const state: FlashState = { color, dir, captureNodeId, _seq: _seq++ };
     this._flashing.update((m) => {
       const next = new Map(m);
       next.set(key, state);
       return next;
     });
-    const ms = durationMs && durationMs > 0 ? durationMs : this.DEFAULT_FLASH_MS;
-    // Only cancel the same-direction timer (续命 for this slot only).
-    clearTimeout(this.timers.get(key));
-    this.timers.set(key, setTimeout(() => this.expire(key), ms));
   }
 
   private expire(key: string) {
