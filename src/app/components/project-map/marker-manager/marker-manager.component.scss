@@ -234,6 +234,11 @@
     &--editing {
       background: var(--mat-sys-secondary-container);
     }
+
+    &--disabled,
+    &--paused {
+      opacity: 0.5;
+    }
   }
 
   &__row-name {

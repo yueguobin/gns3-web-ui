@@ -48,6 +48,13 @@ export interface MarkerDefinition {
   direction?: 'tx' | 'rx' | null;
   /** Links currently carrying an inherited copy (GET only). */
   link_ids?: string[];
+  /**
+   * Server-authoritative, persisted pause state: when true, every inherited copy this
+   * definition fanned out is disabled (signal + pcap off, traffic still forwards). Flipped
+   * by POST /marker-definitions/{name}/{pause|resume}; read back via GET /marker-definitions.
+   * Links inheriting a paused definition start disabled.
+   */
+  paused?: boolean;
 }
 
 /** Definitions keyed by name. */

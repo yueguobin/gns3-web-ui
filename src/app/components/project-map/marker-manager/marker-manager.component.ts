@@ -58,6 +58,7 @@ interface DefinitionRow {
   highlight_duration: number | null;
   direction: 'tx' | 'rx' | null;
   linkCount: number;
+  paused: boolean;
 }
 
 interface LinkGroup {
@@ -164,6 +165,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly editingMarker = signal<{ linkId: string; name: string } | null>(null);
   /** LinkIds whose marker list is collapsed in the aggregate Links view. */
   readonly collapsedGroups = signal<Set<string>>(new Set());
+  /** Definition name whose pause/resume request is in flight — disables just that row's button. */
+  readonly togglingDefinition = signal<string | null>(null);
   // ---- Node selector (first step in Links tab) ----
   /** Node options (id + display name). Built once from NodesDataSource. */
   readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
@@ -382,6 +385,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       highlight_duration: d.highlight_duration ?? null,
       direction: (d.direction as 'tx' | 'rx' | null) ?? null,
       linkCount: d.link_ids?.length ?? 0,
+      paused: d.paused ?? false,
     }));
   }
 
@@ -726,6 +730,78 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  // ---- per-definition pause/resume (toggles every inherited copy of a rule) ----
+
+  toggleDefinitionPaused(row: DefinitionRow) {
+    if (this.togglingDefinition() === row.name) return;
+    const controller = this.controller();
+    const project = this.project();
+    if (!controller || !project) return;
+    const wantPaused = !row.paused;
+    this.togglingDefinition.set(row.name);
+    const req$ = wantPaused
+      ? this.markerService.pauseDefinition(controller, project.project_id, row.name)
+      : this.markerService.resumeDefinition(controller, project.project_id, row.name);
+    req$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.togglingDefinition.set(null);
+        // Authoritative: GET /marker-definitions returns the persisted `paused` flag.
+        this.loadDefinitions();
+        // The rule's inherited copies flip `enabled` too — refresh the aggregate view.
+        this.loadAggregate();
+      },
+      error: (err) => {
+        this.togglingDefinition.set(null);
+        this.defError.set(err.error?.message || err.message || 'Failed to toggle definition');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  // ---- per-marker enable/disable (server fast path: no rebuild, no pcap flush) ----
+
+  toggleMarkerEnabled(linkId: string, marker: GroupMarker) {
+    // Inherited markers are read-only — managed via the Definitions tab.
+    if (marker.inherited_from) return;
+    const controller = this.controller();
+    const project = this.project();
+    if (!controller || !project) return;
+
+    // `enabled` defaults to true when undefined; only an explicit `false` is "off".
+    const nextEnabled = marker.enabled === false;
+    // Optimistically flip the local row so the icon reacts before the round-trip.
+    this.applyEnabledLocal(linkId, marker.name, nextEnabled);
+
+    this.markerService
+      .setEnabled(controller, project.project_id, linkId, marker.name, nextEnabled)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.refreshLink(linkId);
+          this.loadAggregate();
+        },
+        error: (err) => {
+          this.applyEnabledLocal(linkId, marker.name, !nextEnabled); // revert optimistic flip
+          this.toasterService.error(err.error?.message || err.message || 'Failed to toggle marker');
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /**
+   * Optimistically set a marker's `enabled` in the local {@link linkGroups} signal
+   * (pre-response). {@link selectedLinkGroup} recomputes from `linkGroups`, so both the
+   * selected-link and aggregate views update together.
+   */
+  private applyEnabledLocal(linkId: string, name: string, enabled: boolean) {
+    const groups = this.linkGroups().map((g) =>
+      g.linkId !== linkId
+        ? g
+        : { ...g, markers: g.markers.map((m) => (m.name === name ? { ...m, enabled } : m)) }
+    );
+    this.linkGroups.set(groups);
   }
 
   /** Canonical 5-step refresh after a private-marker mutation on a single link. */
