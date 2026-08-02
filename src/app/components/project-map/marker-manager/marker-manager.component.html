@@ -71,10 +71,11 @@
                     }
                 </mat-form-field>
                 <mat-form-field class="form-field">
+                  <mat-label>Direction</mat-label>
                   <mat-select formControlName="direction">
                     <mat-option value="both">Both</mat-option>
-                    <mat-option value="tx">Tx →</mat-option>
-                    <mat-option value="rx">← Rx</mat-option>
+                    <mat-option value="tx">Tx</mat-option>
+                    <mat-option value="rx">Rx</mat-option>
                   </mat-select>
                 </mat-form-field>
                 <mat-form-field class="form-field">
@@ -231,52 +232,7 @@
               }
 
               @for (m of group.markers; track m.name) {
-                @if (editingMarker(); as edit) {
-                  @if (edit.linkId === group.linkId && edit.name === m.name) {
-                  <app-marker-form
-                    [form]="markerEditForm"
-                    mode="edit"
-                    [captureOptions]="linkEndpoints(group.linkId)"
-                    (save)="submitEditMarker(group.linkId)"
-                    (cancel)="cancelEditMarker()"
-                  />
-                  }
-                } @else {
-                <div class="marker-manager__row">
-                  <span
-                    class="marker-manager__swatch"
-                    [style.background]="m.color"
-                    [class.marker-manager__swatch--default]="!m.color"
-                  ></span>
-                  <span class="marker-manager__row-name">{{ m.name }}</span>
-                  <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
-
-                  @if (m.capture_node_id) {
-                  <span class="marker-manager__chip" title="Capture node (observer)">{{ nodeName(m.capture_node_id) }}</span>
-                  }
-                  @if (m.direction) {
-                  <span class="marker-manager__chip marker-manager__chip--dir" title="Direction filter">{{ m.direction }}</span>
-                  }
-                  @if (m.inherited_from) {
-                  <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
-                    inherited
-                  </span>
-                  }
-                  <span class="marker-manager__row-spacer"></span>
-                  @if (m.inherited_from) {
-                  <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
-                    <mat-icon>lock</mat-icon>
-                  </button>
-                  } @else {
-                  <button mat-icon-button (click)="startEditMarker(group.linkId, m)" matTooltip="Edit">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="deleteMarker(group.linkId, m.name)" matTooltip="Delete">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                  }
-                </div>
-                }
+                <ng-container [ngTemplateOutlet]="markerSlot" [ngTemplateOutletContext]="{ $implicit: m, linkId: group.linkId }" />
               }
             </div>
             }
@@ -321,52 +277,7 @@
                 }
 
                 @for (m of group.markers; track m.name) {
-                  @if (editingMarker(); as edit) {
-                    @if (edit.linkId === group.linkId && edit.name === m.name) {
-                    <app-marker-form
-                      [form]="markerEditForm"
-                      mode="edit"
-                      [captureOptions]="linkEndpoints(group.linkId)"
-                      (save)="submitEditMarker(group.linkId)"
-                      (cancel)="cancelEditMarker()"
-                    />
-                    }
-                  } @else {
-                  <div class="marker-manager__row">
-                    <span
-                      class="marker-manager__swatch"
-                      [style.background]="m.color"
-                      [class.marker-manager__swatch--default]="!m.color"
-                    ></span>
-                    <span class="marker-manager__row-name">{{ m.name }}</span>
-                    <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
-
-                    @if (m.capture_node_id) {
-                    <span class="marker-manager__chip" title="Capture node (observer)">{{ nodeName(m.capture_node_id) }}</span>
-                    }
-                    @if (m.direction) {
-                    <span class="marker-manager__chip marker-manager__chip--dir" title="Direction filter">{{ m.direction }}</span>
-                    }
-                    @if (m.inherited_from) {
-                    <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
-                      inherited
-                    </span>
-                    }
-                    <span class="marker-manager__row-spacer"></span>
-                    @if (m.inherited_from) {
-                    <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
-                      <mat-icon>lock</mat-icon>
-                    </button>
-                    } @else {
-                    <button mat-icon-button (click)="startEditMarker(group.linkId, m)" matTooltip="Edit">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button (click)="deleteMarker(group.linkId, m.name)" matTooltip="Delete">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                    }
-                  </div>
-                  }
+                  <ng-container [ngTemplateOutlet]="markerSlot" [ngTemplateOutletContext]="{ $implicit: m, linkId: group.linkId }" />
                 }
                 }
               </div>
@@ -379,3 +290,56 @@
     </div>
   </div>
 </div>
+
+<!-- Shared per-marker slot: the edit form when this marker is being edited, otherwise
+     the read-only row. Rendered in both the selected-link view and the aggregate view
+     via [ngTemplateOutlet]="markerSlot" so the markup lives in one place. Kept inside
+     this component's template so the marker-manager__* (BEM) styles still apply. -->
+<ng-template #markerSlot let-m let-linkId="linkId">
+  @if (editingMarker(); as edit) {
+    @if (edit.linkId === linkId && edit.name === m.name) {
+    <app-marker-form
+      [form]="markerEditForm"
+      mode="edit"
+      [captureOptions]="linkEndpoints(linkId)"
+      (save)="submitEditMarker(linkId)"
+      (cancel)="cancelEditMarker()"
+    />
+    }
+  } @else {
+  <div class="marker-manager__row">
+    <span
+      class="marker-manager__swatch"
+      [style.background]="m.color"
+      [class.marker-manager__swatch--default]="!m.color"
+    ></span>
+    <span class="marker-manager__row-name">{{ m.name }}</span>
+    <span class="marker-manager__row-bpf">{{ m.bpf }}</span>
+
+    @if (m.capture_node_id) {
+    <span class="marker-manager__chip" title="Capture node (observer)">{{ nodeName(m.capture_node_id) }}</span>
+    }
+    @if (m.direction) {
+    <span class="marker-manager__chip marker-manager__chip--dir" title="Direction filter">{{ m.direction }}</span>
+    }
+    @if (m.inherited_from) {
+    <span class="marker-manager__chip marker-manager__chip--inherited" matTooltip="Inherited — edit via Definitions">
+      inherited
+    </span>
+    }
+    <span class="marker-manager__row-spacer"></span>
+    @if (m.inherited_from) {
+    <button mat-icon-button disabled matTooltip="Inherited — edit via Definitions">
+      <mat-icon>lock</mat-icon>
+    </button>
+    } @else {
+    <button mat-icon-button (click)="startEditMarker(linkId, m)" matTooltip="Edit">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button (click)="deleteMarker(linkId, m.name)" matTooltip="Delete">
+      <mat-icon>delete</mat-icon>
+    </button>
+    }
+  </div>
+  }
+</ng-template>

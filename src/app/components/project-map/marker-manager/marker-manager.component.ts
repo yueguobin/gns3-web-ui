@@ -213,6 +213,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly definitionForm = new UntypedFormGroup({
     name: new UntypedFormControl('', [Validators.required, notGlobalName]),
     bpf: new UntypedFormControl('', [Validators.required]),
+    // `tag` is reserved for the upcoming traffic-replay feature. There's no UI for it
+    // on definitions yet, so it stays null and submitDefinition()'s tag read is a no-op
+    // until the field ships — kept here deliberately, not dead code.
     tag: new UntypedFormControl(null),
     color: new UntypedFormControl(null),
     highlight_duration: new UntypedFormControl(800, {
@@ -318,7 +321,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.loading.set(true);
-    this.markerService.listDefinitions(controller, project.project_id).subscribe({
+    this.markerService.listDefinitions(controller, project.project_id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (map: MarkerDefinitionMap) => {
         this.definitions.set(this.toDefinitionRows(map));
         this.loading.set(false);
@@ -358,7 +361,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const controller = this.controller();
     const project = this.project();
     if (!controller || !project) return;
-    this.markerService.aggregateList(controller, project.project_id).subscribe({
+    this.markerService.aggregateList(controller, project.project_id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (map: AggregateMarkerMap) => {
         this.linkGroups.set(this.buildGroups(map));
         this.cdr.markForCheck();
@@ -464,12 +467,12 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     };
 
     if (editing) {
-      this.markerService.updateDefinition(controller, project.project_id, editing, body).subscribe({
+      this.markerService.updateDefinition(controller, project.project_id, editing, body).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => done(),
         error: fail,
       });
     } else {
-      this.markerService.createDefinition(controller, project.project_id, body).subscribe({
+      this.markerService.createDefinition(controller, project.project_id, body).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => done(),
         error: fail,
       });
@@ -505,7 +508,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.defError.set(null);
-    this.markerService.deleteDefinition(controller, project.project_id, row.name).subscribe({
+    this.markerService.deleteDefinition(controller, project.project_id, row.name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         if (this.editingDefinition() === row.name) this.cancelEditDefinition();
         this.loadDefinitions();
@@ -632,7 +635,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (dir) body.direction = dir;
     if (v.capture_node_id) body.capture_node_id = v.capture_node_id;
 
-    this.markerService.create(controller, project.project_id, linkId, body).subscribe({
+    this.markerService.create(controller, project.project_id, linkId, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         // Close the create form and return to the list — same behavior in the
         // selected-link and aggregate views. (The selected-link view previously
@@ -653,7 +656,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.linkError.set(null);
-    this.markerService.delete(controller, project.project_id, linkId, name).subscribe({
+    this.markerService.delete(controller, project.project_id, linkId, name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.refreshLink(linkId);
         this.loadAggregate();
@@ -712,7 +715,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const dir = this.dirToBody(v.direction);
     if (dir) body.direction = dir;
 
-    this.markerService.update(controller, project.project_id, linkId, editing.name, body).subscribe({
+    this.markerService.update(controller, project.project_id, linkId, editing.name, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.editingMarker.set(null);
         this.refreshLink(linkId);
@@ -730,7 +733,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const controller = this.controller();
     const project = this.project();
     if (!controller || !project) return;
-    this.linkService.getLink(controller, project.project_id, linkId).subscribe({
+    this.linkService.getLink(controller, project.project_id, linkId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (link) => {
         this.linksDataSource.update(link);
         const mapLink = this.mapLinksDataSource.get(linkId);

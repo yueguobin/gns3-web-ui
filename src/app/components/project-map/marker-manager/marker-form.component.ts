@@ -78,10 +78,11 @@ export interface MarkerCaptureOption {
           </mat-select>
         </mat-form-field>
         <mat-form-field class="marker-form__field">
+          <mat-label>Direction</mat-label>
           <mat-select formControlName="direction">
             <mat-option value="both">Both</mat-option>
-            <mat-option value="tx">Tx →</mat-option>
-            <mat-option value="rx">← Rx</mat-option>
+            <mat-option value="tx">Tx</mat-option>
+            <mat-option value="rx">Rx</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
