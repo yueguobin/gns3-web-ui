@@ -740,6 +740,13 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     const wantPaused = !row.paused;
+    // Optimistically flip the row so the icon reacts instantly. We deliberately do NOT
+    // call loadDefinitions() on success — it sets `loading`, flashing the "Loading…"
+    // block and re-rendering the whole list (the "refresh" blink). The 204 confirms the
+    // server persisted `paused`, so the optimistic value is authoritative; loadAggregate
+    // still refreshes the Links tab, whose inherited copies flip `enabled` with the rule.
+    // Mirrors toggleMarkerEnabled / applyEnabledLocal (which never hit a loading flag).
+    this.applyDefinitionPausedLocal(row.name, wantPaused);
     this.togglingDefinition.set(row.name);
     const req$ = wantPaused
       ? this.markerService.pauseDefinition(controller, project.project_id, row.name)
@@ -747,17 +754,22 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     req$.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.togglingDefinition.set(null);
-        // Authoritative: GET /marker-definitions returns the persisted `paused` flag.
-        this.loadDefinitions();
-        // The rule's inherited copies flip `enabled` too — refresh the aggregate view.
         this.loadAggregate();
       },
       error: (err) => {
         this.togglingDefinition.set(null);
+        this.applyDefinitionPausedLocal(row.name, !wantPaused); // revert optimistic flip
         this.defError.set(err.error?.message || err.message || 'Failed to toggle definition');
         this.cdr.markForCheck();
       },
     });
+  }
+
+  /** Optimistically set a definition's `paused` in the local {@link definitions} signal
+   *  (pre-response) so the row's icon swaps instantly and no list reload is needed. */
+  private applyDefinitionPausedLocal(name: string, paused: boolean) {
+    const rows = this.definitions().map((r) => (r.name === name ? { ...r, paused } : r));
+    this.definitions.set(rows);
   }
 
   // ---- per-marker enable/disable (server fast path: no rebuild, no pcap flush) ----

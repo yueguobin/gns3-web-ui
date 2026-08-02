@@ -142,7 +142,6 @@
                 <button
                   mat-icon-button
                   (click)="toggleDefinitionPaused(row)"
-                  [disabled]="togglingDefinition() === row.name"
                   [matTooltip]="row.paused ? 'Resume rule (all copies)' : 'Pause rule (disables all copies)'"
                 >
                   <mat-icon>{{ row.paused ? 'sensors_off' : 'sensors' }}</mat-icon>
