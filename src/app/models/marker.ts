@@ -67,8 +67,8 @@ export interface MarkerDefinitionCreateBody {
   tag?: number | null;
   color?: string;
   highlight_duration?: number | null;
-  /** Optional direction filter (same semantics as {@link Marker.direction}). */
-  direction?: 'tx' | 'rx' | null;
+  /** Optional direction filter: `"tx"` | `"rx"` | `"both"` | null. */
+  direction?: 'tx' | 'rx' | 'both' | null;
 }
 
 /**

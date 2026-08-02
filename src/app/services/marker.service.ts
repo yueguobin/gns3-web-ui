@@ -16,8 +16,8 @@ export interface MarkerWriteBody {
   color?: string;
   highlight_duration?: number | null;
   enabled?: boolean;
-  /** Optional direction filter: `"tx"` | `"rx"` | null (both directions, default). */
-  direction?: 'tx' | 'rx' | null;
+  /** Optional direction filter: `"tx"` | `"rx"` | `"both"` | null (both = no filter). */
+  direction?: 'tx' | 'rx' | 'both' | null;
   /**
    * Capture-side (observer) node id — the endpoint `direction` is measured from.
    * Only honored on **create**; immutable afterwards (server ignores it on update —

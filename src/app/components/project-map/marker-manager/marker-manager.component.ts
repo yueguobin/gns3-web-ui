@@ -890,10 +890,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   /**
    * Map a form direction value to the backend value. The form uses the `'both'` sentinel
    * because mat-select clears its selection model on `null` — a null-valued option never
-   * displays in the trigger. `'both'` maps to absent/null (both directions) on the wire.
+   * displays in the trigger. `'both'` is sent as `'both'` on the wire (the server treats
+   * it as "no direction filter", same as null/absent on GET).
    */
-  private dirToBody(d: unknown): 'tx' | 'rx' | null {
-    return d === 'tx' || d === 'rx' ? d : null;
+  private dirToBody(d: unknown): 'tx' | 'rx' | 'both' {
+    return d === 'tx' || d === 'rx' ? d : 'both';
   }
 
   /** Map a stored/backend direction back to the form value (`null`/`undefined` → `'both'`). */
