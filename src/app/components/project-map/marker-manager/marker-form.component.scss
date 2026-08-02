@@ -47,3 +47,8 @@
   align-self: start;
   margin-top: 18px;
 }
+
+.marker-form__submit-spinner {
+  // Spinner inside mat-flat-button color="primary": arc matches the on-primary label.
+  --mdc-circular-progress-active-indicator-color: var(--mat-sys-on-primary);
+}

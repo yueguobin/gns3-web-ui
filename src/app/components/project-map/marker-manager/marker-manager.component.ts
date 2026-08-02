@@ -171,6 +171,16 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly togglingDefinition = signal<string | null>(null);
   /** `${linkId}/${name}` of the per-marker enable request in flight — guards + drives that row's spinner. */
   readonly togglingMarker = signal<string | null>(null);
+  /** Definition name whose delete request is in flight — drives that row's spinner. */
+  readonly deletingDefinition = signal<string | null>(null);
+  /** Whether the definition create/update form is currently submitting. */
+  readonly submittingDefinition = signal(false);
+  /** `${linkId}/${name}` of the per-marker delete request in flight — drives that row's spinner. */
+  readonly deletingMarker = signal<string | null>(null);
+  /** linkId whose per-marker create form is currently submitting. */
+  readonly submittingMarker = signal<string | null>(null);
+  /** Whether the per-marker edit form is currently submitting. */
+  readonly submittingEditMarker = signal(false);
   // ---- Node selector (first step in Links tab) ----
   /** Node options (id + display name). Built once from NodesDataSource. */
   readonly nodeOptions = signal<{ id: string; name: string }[]>([]);
@@ -450,6 +460,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.defError.set(null);
+    this.submittingDefinition.set(true);
 
     const v = this.definitionForm.getRawValue();
     const body: MarkerDefinitionCreateBody = { name: v.name.trim(), bpf: v.bpf.trim() };
@@ -463,6 +474,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
     const editing = this.editingDefinition();
     const done = () => {
+      this.submittingDefinition.set(false);
       this.cancelEditDefinition();
       this.loadDefinitions();
       // The fan-out emits link.updated → registry reconciles (legend/icons); also refresh
@@ -470,6 +482,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       this.loadAggregate();
     };
     const fail = (err: any) => {
+      this.submittingDefinition.set(false);
       this.defError.set(err.error?.message || err.message || 'Failed to save definition');
       this.cdr.markForCheck();
     };
@@ -515,14 +528,19 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const controller = this.controller();
     const project = this.project();
     if (!controller || !project) return;
+    // Guard against double-fires while a delete is already in flight.
+    if (this.deletingDefinition() === row.name) return;
     this.defError.set(null);
+    this.deletingDefinition.set(row.name);
     this.markerService.deleteDefinition(controller, project.project_id, row.name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.deletingDefinition.set(null);
         if (this.editingDefinition() === row.name) this.cancelEditDefinition();
         this.loadDefinitions();
         this.loadAggregate();
       },
       error: (err) => {
+        this.deletingDefinition.set(null);
         this.defError.set(err.error?.message || err.message || 'Failed to delete definition');
         this.cdr.markForCheck();
       },
@@ -599,6 +617,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     return this.togglingMarker() === `${linkId}/${name}`;
   }
 
+  /** Whether a per-marker delete request is in flight for this marker (drives its spinner). */
+  isDeletingMarker(linkId: string, name: string): boolean {
+    return this.deletingMarker() === `${linkId}/${name}`;
+  }
+
   /** Toggle a link group's collapsed state (click on its header). */
   toggleGroup(linkId: string) {
     const next = new Set(this.collapsedGroups());
@@ -636,6 +659,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.linkError.set(null);
+    this.submittingMarker.set(linkId);
 
     const v = this.markerForm.getRawValue();
     const body: MarkerWriteBody = { bpf: v.bpf.trim(), name: v.name.trim() };
@@ -650,6 +674,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
     this.markerService.create(controller, project.project_id, linkId, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.submittingMarker.set(null);
         // Close the create form and return to the list — same behavior in the
         // selected-link and aggregate views. (The selected-link view previously
         // kept the form open via markerForm.reset().)
@@ -658,6 +683,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
         this.loadAggregate();
       },
       error: (err) => {
+        this.submittingMarker.set(null);
         this.linkError.set(err.error?.message || err.message || 'Failed to create marker');
         this.cdr.markForCheck();
       },
@@ -668,13 +694,18 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const controller = this.controller();
     const project = this.project();
     if (!controller || !project) return;
+    const key = `${linkId}/${name}`;
+    if (this.deletingMarker() === key) return;
     this.linkError.set(null);
+    this.deletingMarker.set(key);
     this.markerService.delete(controller, project.project_id, linkId, name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.deletingMarker.set(null);
         this.refreshLink(linkId);
         this.loadAggregate();
       },
       error: (err) => {
+        this.deletingMarker.set(null);
         this.linkError.set(err.error?.message || err.message || 'Failed to delete marker');
         this.cdr.markForCheck();
       },
@@ -717,6 +748,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project) return;
     this.linkError.set(null);
+    this.submittingEditMarker.set(true);
 
     const v = this.markerEditForm.getRawValue();
     const body: MarkerWriteBody = { bpf: v.bpf.trim() };
@@ -730,11 +762,13 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
 
     this.markerService.update(controller, project.project_id, linkId, editing.name, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.submittingEditMarker.set(false);
         this.editingMarker.set(null);
         this.refreshLink(linkId);
         this.loadAggregate();
       },
       error: (err) => {
+        this.submittingEditMarker.set(false);
         this.linkError.set(err.error?.message || err.message || 'Failed to update marker');
         this.cdr.markForCheck();
       },

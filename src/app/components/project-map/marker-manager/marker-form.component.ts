@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 
 /** A capture-node dropdown option — one of the link's endpoints. */
@@ -37,6 +38,7 @@ export interface MarkerCaptureOption {
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
     CdkTextareaAutosize,
   ],
   template: `
@@ -106,8 +108,13 @@ export interface MarkerCaptureOption {
           <input matInput type="number" formControlName="tag" placeholder="—" />
         </mat-form-field>
         <div class="marker-form__actions">
-          <button mat-flat-button color="primary" type="submit" [disabled]="form().invalid">
-            {{ submitLabel() }}
+          <button mat-flat-button color="primary" type="submit" [disabled]="form().invalid || submitting()">
+            @if (submitting()) {
+              <mat-spinner class="marker-form__submit-spinner" [diameter]="16" />
+              {{ mode() === 'edit' ? 'Saving…' : 'Adding…' }}
+            } @else {
+              {{ submitLabel() }}
+            }
           </button>
           <button mat-stroked-button type="button" (click)="cancel.emit()">Cancel</button>
         </div>
@@ -125,6 +132,8 @@ export class MarkerFormComponent {
   readonly captureOptions = input<MarkerCaptureOption[]>([]);
   /** Submit button label, derived from mode (`Add` / `Save`). */
   readonly submitLabel = computed(() => (this.mode() === 'edit' ? 'Save' : 'Add'));
+  /** When true, the submit button shows a spinner and the label changes to "Saving…" / "Adding…". */
+  readonly submitting = input<boolean>(false);
   readonly save = output<void>();
   readonly cancel = output<void>();
 }

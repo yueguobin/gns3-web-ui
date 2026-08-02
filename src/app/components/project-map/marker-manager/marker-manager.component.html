@@ -92,8 +92,13 @@
                   <mat-label>Color</mat-label>
                   <input matInput type="color" formControlName="color" class="color-input" />
                 </mat-form-field>
-                <button mat-flat-button color="primary" type="submit" [disabled]="definitionForm.invalid" style="align-self: start; margin-top: 18px;">
-                  {{ editingDefinition() ? 'Save' : 'Create' }}
+                <button mat-flat-button color="primary" type="submit" [disabled]="definitionForm.invalid || submittingDefinition()" style="align-self: start; margin-top: 18px;">
+                  @if (submittingDefinition()) {
+                    <mat-spinner class="marker-manager__btn-spinner" [diameter]="18" />
+                    {{ editingDefinition() ? 'Saving…' : 'Creating…' }}
+                  } @else {
+                    {{ editingDefinition() ? 'Save' : 'Create' }}
+                  }
                 </button>
                 @if (editingDefinition()) {
                 <button mat-stroked-button type="button" (click)="cancelEditDefinition()" style="align-self: start; margin-top: 18px;">Cancel</button>
@@ -153,7 +158,11 @@
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button mat-icon-button (click)="deleteDefinition(row)" matTooltip="Delete (clears all copies)">
-                  <mat-icon>delete</mat-icon>
+                  @if (deletingDefinition() === row.name) {
+                    <mat-spinner class="marker-manager__toggle-spinner" [diameter]="18" />
+                  } @else {
+                    <mat-icon>delete</mat-icon>
+                  }
                 </button>
               </div>
               }
@@ -240,6 +249,7 @@
                 [form]="markerForm"
                 mode="create"
                 [captureOptions]="linkEndpoints(group.linkId)"
+                [submitting]="submittingMarker() === group.linkId"
                 (save)="submitMarker(group.linkId)"
                 (cancel)="toggleAddMarker(group.linkId)"
               />
@@ -285,6 +295,7 @@
                   [form]="markerForm"
                   mode="create"
                   [captureOptions]="linkEndpoints(group.linkId)"
+                  [submitting]="submittingMarker() === group.linkId"
                   (save)="submitMarker(group.linkId)"
                   (cancel)="toggleAddMarker(group.linkId)"
                 />
@@ -327,6 +338,7 @@
       [form]="markerEditForm"
       mode="edit"
       [captureOptions]="linkEndpoints(linkId)"
+      [submitting]="submittingEditMarker()"
       (save)="submitEditMarker(linkId)"
       (cancel)="cancelEditMarker()"
     />
@@ -372,7 +384,11 @@
       <mat-icon>edit</mat-icon>
     </button>
     <button mat-icon-button (click)="deleteMarker(linkId, m.name)" matTooltip="Delete">
-      <mat-icon>delete</mat-icon>
+      @if (isDeletingMarker(linkId, m.name)) {
+        <mat-spinner class="marker-manager__toggle-spinner" [diameter]="18" />
+      } @else {
+        <mat-icon>delete</mat-icon>
+      }
     </button>
     }
   </div>

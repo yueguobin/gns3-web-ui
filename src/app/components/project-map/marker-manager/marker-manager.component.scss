@@ -349,7 +349,12 @@
   }
 
   &__toggle-spinner {
-    color: var(--mat-sys-primary);
+    --mdc-circular-progress-active-indicator-color: var(--mat-sys-primary);
+  }
+
+  &__btn-spinner {
+    // Inside mat-flat-button color="primary": arc matches the on-primary label.
+    --mdc-circular-progress-active-indicator-color: var(--mat-sys-on-primary);
   }
 }
 
