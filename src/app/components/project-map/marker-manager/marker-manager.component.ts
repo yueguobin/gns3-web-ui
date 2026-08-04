@@ -159,7 +159,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   readonly linkGroups = signal<LinkGroup[]>([]);
   readonly loading = signal(false);
   readonly defError = signal<string | null>(null);
-  readonly linkError = signal<string | null>(null);
+  readonly linkError = signal<{ linkId: string | null; message: string } | null>(null);
   readonly editingDefinition = signal<string | null>(null);
   /** linkId currently showing its inline "add private marker" form (Links tab). */
   readonly addingToLink = signal<string | null>(null);
@@ -384,7 +384,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => {
-        this.linkError.set(err.error?.message || err.message || 'Failed to load markers');
+        this.linkError.set({ linkId: null, message: err.error?.message || err.message || 'Failed to load markers' });
         this.cdr.markForCheck();
       },
     });
@@ -622,6 +622,22 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     return this.deletingMarker() === `${linkId}/${name}`;
   }
 
+  /**
+   * Panel-level error (not scoped to a link) — e.g. an aggregate load failure. Shown at the
+   * top of the Links panel. Per-link create/edit/delete errors are scoped via {@link groupError}
+   * so they render next to the form that produced them, not up here.
+   */
+  panelError(): string | null {
+    const err = this.linkError();
+    return err && !err.linkId ? err.message : null;
+  }
+
+  /** Error message scoped to a specific link group's create/edit/delete action, or null. */
+  groupError(linkId: string): string | null {
+    const err = this.linkError();
+    return err && err.linkId === linkId ? err.message : null;
+  }
+
   /** Toggle a link group's collapsed state (click on its header). */
   toggleGroup(linkId: string) {
     const next = new Set(this.collapsedGroups());
@@ -684,7 +700,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submittingMarker.set(null);
-        this.linkError.set(err.error?.message || err.message || 'Failed to create marker');
+        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to create marker' });
         this.cdr.markForCheck();
       },
     });
@@ -706,7 +722,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.deletingMarker.set(null);
-        this.linkError.set(err.error?.message || err.message || 'Failed to delete marker');
+        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to delete marker' });
         this.cdr.markForCheck();
       },
     });
@@ -769,7 +785,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submittingEditMarker.set(false);
-        this.linkError.set(err.error?.message || err.message || 'Failed to update marker');
+        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to update marker' });
         this.cdr.markForCheck();
       },
     });

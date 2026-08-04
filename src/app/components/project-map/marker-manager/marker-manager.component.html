@@ -171,8 +171,8 @@
         <!-- ===================== Links (aggregate) ===================== -->
         <mat-tab label="Links">
           <div class="marker-manager__panel">
-            @if (linkError() && !selectedLinkId()) {
-            <div class="marker-manager__error">{{ linkError() }}</div>
+            @if (panelError(); as msg) {
+            <div class="marker-manager__error">{{ msg }}</div>
             }
 
             <!-- Node + Link selector (cascading filter) -->
@@ -232,8 +232,8 @@
                 </button>
               </div>
 
-              @if (linkError()) {
-              <div class="marker-manager__error">{{ linkError() }}</div>
+              @if (groupError(group.linkId); as msg) {
+              <div class="marker-manager__error">{{ msg }}</div>
               }
               @if (definitions().length > 0) {
               <div class="marker-manager__hint">
@@ -288,6 +288,9 @@
                 </div>
 
                 @if (!isGroupCollapsed(group.linkId)) {
+                @if (groupError(group.linkId); as msg) {
+                <div class="marker-manager__error">{{ msg }}</div>
+                }
                 @if (addingToLink() === group.linkId) {
                 <app-marker-form
                   [form]="markerForm"
