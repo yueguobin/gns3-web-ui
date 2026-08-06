@@ -114,7 +114,9 @@ describe('MarkerManagerComponent', () => {
       expect(markerService.createDefinition).toHaveBeenCalledWith(
         controller,
         'proj-1',
-        { name: 'icmp', bpf: 'icmp', tag: 1, highlight_duration: 800 }
+        // Definitions are direction-agnostic, so the form always maps to 'both'
+        // (dirToBody) and submitDefinition() sends it explicitly to clear any filter.
+        { name: 'icmp', bpf: 'icmp', tag: 1, highlight_duration: 800, direction: 'both' }
       );
       expect(markerService.listDefinitions).toHaveBeenCalled();
       expect(markerService.aggregateList).toHaveBeenCalled();
