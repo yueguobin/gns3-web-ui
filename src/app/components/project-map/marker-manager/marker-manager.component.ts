@@ -26,6 +26,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { Subject, animationFrameScheduler, fromEvent } from 'rxjs';
@@ -50,6 +51,7 @@ import { ToasterService } from '@services/toaster.service';
 import { WindowBoundaryService, WindowStyle } from '@services/window-boundary.service';
 import { WindowManagementService } from '@services/window-management.service';
 import { MarkerFormComponent } from './marker-form.component';
+import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 
 interface DefinitionRow {
   name: string;
@@ -301,6 +303,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   private nodesDataSource = inject(NodesDataSource);
   private markerRegistryService = inject(MarkerRegistryService);
   private toasterService = inject(ToasterService);
+  private dialog = inject(MatDialog);
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -504,6 +507,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (v.data_link_type) body.data_link_type = v.data_link_type;
 
     const editing = this.editingDefinition();
+    // An encapsulation change re-fans-out the definition: every inherited copy is rebuilt
+    // and capture restarts on each affected link (uBridge itself is unaffected). Confirm
+    // with the user before sending the PUT so they can back out.
+    const origDlt = editing ? this.definitions().find((d) => d.name === editing)?.data_link_type ?? null : null;
+    const dltChanged = !!editing && origDlt !== (v.data_link_type ?? null);
     const done = () => {
       this.submittingDefinition.set(false);
       this.cancelEditDefinition();
@@ -517,12 +525,38 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       this.defError.set(err.error?.message || err.message || 'Failed to save definition');
       this.cdr.markForCheck();
     };
-
-    if (editing) {
-      this.markerService.updateDefinition(controller, project.project_id, editing, body).pipe(takeUntil(this.destroy$)).subscribe({
+    const runUpdate = () => {
+      this.markerService.updateDefinition(controller, project.project_id, editing!, body).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => done(),
         error: fail,
       });
+    };
+
+    if (editing) {
+      if (dltChanged) {
+        const ref = this.dialog.open(ConfirmationDialogComponent, {
+          data: {
+            title: 'Confirm encapsulation change',
+            message:
+              'Changing the encapsulation rebuilds this definition’s markers and restarts capture on every link it applies to. uBridge itself is unaffected. Continue?',
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
+          },
+          panelClass: ['base-confirmation-dialog-panel', 'confirmation-warning-panel'],
+          autoFocus: false,
+          restoreFocus: false,
+        });
+        ref.afterClosed().subscribe((ok: boolean) => {
+          if (ok) {
+            runUpdate();
+          } else {
+            this.submittingDefinition.set(false);
+            this.cdr.markForCheck();
+          }
+        });
+      } else {
+        runUpdate();
+      }
     } else {
       this.markerService.createDefinition(controller, project.project_id, body).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => done(),
