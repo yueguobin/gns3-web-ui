@@ -58,6 +58,7 @@ interface DefinitionRow {
   color: string | null;
   highlight_duration: number | null;
   direction: 'tx' | 'rx' | null;
+  data_link_type: string;
   linkCount: number;
   paused: boolean;
 }
@@ -240,6 +241,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       validators: [Validators.required, Validators.min(1)],
     }),
     direction: new UntypedFormControl('both'),
+    // `null` ⇒ Ethernet-only definition (serial links skipped). A WAN value makes the
+    // definition also cover serial links of that encapsulation; Ethernet stays EN10MB.
+    data_link_type: new UntypedFormControl(null),
   });
 
   readonly markerForm = new UntypedFormGroup({
@@ -252,6 +256,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       validators: [Validators.required, Validators.min(1)],
     }),
     direction: new UntypedFormControl('both'),
+    // `null` on Ethernet (picker hidden, backend defaults to DLT_EN10MB); seeded with the
+    // first WAN encapsulation when the form opens on a serial link (see toggleAddMarker).
+    data_link_type: new UntypedFormControl(null),
     capture_node_id: new UntypedFormControl(null),
   });
 
@@ -265,8 +272,24 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       validators: [Validators.required, Validators.min(1)],
     }),
     direction: new UntypedFormControl('both'),
+    // Create-only on per-link markers — disabled in edit (recreate to switch encapsulation).
+    data_link_type: new UntypedFormControl({ value: 'DLT_EN10MB', disabled: true }),
     capture_node_id: new UntypedFormControl({ value: null, disabled: true }),
   });
+
+  /**
+   * WAN encapsulations — the only options offered in the marker forms. Setting one
+   * on a definition/per-link serial marker makes it decode serial traffic; leaving
+   * it unset means Ethernet-only (the server's default DLT_EN10MB). Same values the
+   * capture dialog uses (`start-capture.component.ts`). Cisco PPP is
+   * `DLT_PPP_SERIAL` (50), not raw `DLT_PPP` (9).
+   */
+  readonly serialDataLinkTypes: readonly { label: string; value: string }[] = [
+    { label: 'Cisco HDLC', value: 'DLT_C_HDLC' },
+    { label: 'Cisco PPP', value: 'DLT_PPP_SERIAL' },
+    { label: 'Frame Relay', value: 'DLT_FRELAY' },
+    { label: 'ATM', value: 'DLT_ATM_RFC1483' },
+  ];
 
   private boundaryService = inject(WindowBoundaryService);
   private windowManagement = inject(WindowManagementService);
@@ -398,6 +421,8 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       color: d.color ?? null,
       highlight_duration: d.highlight_duration ?? null,
       direction: (d.direction as 'tx' | 'rx' | null) ?? null,
+      // Normalize EN10MB → null so the picker shows "Ethernet only" (blank) for defaults.
+      data_link_type: d.data_link_type && d.data_link_type !== 'DLT_EN10MB' ? d.data_link_type : null,
       linkCount: d.link_ids?.length ?? 0,
       paused: d.paused ?? false,
     }));
@@ -449,6 +474,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     return this.nodesDataSource.get(nodeId)?.name ?? nodeId;
   }
 
+  /** The protocol link_type of a link (`'ethernet'` / `'serial'`; defaults to ethernet). */
+  linkTypeOf(linkId: string): string {
+    return this.linksDataSource.get(linkId)?.link_type ?? 'ethernet';
+  }
+
   // ---- definitions CRUD ----
 
   submitDefinition() {
@@ -471,6 +501,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     if (hd !== null) body.highlight_duration = hd;
     const dir = this.dirToBody(v.direction);
     if (dir) body.direction = dir;
+    if (v.data_link_type) body.data_link_type = v.data_link_type;
 
     const editing = this.editingDefinition();
     const done = () => {
@@ -510,6 +541,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       color: row.color,
       highlight_duration: row.highlight_duration,
       direction: this.dirFromMarker(row.direction),
+      data_link_type: row.data_link_type ?? null,
     });
     // Name is immutable on update; disable to communicate that.
     this.definitionForm.get('name')?.disable();
@@ -662,6 +694,11 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.editingMarker.set(null);
     if (opening) this.expandGroup(linkId);
     this.markerForm.reset();
+    // A serial link needs a WAN encapsulation; default to the first one (Cisco HDLC),
+    // matching the capture dialog's auto-select. Ethernet links leave it null (hidden).
+    if (opening && this.linkTypeOf(linkId) === 'serial') {
+      this.markerForm.get('data_link_type')?.setValue(this.serialDataLinkTypes[0]?.value ?? null);
+    }
     this.linkError.set(null);
     this.cdr.markForCheck();
   }
@@ -687,6 +724,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const dir = this.dirToBody(v.direction);
     if (dir) body.direction = dir;
     if (v.capture_node_id) body.capture_node_id = v.capture_node_id;
+    if (v.data_link_type) body.data_link_type = v.data_link_type;
 
     this.markerService.create(controller, project.project_id, linkId, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
@@ -741,9 +779,12 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       color: marker.color ?? null,
       highlight_duration: marker.highlight_duration ?? 800,
       direction: this.dirFromMarker(marker.direction),
+      data_link_type: marker.data_link_type ?? 'DLT_EN10MB',
       capture_node_id: marker.capture_node_id ?? null,
     });
     this.markerEditForm.get('name')?.disable();
+    // data_link_type is create-only on per-link markers — keep it disabled in edit.
+    this.markerEditForm.get('data_link_type')?.disable();
     this.markerEditForm.get('capture_node_id')?.disable();
     this.cdr.markForCheck();
   }

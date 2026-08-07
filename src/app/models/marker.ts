@@ -20,6 +20,13 @@ export interface Marker {
    * receiving only), or `null`/absent (both directions — default).
    */
   direction?: 'tx' | 'rx' | null;
+  /**
+   * Link-layer encapsulation for capture/pcap decode (uBridge DLT value).
+   * Defaults to `"DLT_EN10MB"` (Ethernet). Set to a WAN value — `"DLT_C_HDLC"`,
+   * `"DLT_PPP_SERIAL"`, `"DLT_FRELAY"`, `"DLT_ATM_RFC1483"` — so the BPF match
+   * and pcap decode against a serial link's IOS encapsulation.
+   */
+  data_link_type?: string;
   /** Capture-side node chosen by the server. */
   capture_node_id?: string;
   capture_adapter?: number;
@@ -46,6 +53,13 @@ export interface MarkerDefinition {
   highlight_duration?: number | null;
   /** Optional direction filter (same semantics as {@link Marker.direction}). */
   direction?: 'tx' | 'rx' | null;
+  /**
+   * Link-layer encapsulation (uBridge DLT). Defaults to `"DLT_EN10MB"` (Ethernet
+   * only — serial links are skipped). A WAN value also covers serial links of that
+   * encapsulation while Ethernet links stay EN10MB, so one definition can serve a
+   * mixed topology. Updatable (the server re-fans-out).
+   */
+  data_link_type?: string;
   /** Links currently carrying an inherited copy (GET only). */
   link_ids?: string[];
   /**
@@ -69,6 +83,8 @@ export interface MarkerDefinitionCreateBody {
   highlight_duration?: number | null;
   /** Optional direction filter: `"tx"` | `"rx"` | `"both"` | null. */
   direction?: 'tx' | 'rx' | 'both' | null;
+  /** Link-layer encapsulation (uBridge DLT). Defaults to `"DLT_EN10MB"` (Ethernet). */
+  data_link_type?: string;
 }
 
 /**

@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CdkTextareaAutosize } from '@angular/cdk/text-field';
 
@@ -38,6 +39,7 @@ export interface MarkerCaptureOption {
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatTooltipModule,
     MatProgressSpinnerModule,
     CdkTextareaAutosize,
   ],
@@ -87,6 +89,16 @@ export interface MarkerCaptureOption {
             <mat-option value="rx">Rx</mat-option>
           </mat-select>
         </mat-form-field>
+        @if (isSerial()) {
+          <mat-form-field class="marker-form__field">
+            <mat-label>Serial encapsulation</mat-label>
+            <mat-select formControlName="data_link_type" matTooltip="WAN encapsulation (matches the router's IOS setting)">
+              @for (dlt of dataLinkOptions(); track dlt.value) {
+                <mat-option [value]="dlt.value">{{ dlt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
       </div>
       <div class="marker-form__row marker-form__row--style">
         <mat-form-field class="marker-form__field">
@@ -130,6 +142,12 @@ export class MarkerFormComponent {
   readonly mode = input<'create' | 'edit'>('create');
   /** Endpoint options for the Capture node dropdown (the link's nodes). */
   readonly captureOptions = input<MarkerCaptureOption[]>([]);
+  /** Encapsulation (uBridge DLT) options for the Data link type dropdown. */
+  readonly dataLinkOptions = input<{ label: string; value: string }[]>([]);
+  /** Protocol `link_type` of the link this form targets (`'ethernet'` / `'serial`). */
+  readonly linkType = input<string>('ethernet');
+  /** WAN encapsulation only applies to serial links — hide the picker on Ethernet. */
+  readonly isSerial = computed(() => this.linkType() === 'serial');
   /** Submit button label, derived from mode (`Add` / `Save`). */
   readonly submitLabel = computed(() => (this.mode() === 'edit' ? 'Save' : 'Add'));
   /** When true, the submit button shows a spinner and the label changes to "Saving…" / "Adding…". */

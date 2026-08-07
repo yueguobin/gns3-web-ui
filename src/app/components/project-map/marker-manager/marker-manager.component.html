@@ -71,9 +71,11 @@
                     }
                 </mat-form-field>
                 <mat-form-field class="form-field">
-                  <mat-label>Direction</mat-label>
-                  <mat-select formControlName="direction">
-                    <mat-option value="both">Both</mat-option>
+                  <mat-label>Serial encapsulation</mat-label>
+                  <mat-select formControlName="data_link_type" placeholder="Ethernet only">
+                    @for (dlt of serialDataLinkTypes; track dlt.value) {
+                    <mat-option [value]="dlt.value">{{ dlt.label }}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
                 <mat-form-field class="form-field">
@@ -247,6 +249,8 @@
                 [form]="markerForm"
                 mode="create"
                 [captureOptions]="linkEndpoints(group.linkId)"
+                [dataLinkOptions]="serialDataLinkTypes"
+                [linkType]="linkTypeOf(group.linkId)"
                 [submitting]="submittingMarker() === group.linkId"
                 (save)="submitMarker(group.linkId)"
                 (cancel)="toggleAddMarker(group.linkId)"
@@ -296,6 +300,8 @@
                   [form]="markerForm"
                   mode="create"
                   [captureOptions]="linkEndpoints(group.linkId)"
+                  [dataLinkOptions]="serialDataLinkTypes"
+                  [linkType]="linkTypeOf(group.linkId)"
                   [submitting]="submittingMarker() === group.linkId"
                   (save)="submitMarker(group.linkId)"
                   (cancel)="toggleAddMarker(group.linkId)"
@@ -339,6 +345,8 @@
       [form]="markerEditForm"
       mode="edit"
       [captureOptions]="linkEndpoints(linkId)"
+      [dataLinkOptions]="serialDataLinkTypes"
+      [linkType]="linkTypeOf(linkId)"
       [submitting]="submittingEditMarker()"
       (save)="submitEditMarker(linkId)"
       (cancel)="cancelEditMarker()"

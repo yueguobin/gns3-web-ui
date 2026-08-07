@@ -19,6 +19,11 @@ export interface MarkerWriteBody {
   /** Optional direction filter: `"tx"` | `"rx"` | `"both"` | null (both = no filter). */
   direction?: 'tx' | 'rx' | 'both' | null;
   /**
+   * Link-layer encapsulation (uBridge DLT). Defaults to `"DLT_EN10MB"`. Required for
+   * serial/WAN links. Create-only on per-link markers (immutable afterwards).
+   */
+  data_link_type?: string;
+  /**
    * Capture-side (observer) node id — the endpoint `direction` is measured from.
    * Only honored on **create**; immutable afterwards (server ignores it on update —
    * changing it would invert stored direction semantics). Omit/null ⇒ server
