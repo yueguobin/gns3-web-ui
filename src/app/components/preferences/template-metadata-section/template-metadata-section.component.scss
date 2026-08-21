@@ -1,0 +1,41 @@
+/**
+ * Appliance metadata form — the card surface and section header come from the
+ * host page's __form-card section (Metadata tab).
+ */
+.template-metadata {
+  display: block;
+
+  &__form {
+    padding: 16px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  &__field {
+    width: 100%;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 768px) {
+  .template-metadata {
+    &__two-column-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

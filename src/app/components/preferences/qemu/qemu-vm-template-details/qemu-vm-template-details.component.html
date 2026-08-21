@@ -28,6 +28,7 @@
       <button type="button" [class.is-active]="activeSection === 'network'" (click)="selectSection('network')">Network</button>
       <button type="button" [class.is-active]="activeSection === 'advanced'" (click)="selectSection('advanced')">Advanced</button>
       <button type="button" [class.is-active]="activeSection === 'usage'" (click)="selectSection('usage')">Usage</button>
+      <button type="button" [class.is-active]="activeSection === 'metadata'" (click)="selectSection('metadata')">Metadata</button>
     </nav>
     <section class="qemu-template-details__form-card">
       <div class="qemu-template-details__section-header" (click)="toggleSection('general')">
@@ -160,6 +161,35 @@
               <mat-option [value]="type">{{ type }}</mat-option>
               }
             </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="three-column-grid">
+          <app-netmiko-device-type-select
+            [(value)]="netmikoDeviceType"
+            [controller]="controller"
+            appearance="fill"
+            class="qemu-template-details__field"
+          />
+          <mat-form-field appearance="fill" class="qemu-template-details__field">
+            <mat-label>Default username</mat-label>
+            <input
+              matInput
+              [value]="defaultUsername()"
+              (input)="onCredentialInput('default_username', $event)"
+              type="text"
+              placeholder="Username to log into this node"
+            />
+          </mat-form-field>
+          <mat-form-field appearance="fill" class="qemu-template-details__field">
+            <mat-label>Default password</mat-label>
+            <input
+              matInput
+              [value]="defaultPassword()"
+              (input)="onCredentialInput('default_password', $event)"
+              type="text"
+              placeholder="Password to log into this node"
+            />
           </mat-form-field>
         </div>
 
@@ -683,6 +713,15 @@
           <textarea matInput [value]="usage()" (input)="usage.set($event.target.value)" type="text"></textarea>
         </mat-form-field>
       </div>
+      }
+    </section>
+
+    <section class="qemu-template-details__form-card">
+      <div class="qemu-template-details__section-header">
+        <h3 class="qemu-template-details__section-title">Appliance metadata</h3>
+      </div>
+      @if (activeSection === 'metadata') {
+      <app-template-metadata-section [(metadata)]="applianceMetadata" />
       }
     </section>
 
