@@ -6,6 +6,7 @@ import { AddBlankProjectDialogComponent } from './add-blank-project-dialog.compo
 import { ProjectNameValidator } from '../models/projectNameValidator';
 import { ProjectService } from '@services/project.service';
 import { ToasterService } from '@services/toaster.service';
+import { MapSettingsService } from '@services/mapsettings.service';
 import { Controller } from '@models/controller';
 import { Project } from '@models/project';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
@@ -17,6 +18,7 @@ describe('AddBlankProjectDialogComponent', () => {
   let mockRouter: any;
   let mockProjectService: any;
   let mockToasterService: any;
+  let mockMapSettingsService: any;
   let mockController: Controller;
 
   beforeAll(() => {
@@ -59,8 +61,21 @@ describe('AddBlankProjectDialogComponent', () => {
     mockProjectService = {
       list: vi.fn().mockReturnValue(of([])),
       add: vi.fn().mockReturnValue(of(createMockProject('Test Project'))),
+      update: vi.fn().mockReturnValue(of(createMockProject('Test Project'))),
     };
     mockToasterService = { success: vi.fn(), error: vi.fn() };
+    // MapSettingsService is injected by the dialog to copy the user's saved
+    // workspace defaults (scene size, grid sizes, show/snap flags) onto the
+    // newly-created project. Use the GNS3 server defaults as the mock
+    // returns so createProject() can read them when it calls the getters.
+    mockMapSettingsService = {
+      getDefaultSceneWidth: vi.fn().mockReturnValue(2000),
+      getDefaultSceneHeight: vi.fn().mockReturnValue(1000),
+      getDefaultGridSize: vi.fn().mockReturnValue(75),
+      getDefaultDrawingGridSize: vi.fn().mockReturnValue(25),
+      getDefaultShowGrid: vi.fn().mockReturnValue(false),
+      getDefaultSnapToGrid: vi.fn().mockReturnValue(false),
+    };
     mockController = {
       id: 1,
       authToken: '',
@@ -84,6 +99,7 @@ describe('AddBlankProjectDialogComponent', () => {
         { provide: Router, useValue: mockRouter },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: ToasterService, useValue: mockToasterService },
+        { provide: MapSettingsService, useValue: mockMapSettingsService },
         { provide: ProjectNameValidator, useValue: { get: vi.fn().mockReturnValue(null) } },
       ],
     }).compileComponents();
@@ -134,12 +150,14 @@ describe('AddBlankProjectDialogComponent', () => {
       const testProject = createMockProject('NewProject');
       mockProjectService.list.mockReturnValue(of([]));
       mockProjectService.add.mockReturnValue(of(testProject));
+      mockProjectService.update.mockReturnValue(of(testProject));
 
       component.projectName.set('NewProject');
       component.onAddClick();
       await vi.runAllTimersAsync();
 
       expect(mockProjectService.add).toHaveBeenCalledWith(mockController, 'NewProject', component.uuid());
+      expect(mockProjectService.update).toHaveBeenCalledWith(mockController, testProject);
       expect(mockToasterService.success).toHaveBeenCalledWith('Project NewProject added');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/controller', 1, 'project', 'proj-123']);
       expect(mockDialogRef.close).toHaveBeenCalled();
@@ -197,6 +215,23 @@ describe('AddBlankProjectDialogComponent', () => {
       expect(mockToasterService.error).toHaveBeenCalledWith('Cannot create new project');
     });
 
+    it('should still open a created project when applying workspace defaults fails', async () => {
+      const testProject = createMockProject('NewProject');
+      mockProjectService.list.mockReturnValue(of([]));
+      mockProjectService.add.mockReturnValue(of(testProject));
+      mockProjectService.update.mockReturnValue(throwError(() => new Error('Update failed')));
+
+      component.projectName.set('NewProject');
+      component.onAddClick();
+      await vi.runAllTimersAsync();
+
+      expect(mockToasterService.error).toHaveBeenCalledWith(
+        'Project created, but workspace defaults were not applied'
+      );
+      expect(mockDialogRef.close).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/controller', 1, 'project', 'proj-123']);
+    });
+
     it('should show error when checking project list fails', async () => {
       mockProjectService.list.mockReturnValue(throwError(() => ({ error: { message: 'List failed' } })));
 
@@ -213,6 +248,7 @@ describe('AddBlankProjectDialogComponent', () => {
       const testProject = createMockProject('NewProject');
       mockProjectService.list.mockReturnValue(of([]));
       mockProjectService.add.mockReturnValue(of(testProject));
+      mockProjectService.update.mockReturnValue(of(testProject));
 
       const emitSpy = vi.spyOn(component.onAddProject, 'emit');
       component.projectName.set('NewProject');

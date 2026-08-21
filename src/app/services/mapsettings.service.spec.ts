@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MapSettingsService } from './mapsettings.service';
+import { ThemeService } from './theme.service';
 
 describe('MapSettingsService', () => {
   let service: MapSettingsService;
   let mockLocalStorage: { [key: string]: string };
+  let themeService: ThemeService;
 
   beforeEach(() => {
     mockLocalStorage = {};
@@ -18,7 +20,8 @@ describe('MapSettingsService', () => {
       },
     });
 
-    service = new MapSettingsService();
+    themeService = new ThemeService(document, 'indigo-pink');
+    service = new MapSettingsService(themeService);
   });
 
   afterEach(() => {
@@ -270,34 +273,34 @@ describe('MapSettingsService', () => {
   describe('Constructor - localStorage initialization', () => {
     it('should initialize isLayerNumberVisible from localStorage when set to true', () => {
       mockLocalStorage['layersVisibility'] = 'true';
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.isLayerNumberVisible).toBe(true);
     });
 
     it('should initialize isLayerNumberVisible from localStorage when set to false', () => {
       mockLocalStorage['layersVisibility'] = 'false';
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.isLayerNumberVisible).toBe(false);
     });
 
     it('should initialize openConsolesInWidget from localStorage when set to true', () => {
       mockLocalStorage['openConsolesInWidget'] = 'true';
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.openConsolesInWidget).toBe(true);
     });
 
     it('should initialize openReadme from localStorage when set to true', () => {
       mockLocalStorage['openReadme'] = 'true';
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.openReadme).toBe(true);
     });
 
     it('should default openReadme to false when not set', () => {
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.openReadme).toBe(false);
     });
@@ -306,9 +309,102 @@ describe('MapSettingsService', () => {
   describe('getSymbolScaling edge cases', () => {
     it('should return false when localStorage contains invalid value', () => {
       mockLocalStorage['symbolScaling'] = 'invalid';
-      const serviceWithStorage = new MapSettingsService();
+      const serviceWithStorage = new MapSettingsService(themeService);
 
       expect(serviceWithStorage.getSymbolScaling()).toBe(false);
+    });
+  });
+
+  describe('workspace style defaults', () => {
+    it('should expose the established label, note, and link defaults', () => {
+      expect(service.hasDefaultLabelStyle()).toBe(false);
+      expect(service.hasDefaultLinkStyle()).toBe(false);
+      expect(service.getDefaultLabelStyle()).toEqual({
+        fontFamily: 'TypeWriter',
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#000000',
+      });
+      expect(service.getDefaultNoteStyle()).toEqual({
+        fontFamily: 'Noto Sans',
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#000000',
+      });
+      expect(service.getDefaultLinkStyle()).toEqual({
+        color: '#000000',
+        width: 2,
+        type: 1,
+        link_type: 'straight',
+      });
+    });
+
+    it('should keep unsaved style colors in sync with the active map theme', () => {
+      vi.spyOn(themeService, 'getCanvasLabelColor').mockReturnValue('#ffffff');
+      vi.spyOn(themeService, 'getCanvasLinkColor').mockReturnValue('#eeeeee');
+
+      expect(service.getDefaultLabelStyle().color).toBe('#ffffff');
+      expect(service.getDefaultNoteStyle().color).toBe('#ffffff');
+      expect(service.getDefaultLinkStyle().color).toBe('#eeeeee');
+    });
+
+    it('should persist validated style defaults', () => {
+      service.setDefaultLabelStyle({ fontFamily: 'Arial', fontSize: 12.5, fontWeight: 'normal', color: '#AABBCC' });
+      service.setDefaultNoteStyle({ fontFamily: 'Verdana', fontSize: 14, fontWeight: 'bold', color: '#123456' });
+      service.setDefaultLinkStyle({ color: '#FEDCBA', width: 4, type: 2, link_type: 'bezier' });
+
+      expect(service.hasDefaultLabelStyle()).toBe(true);
+      expect(service.hasDefaultLinkStyle()).toBe(true);
+      expect(JSON.parse(mockLocalStorage['defaultLabelStyle'])).toEqual({
+        fontFamily: 'Arial',
+        fontSize: 12.5,
+        fontWeight: 'normal',
+        color: '#aabbcc',
+      });
+      expect(JSON.parse(mockLocalStorage['defaultNoteStyle']).color).toBe('#123456');
+      expect(JSON.parse(mockLocalStorage['defaultLinkStyle'])).toEqual({
+        color: '#fedcba',
+        width: 4,
+        type: 2,
+        link_type: 'bezier',
+      });
+    });
+
+    it('should sanitize malformed stored styles', () => {
+      mockLocalStorage['defaultLabelStyle'] = JSON.stringify({
+        fontFamily: 'url(javascript:alert(1))',
+        fontSize: 999,
+        fontWeight: 'invalid',
+        color: 'red',
+      });
+      mockLocalStorage['defaultLinkStyle'] = JSON.stringify({
+        color: 'invalid',
+        width: -5,
+        type: 99,
+        link_type: 'invalid',
+      });
+
+      const serviceWithStorage = new MapSettingsService(themeService);
+
+      expect(serviceWithStorage.getDefaultLabelStyle()).toEqual({
+        fontFamily: 'TypeWriter',
+        fontSize: 200,
+        fontWeight: 'bold',
+        color: '#000000',
+      });
+      expect(serviceWithStorage.getDefaultLinkStyle()).toEqual({
+        color: '#000000',
+        width: 1,
+        type: 1,
+        link_type: 'straight',
+      });
+    });
+
+    it('should return copies so callers cannot mutate persisted defaults', () => {
+      const labelStyle = service.getDefaultLabelStyle();
+      labelStyle.color = '#ffffff';
+
+      expect(service.getDefaultLabelStyle().color).toBe('#000000');
     });
   });
 });

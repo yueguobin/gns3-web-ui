@@ -30,6 +30,7 @@ import { CopyIouTemplateComponent } from '@components/preferences/ios-on-unix/co
 import { IouTemplateDetailsComponent } from '@components/preferences/ios-on-unix/iou-template-details/iou-template-details.component';
 import { IouTemplatesComponent } from '@components/preferences/ios-on-unix/iou-templates/iou-templates.component';
 import { PreferencesComponent } from '@components/preferences/preferences.component';
+import { NewTemplateDialogComponent } from '@components/project-map/new-template-dialog/new-template-dialog.component';
 import { AddQemuVmTemplateComponent } from '@components/preferences/qemu/add-qemu-vm-template/add-qemu-vm-template.component';
 import { CopyQemuVmTemplateComponent } from '@components/preferences/qemu/copy-qemu-vm-template/copy-qemu-vm-template.component';
 import { QemuVmTemplateDetailsComponent } from '@components/preferences/qemu/qemu-vm-template-details/qemu-vm-template-details.component';
@@ -55,6 +56,7 @@ import { WebConsoleFullWindowComponent } from '@components/web-console-full-wind
 import { NodeFileManagerPageComponent } from '@components/project-map/node-file-manager-page/node-file-manager-page.component';
 import { ConsoleGuard } from './guards/console-guard';
 import { LoginGuard } from './guards/login-guard';
+import { AdministratorGuard } from './guards/administrator-guard';
 import { DefaultLayoutComponent } from './layouts/default-layout/default-layout.component';
 import { ControllerResolve } from '@resolvers/controller-resolve';
 import { UserManagementComponent } from '@components/user-management/user-management.component';
@@ -83,6 +85,11 @@ const routes: Routes = [
       { path: 'bundled', component: BundledControllerFinderComponent },
       { path: 'controller/:controller_id/image-manager', component: ImageManagerComponent },
       {
+        path: 'controller/:controller_id/dashboard',
+        redirectTo: 'controller/:controller_id/systemstatus',
+        pathMatch: 'full',
+      },
+      {
         path: 'controller/:controller_id/projects',
         component: ProjectsComponent,
         canActivate: [LoginGuard],
@@ -94,14 +101,18 @@ const routes: Routes = [
       {
         path: 'controller/:controller_id/management/pools/:pool_id',
         component: ResourcePoolDetailsComponent,
-        canActivate: [LoginGuard],
+        canActivate: [LoginGuard, AdministratorGuard],
         resolve: {
           pool: ResourcePoolsResolver,
           controller: ControllerResolve,
         },
       },
       { path: 'installed-software', component: InstalledSoftwareComponent },
-      { path: 'controller/:controller_id/systemstatus', component: SystemStatusComponent, canActivate: [LoginGuard] },
+      {
+        path: 'controller/:controller_id/systemstatus',
+        component: SystemStatusComponent,
+        canActivate: [LoginGuard],
+      },
 
       {
         path: 'controller/:controller_ip/:controller_port/project/:project_id',
@@ -109,6 +120,13 @@ const routes: Routes = [
         canActivate: [LoginGuard],
       },
       { path: 'controller/:controller_id/preferences', component: PreferencesComponent, canActivate: [LoginGuard] },
+      {
+        // New template wizard: install from the registry or import an appliance.
+        // Opened as its own page (like the manual template creation pages).
+        path: 'controller/:controller_id/preferences/new-template',
+        component: NewTemplateDialogComponent,
+        canActivate: [LoginGuard],
+      },
       // { path: 'controller/:controller_id/preferences/general', component: GeneralPreferencesComponent },
       {
         path: 'controller/:controller_id/computes',
@@ -309,6 +327,7 @@ const routes: Routes = [
       {
         path: 'controller/:controller_id/management',
         component: ManagementComponent,
+        canActivate: [LoginGuard, AdministratorGuard],
         children: [
           {
             path: 'users',
@@ -335,6 +354,7 @@ const routes: Routes = [
       {
         path: 'controller/:controller_id/management/roles/:role_id',
         component: RoleDetailComponent,
+        canActivate: [LoginGuard, AdministratorGuard],
         resolve: {
           role: RoleDetailResolver,
           controller: ControllerResolve,

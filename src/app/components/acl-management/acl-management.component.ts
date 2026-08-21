@@ -43,9 +43,10 @@ import { ACE } from '@models/api/ACE';
 import { ActivatedRoute } from '@angular/router';
 import { ControllerService } from '@services/controller.service';
 import { ToasterService } from '@services/toaster.service';
+import { createActionCompletion } from '@utils/action-completion.util';
 import { AclService } from '@services/acl.service';
 import { AddAceDialogComponent } from '@components/acl-management/add-ace-dialog/add-ace-dialog.component';
-import { DeleteAceDialogComponent } from '@components/acl-management/delete-ace-dialog/delete-ace-dialog.component';
+import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 import { Endpoint } from '@models/api/endpoint';
 import { ResourcePool } from '@models/resourcePools/ResourcePool';
 import { ResourcePoolsService } from '@services/resource-pools.service';
@@ -176,15 +177,22 @@ export class AclManagementComponent implements OnInit, AfterViewInit {
 
   onDelete(ace: ACE) {
     this.dialog
-      .open(DeleteAceDialogComponent, {
+      .open(ConfirmationDialogComponent, {
         panelClass: ['base-confirmation-dialog-panel', 'confirmation-danger-panel'],
-        data: { aces: [ace] },
+        autoFocus: '.cancel-button',
+        data: {
+          title: 'Delete access rule?',
+          message: `The access rule for "${ace.path}" will be permanently deleted.`,
+          confirmButtonText: 'Delete rule',
+          tone: 'danger',
+        },
       })
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
         if (isDeletedConfirm) {
           this.aclService.delete(this.controller, ace.ace_id).subscribe({
             next: () => {
+              this.toasterService.success('Access rule deleted.');
               this.refresh();
             },
             error: (err) => {
@@ -208,24 +216,33 @@ export class AclManagementComponent implements OnInit, AfterViewInit {
   }
 
   deleteMultiple() {
+    const selectedAces = [...this.selection.selected];
     this.dialog
-      .open(DeleteAceDialogComponent, {
+      .open(ConfirmationDialogComponent, {
         panelClass: ['base-confirmation-dialog-panel', 'confirmation-danger-panel'],
-        data: { aces: this.selection.selected },
+        autoFocus: '.cancel-button',
+        data: {
+          title: 'Delete access rules?',
+          message: `${selectedAces.length} selected access rules will be permanently deleted.`,
+          details: selectedAces.map((ace) => ace.path),
+          confirmButtonText: 'Delete rules',
+          tone: 'danger',
+        },
       })
       .afterClosed()
       .subscribe((isDeletedConfirm) => {
         if (isDeletedConfirm) {
-          // TODO: This implementation has a race condition issue where each ACE deletion
-          // is subscribed to independently. Consider using Promise.all() + forkJoin to wait
-          // for all deletions to complete, or use concatMap for sequential deletion.
-          // For now, we keep the existing implementation as requested.
-          this.selection.selected.forEach((ace: ACE) => {
+          const completion = createActionCompletion(selectedAces.length, (count) => {
+            if (count > 0) {
+              this.toasterService.success(`${count} access ${count === 1 ? 'rule' : 'rules'} deleted.`);
+              this.refresh();
+            }
+          });
+          selectedAces.forEach((ace: ACE) => {
             this.aclService.delete(this.controller, ace.ace_id).subscribe({
-              next: () => {
-                this.refresh();
-              },
+              next: () => completion.succeed(),
               error: (err) => {
+                completion.fail();
                 const message = err.error?.message || err.message || 'Failed to delete ACE';
                 this.toasterService.error(message);
                 this.cdr.markForCheck();

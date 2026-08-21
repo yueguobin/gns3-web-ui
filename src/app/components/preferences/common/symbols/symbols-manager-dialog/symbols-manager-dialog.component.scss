@@ -5,14 +5,14 @@
 .manage-symbols-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
+  gap: var(--gns3-density-card-gap);
+  padding: var(--gns3-density-card-padding);
 
   .manage-header {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: var(--gns3-density-card-gap);
+    margin-bottom: var(--gns3-density-card-gap);
 
     .instructions {
       font-size: 16px;
@@ -23,8 +23,34 @@
     .delete-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--gns3-density-space-2);
       flex-wrap: wrap;
+    }
+
+    button.manage-action {
+      min-width: 96px;
+      height: var(--gns3-density-control-height-sm);
+      padding-inline: var(--gns3-density-space-4);
+      border-radius: var(--gns3-density-radius-sm);
+      font-weight: 600;
+      text-transform: none;
+    }
+
+    button.manage-action--delete:not([disabled]) {
+      --mat-button-filled-container-color: var(--mat-sys-error);
+      --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+      --mat-button-filled-state-layer-color: var(--mat-sys-on-error);
+      --mat-button-filled-ripple-color: color-mix(in srgb, var(--mat-sys-on-error) 12%, transparent);
+    }
+
+    button.manage-action--select {
+      --mat-button-outlined-outline-color: color-mix(in srgb, var(--mat-sys-primary) 55%, transparent);
+    }
+
+    button.manage-action--clear {
+      --mat-button-outlined-label-text-color: var(--mat-sys-on-surface);
+      --mat-button-outlined-outline-color: var(--mat-sys-outline);
+      --mat-button-outlined-state-layer-color: var(--mat-sys-on-surface);
     }
   }
 
@@ -34,7 +60,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: var(--gns3-density-card-gap);
     padding: 60px 20px;
     color: var(--mat-sys-on-surface-variant);
     text-align: center;
@@ -55,7 +81,7 @@
   .symbols-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 12px;
+    gap: var(--gns3-density-space-3);
     padding: 16px 0;
     max-height: 400px;
     overflow-y: auto;
@@ -67,7 +93,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--gns3-density-card-gap);
   padding: 40px 20px;
 
   .instructions {
@@ -112,7 +138,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--gns3-density-space-2);
   padding: 12px;
   border: 2px solid transparent;
   border-radius: 8px;

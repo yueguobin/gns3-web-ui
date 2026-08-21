@@ -20,6 +20,7 @@ import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angu
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Controller } from '@models/controller';
@@ -28,7 +29,7 @@ import { ComputeService } from '@services/compute.service';
 import { ControllerService } from '@services/controller.service';
 import { NotificationService } from '@services/notification.service';
 import { ToasterService } from '@services/toaster.service';
-import { DeleteConfirmationDialogComponent } from '@components/preferences/common/delete-confirmation-dialog/delete-confirmation-dialog.component';
+import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   standalone: true,
@@ -48,6 +49,7 @@ import { DeleteConfirmationDialogComponent } from '@components/preferences/commo
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatProgressSpinnerModule,
     ReactiveFormsModule,
   ],
 })
@@ -71,7 +73,35 @@ export class ComputesComponent implements OnInit, OnDestroy {
       return (a.name || '').localeCompare(b.name || '');
     });
   });
-  displayedColumns = ['status', 'name', 'host', 'connected', 'cpu', 'memory', 'disk', 'actions'];
+  searchText = signal('');
+  statusFilter = signal<'all' | 'connected' | 'disconnected'>('all');
+  filteredComputes = computed(() => {
+    const query = this.searchText().trim().toLowerCase();
+    const status = this.statusFilter();
+
+    return this.computes().filter((compute) => {
+      const matchesStatus =
+        status === 'all' ||
+        (status === 'connected' && compute.connected) ||
+        (status === 'disconnected' && !compute.connected);
+      const searchable = [
+        compute.name,
+        compute.compute_id,
+        compute.host,
+        compute.port,
+        compute.protocol,
+        compute.capabilities?.platform,
+        ...(compute.capabilities?.node_types || []),
+      ]
+        .filter((value) => value != null)
+        .join(' ')
+        .toLowerCase();
+
+      return matchesStatus && (!query || searchable.includes(query));
+    });
+  });
+  connectedCount = computed(() => this.computes().filter((compute) => compute.connected).length);
+  displayedColumns = ['name', 'status', 'host', 'platform', 'resources', 'actions'];
   loading = signal(true);
   private subscription = new Subscription();
 
@@ -225,12 +255,16 @@ export class ComputesComponent implements OnInit, OnDestroy {
   }
 
   deleteCompute(compute: Compute) {
-    const dialogRef = this.dialog.open(DeleteConfirmationDialogComponent, {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       panelClass: ['base-confirmation-dialog-panel', 'confirmation-danger-panel'],
-      autoFocus: false,
+      autoFocus: '.cancel-button',
       disableClose: true,
       data: {
-        templateName: compute.name || compute.compute_id,
+        title: 'Delete compute?',
+        message: `Compute "${compute.name || compute.compute_id}" will be permanently deleted.`,
+        note: 'This action cannot be undone.',
+        confirmButtonText: 'Delete compute',
+        tone: 'danger',
       },
     });
 
@@ -292,6 +326,22 @@ export class ComputesComponent implements OnInit, OnDestroy {
 
   formatHost(compute: Compute): string {
     return `${compute.host}:${compute.port}`;
+  }
+
+  onSearchChange(value: string) {
+    this.searchText.set(value);
+  }
+
+  onStatusFilterChange(value: 'all' | 'connected' | 'disconnected') {
+    this.statusFilter.set(value);
+  }
+
+  trackCompute(_index: number, compute: Compute): string {
+    return compute.compute_id;
+  }
+
+  getPlatform(compute: Compute): string {
+    return compute.capabilities?.platform || 'Unknown';
   }
 }
 

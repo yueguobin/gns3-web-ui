@@ -2,14 +2,15 @@
   <!-- Project Titlebar -->
   <div id="project-titlebar">
     <button
-      matTooltip="Open menu"
+      mat-button
+      class="back-to-projects"
+      [routerLink]="['/controller', controller.id, 'projects']"
+      matTooltip="Back to projects"
       matTooltipClass="custom-tooltip"
-      matTooltipPosition="left"
-      mat-icon-button
-      class="gns3-button menu-button"
-      [matMenuTriggerFor]="mainMenu"
+      matTooltipPosition="below"
     >
-      <mat-icon svgIcon="gns3"></mat-icon>
+      <mat-icon>arrow_back</mat-icon>
+      <span>Back to projects</span>
     </button>
     <div class="project-titlebar-controls">
       @if (!readonly) {
@@ -41,55 +42,58 @@
         ></app-context-menu>
       </div>
     </div>
-    <div>
+    <div class="project-titlebar-actions">
       <button
-        matTooltip="Toggle topology/controllers summary"
+        mat-icon-button
+        type="button"
+        class="project-notifications"
+        matTooltip="Notifications"
+        matTooltipClass="custom-tooltip"
+        matTooltipPosition="below"
+        [attr.aria-label]="notificationCenter.panelOpen() ? 'Close notifications' : 'Open notifications'"
+        aria-controls="notification-center-panel"
+        [attr.aria-expanded]="notificationCenter.panelOpen()"
+        (click)="notificationCenter.togglePanel()"
+      >
+        <mat-icon>{{ notificationCenter.panelOpen() ? 'notifications' : 'notifications_none' }}</mat-icon>
+        @if (notificationCenter.unreadCount() > 0) {
+          <span class="project-notifications__badge">{{
+            notificationCenter.unreadCount() > 99 ? '99+' : notificationCenter.unreadCount()
+          }}</span>
+        }
+      </button>
+      <button
+        mat-button
+        class="titlebar-action"
+        [matMenuTriggerFor]="projectMenu"
+        matTooltip="Project settings"
+        matTooltipClass="custom-tooltip"
+        matTooltipPosition="below"
+      >
+        <mat-icon>settings</mat-icon>
+        <span>Project settings</span>
+      </button>
+      <button
+        mat-button
+        class="titlebar-action"
+        [matMenuTriggerFor]="viewMenu"
+        matTooltip="Map settings"
+        matTooltipClass="custom-tooltip"
+        matTooltipPosition="below"
+      >
+        <mat-icon>view_module</mat-icon>
+        <span>Map settings</span>
+      </button>
+      <button
+        matTooltip="Toggle topology map"
         matTooltipClass="custom-tooltip"
         matTooltipPosition="left"
         mat-icon-button
         (click)="toggleShowTopologySummary(!isTopologySummaryVisible)"
       >
-        <mat-icon>toc</mat-icon>
+        <mat-icon>account_tree</mat-icon>
       </button>
     </div>
-
-    <!-- GNS3 menu -->
-    <mat-menu #mainMenu="matMenu" [overlapTrigger]="false">
-      <button mat-menu-item [routerLink]="['/controllers']">
-        <mat-icon>developer_board</mat-icon>
-        <span>Controllers</span>
-      </button>
-      <button mat-menu-item [routerLink]="['/controller', controller.id, 'projects']">
-        <mat-icon>work</mat-icon>
-        <span>Projects</span>
-      </button>
-
-      <button mat-menu-item routerLink="/controller/{{ controller.id }}/computes">
-        <mat-icon>dns</mat-icon>
-        <span>Computes</span>
-      </button>
-      <button mat-menu-item routerLink="/controller/{{ controller.id }}/preferences">
-        <mat-icon>settings_applications</mat-icon>
-        <span>Template preferences</span>
-      </button>
-      <button mat-menu-item [routerLink]="['/controller', controller.id, 'image-manager']">
-        <mat-icon>collections</mat-icon>
-        <span>Image manager</span>
-      </button>
-      <button mat-menu-item (click)="addNewTemplate()">
-        <mat-icon>control_point</mat-icon>
-        <span>New template</span>
-      </button>
-      <app-import-appliance [controller]="controller" [project]="project"></app-import-appliance>
-      <button mat-menu-item [matMenuTriggerFor]="projectMenu">
-        <mat-icon>settings</mat-icon>
-        <span>Project settings</span>
-      </button>
-      <button mat-menu-item [matMenuTriggerFor]="viewMenu">
-        <mat-icon>view_module</mat-icon>
-        <span>Map settings</span>
-      </button>
-    </mat-menu>
 
     <!-- Project Settings sub-menu -->
     <mat-menu #projectMenu="matMenu" [overlapTrigger]="false">
@@ -126,33 +130,31 @@
     </mat-menu>
 
     <!-- Map Settings sub-menu -->
-    <mat-menu #viewMenu="matMenu" [overlapTrigger]="false">
+    <mat-menu #viewMenu="matMenu" class="map-settings-menu" [overlapTrigger]="false">
       <div class="options-item">
         <mat-checkbox [checked]="isInterfaceLabelVisible" (change)="toggleShowInterfaceLabels($event.checked)">
-          Show interface labels </mat-checkbox
-        ><br />
+          Show interface labels
+        </mat-checkbox>
         <mat-checkbox [checked]="isConsoleVisible" (change)="toggleShowConsole($event.checked)">
-          Show console </mat-checkbox
-        ><br />
+          Show console
+        </mat-checkbox>
         <mat-checkbox [checked]="isTopologySummaryVisible" (change)="toggleShowTopologySummary($event.checked)">
-          Show topology/controllers summary </mat-checkbox
-        ><br />
+          Show topology/controllers summary
+        </mat-checkbox>
         <mat-checkbox [checked]="notificationsVisibility" (change)="toggleNotifications($event.checked)">
-          Show notifications </mat-checkbox
-        ><br />
-        <mat-checkbox [checked]="layersVisibility" (change)="toggleLayers($event.checked)"> Show layers </mat-checkbox
-        ><br />
+          Show notification toasts
+        </mat-checkbox>
+        <mat-checkbox [checked]="layersVisibility" (change)="toggleLayers($event.checked)"> Show layers </mat-checkbox>
         <mat-checkbox [checked]="itemLockStatusVisibility" (change)="toggleItemLockStatus($event.checked)">
           Show item lock status
         </mat-checkbox>
-        <br />
-        <mat-checkbox [checked]="gridVisibility" (change)="toggleGrid($event.checked)"> Show grid </mat-checkbox><br />
+        <mat-checkbox [checked]="gridVisibility" (change)="toggleGrid($event.checked)"> Show grid </mat-checkbox>
         <mat-checkbox [checked]="project.snap_to_grid" (change)="toggleSnapToGrid($event.checked)">
-          Snap to grid </mat-checkbox
-        ><br />
+          Snap to grid
+        </mat-checkbox>
         <mat-checkbox [checked]="symbolScaling" (change)="toggleSymbolScaling($event.checked)">
-          Scale symbols </mat-checkbox
-        ><br />
+          Scale symbols
+        </mat-checkbox>
       </div>
     </mat-menu>
   </div>
@@ -430,4 +432,5 @@
   </div>
 </div>
 
+<app-notification-center></app-notification-center>
 <ng-template #topologySummaryContainer></ng-template>

@@ -20,20 +20,8 @@
   padding: 32px 20px 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--gns3-density-card-gap);
   animation: fadeInSlideIn 0.4s ease-out;
-}
-
-.ethernet-switch-details__back-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  color: var(--mat-sys-on-surface);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    background-color: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
-  }
 }
 
 .ethernet-switch-details__title {
@@ -54,11 +42,6 @@
   animation: fadeInSlideIn 0.4s ease-out 0.1s both;
 }
 
-.ethernet-switch-details--hidden {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
 /* =============================================
 // Form Card
 // ============================================= */
@@ -68,13 +51,13 @@
   overflow: hidden;
   box-shadow: 0 8px 32px color-mix(in srgb, var(--mat-sys-shadow) 20%, transparent),
     0 2px 8px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
-  margin-bottom: 16px;
+  margin-bottom: var(--gns3-density-card-gap);
   display: flex;
   flex-direction: column;
 }
 
 .ethernet-switch-details__section-header {
-  padding: 16px 24px;
+  padding: var(--gns3-density-section-header-padding);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -102,8 +85,8 @@
 .ethernet-switch-details__form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 24px 24px;
+  gap: var(--gns3-density-card-gap);
+  padding: var(--gns3-density-card-padding) var(--gns3-density-card-padding) 24px;
 }
 
 .ethernet-switch-details__field {
@@ -116,13 +99,12 @@
 
 .ethernet-switch-details__symbol-row {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: var(--gns3-density-card-gap);
 }
 
 .ethernet-switch-details__symbol-btn {
-  margin-top: 4px;
-  height: 48px;
+  align-self: stretch;
 }
 
 /* =============================================
@@ -131,7 +113,7 @@
 .ethernet-switch-details__actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--gns3-density-space-3);
   margin-top: 24px;
 }
 
@@ -173,11 +155,6 @@
   .ethernet-switch-details__header {
     padding: 24px 16px 12px;
     gap: 12px;
-  }
-
-  .ethernet-switch-details__back-btn {
-    width: 44px;
-    height: 44px;
   }
 
   .ethernet-switch-details__title {

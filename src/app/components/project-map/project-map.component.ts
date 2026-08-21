@@ -12,7 +12,6 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
@@ -88,17 +87,15 @@ import { ToasterService } from '@services/toaster.service';
 import { ToolsService } from '@services/tools.service';
 import { ThemeService } from '@services/theme.service';
 import { WindowManagementService } from '@services/window-management.service';
+import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 import { AddBlankProjectDialogComponent } from '../projects/add-blank-project-dialog/add-blank-project-dialog.component';
-import { ConfirmationBottomSheetComponent } from '../projects/confirmation-bottomsheet/confirmation-bottomsheet.component';
 import { EditProjectDialogComponent } from '../projects/edit-project-dialog/edit-project-dialog.component';
 import { ImportProjectDialogComponent } from '../projects/import-project-dialog/import-project-dialog.component';
-import { NavigationDialogComponent } from '../projects/navigation-dialog/navigation-dialog.component';
 import { SaveProjectDialogComponent } from '../projects/save-project-dialog/save-project-dialog.component';
 import { NodeAddedEvent } from '../template/template-list-dialog/template-list-dialog.component';
-import { TopologySummaryComponent } from '../topology-summary/topology-summary.component';
+import type { TopologySummaryComponent } from '../topology-summary/topology-summary.component';
 import { ContextMenuComponent } from './context-menu/context-menu.component';
 import { NodeCreatedLabelStylesFixer } from './helpers/node-created-label-styles-fixer';
-import { NewTemplateDialogComponent } from './new-template-dialog/new-template-dialog.component';
 import { ProjectMapMenuComponent } from './project-map-menu/project-map-menu.component';
 import { ProjectReadmeComponent } from './project-readme/project-readme.component';
 import { AiChatStore } from '../../stores/ai-chat.store';
@@ -113,7 +110,6 @@ import { WebWiresharkInlineComponent } from './web-wireshark-inline/web-wireshar
 import { WebConsoleInlineComponent } from './web-console-inline/web-console-inline.component';
 import { NodeFileManagerInlineComponent } from './node-file-manager-inline/node-file-manager-inline.component';
 import { DrawLinkToolComponent } from './draw-link-tool/draw-link-tool.component';
-import { ImportApplianceComponent } from './import-appliance/import-appliance.component';
 import { NodesMenuComponent } from './nodes-menu/nodes-menu.component';
 import { ProgressComponent } from '../../common/progress/progress.component';
 import { TemplateComponent } from '../template/template.component';
@@ -128,6 +124,11 @@ import { TextAddedComponent } from '../drawings-listeners/text-added/text-added.
 import { MarkerLegendComponent } from './marker-legend/marker-legend.component';
 import { MarkerManagerComponent } from './marker-manager/marker-manager.component';
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
+import { createActionCompletion } from '@utils/action-completion.util';
+import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
+import { NotificationCenterService } from '@services/notification-center.service';
+import { describeTopologyItems } from '@utils/topology-delete-summary.util';
+import type { TopologyItemCounts } from '@utils/topology-delete-summary.util';
 
 @Component({
   selector: 'app-project-map',
@@ -150,7 +151,6 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     NodesMenuComponent,
     SnapshotMenuItemComponent,
     TemplateComponent,
-    ImportApplianceComponent,
     ConsoleWrapperComponent,
     AiChatComponent,
     WebWiresharkInlineComponent,
@@ -167,6 +167,7 @@ import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edit
     TextEditedComponent,
     MarkerLegendComponent,
     MarkerManagerComponent,
+    NotificationCenterComponent,
   ],
 })
 export class ProjectMapComponent implements OnInit, OnDestroy {
@@ -267,7 +268,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     };
   });
   private instance: ComponentRef<TopologySummaryComponent>;
-  // private instance: any
+  private destroyed = false;
 
   tools = {
     selection: true,
@@ -329,8 +330,8 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   private mapSettingsService = inject(MapSettingsService);
   private ethernetLinkWidget = inject(EthernetLinkWidget);
   private serialLinkWidget = inject(SerialLinkWidget);
-  private bottomSheet = inject(MatBottomSheet);
   private notificationService = inject(NotificationService);
+  readonly notificationCenter = inject(NotificationCenterService);
   private title = inject(Title);
   private nodeConsoleService = inject(NodeConsoleService);
   private symbolService = inject(SymbolService);
@@ -338,14 +339,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   private cd = inject(ChangeDetectorRef);
   private aiChatStore = inject(AiChatStore);
   public windowManagement = inject(WindowManagementService);
-  private viewContainerRef = inject(ViewContainerRef);
-  // private cfr: ComponentFactoryResolver,
-  // private injector: Injector,
-
-  // constructor(private viewContainerRef: ViewContainerRef) {}
-  // createMyComponent() {this.viewContainerRef.createComponent(MyComponent);}
 
   ngOnInit() {
+    this.notificationCenter.closePanel();
     this.getSettings();
     this.progressService.activate();
 
@@ -376,23 +372,20 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
   async lazyLoadTopologySummary() {
     if (this.isTopologySummaryVisible) {
+      if (this.instance) return;
       // In zoneless mode, we need to explicitly notify Angular after async operations
       const { TopologySummaryComponent } = await import('../topology-summary/topology-summary.component');
+      if (this.destroyed || !this.isTopologySummaryVisible || this.instance) return;
       this.instance = this.topologySummaryContainer().createComponent(TopologySummaryComponent);
-
-      // const componentFactory = this.cfr.resolveComponentFactory(TopologySummaryComponent);
-      // this.instance = this.topologySummaryContainer().createComponent(componentFactory, null, this.injector);
       this.instance.instance.controller = this.controller;
       this.instance.instance.project = this.project;
+      this.instance.instance.openWebConsoleInline.subscribe((data) => this.onOpenWebConsoleInline(data));
       // In zoneless mode, createComponent doesn't automatically trigger change detection
       // We need to explicitly detect changes to ensure the component is rendered
       this.instance.changeDetectorRef.detectChanges();
     } else if (this.instance) {
-      if (this.instance.instance) {
-        this.instance.instance.ngOnDestroy();
-        this.instance.destroy();
-        this.instance = null;
-      }
+      this.instance.destroy();
+      this.instance = null;
     }
   }
 
@@ -554,6 +547,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
           mergeMap((controller: Controller) => {
             if (!controller) this.router.navigate(['/controllers']);
             this.controller = controller;
+            this.nodeWidget.setController(controller);
             this.cd.markForCheck();
             return this.projectService.get(controller, project_id).pipe(
               map((project) => {
@@ -680,21 +674,50 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   deleteItems() {
-    const bottomSheetRef = this.bottomSheet.open(ConfirmationBottomSheetComponent, {
-      data: { message: 'Do you want to delete all selected objects?' },
-      panelClass: 'confirmation-bottom-sheet',
+    const selected = this.selectionManager.getSelected();
+    const selectedNodes = selected.filter((item) => item instanceof MapNode);
+    const selectedLinks = selected.filter((item) => item instanceof MapLink);
+    const selectedDrawings = selected.filter((item) => item instanceof MapDrawing);
+    const selectedCounts: TopologyItemCounts = {
+      nodes: selectedNodes.length,
+      links: selectedLinks.length,
+      drawings: selectedDrawings.length,
+    };
+    const selectedCount = selectedNodes.length + selectedLinks.length + selectedDrawings.length;
+    if (selectedCount === 0) return;
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      panelClass: ['base-confirmation-dialog-panel', 'dialog-small-panel', 'confirmation-danger-panel'],
+      autoFocus: '.cancel-button',
+      data: {
+        title: 'Delete selected objects?',
+        message: `${describeTopologyItems(selectedCounts)} will be permanently deleted.`,
+        note: 'This action cannot be undone.',
+        confirmButtonText: selectedCount === 1 ? 'Delete object' : 'Delete objects',
+        tone: 'danger',
+      },
     });
-    const bottomSheetSubscription = bottomSheetRef.afterDismissed().subscribe((result: boolean) => {
+    dialogRef.afterClosed().subscribe((result: boolean) => {
       if (result) {
-        const selected = this.selectionManager.getSelected();
+        const deletedCounts: TopologyItemCounts = { nodes: 0, links: 0, drawings: 0 };
+        const completion = createActionCompletion(
+          selectedNodes.length + selectedLinks.length + selectedDrawings.length,
+          (count) => {
+            if (count > 0) {
+              this.toasterService.success(`${describeTopologyItems(deletedCounts)} deleted.`);
+            }
+          }
+        );
 
-        selected
-          .filter((item) => item instanceof MapNode)
+        selectedNodes
           .forEach((item: MapNode) => {
             const node = this.mapNodeToNode.convert(item);
             this.nodeService.delete(this.controller, node).subscribe({
-              next: () => this.toasterService.success('Node has been deleted'),
+              next: () => {
+                deletedCounts.nodes++;
+                completion.succeed();
+              },
               error: (err) => {
+                completion.fail();
                 const message = err.error?.message || err.message || 'Failed to delete node';
                 this.toasterService.error(message);
                 this.cd.markForCheck();
@@ -702,13 +725,16 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
             });
           });
 
-        selected
-          .filter((item) => item instanceof MapLink)
+        selectedLinks
           .forEach((item: MapLink) => {
             const link = this.mapLinkToLink.convert(item);
             this.linkService.deleteLink(this.controller, link).subscribe({
-              next: () => this.toasterService.success('Link has been deleted'),
+              next: () => {
+                deletedCounts.links++;
+                completion.succeed();
+              },
               error: (err) => {
+                completion.fail();
                 const message = err.error?.message || err.message || 'Failed to delete link';
                 this.toasterService.error(message);
                 this.cd.markForCheck();
@@ -716,13 +742,16 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
             });
           });
 
-        selected
-          .filter((item) => item instanceof MapDrawing)
+        selectedDrawings
           .forEach((item: MapDrawing) => {
             const drawing = this.mapDrawingToDrawing.convert(item);
             this.drawingService.delete(this.controller, drawing).subscribe({
-              next: () => this.toasterService.success('Drawing has been deleted'),
+              next: () => {
+                deletedCounts.drawings++;
+                completion.succeed();
+              },
               error: (err) => {
+                completion.fail();
                 const message = err.error?.message || err.message || 'Failed to delete drawing';
                 this.toasterService.error(message);
                 this.cd.markForCheck();
@@ -1083,11 +1112,6 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       )
       .subscribe(
         (node: Node) => {
-          // Notify template component of success
-          if (creationId && this.templateComponent()) {
-            this.templateComponent()!.onNodeCreated(creationId, true);
-          }
-
           // Show success toast
           this.toasterService.success(`Node "${node.name}" created successfully`);
 
@@ -1117,9 +1141,18 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
                 nodeAddedEvent.y =
                   nodeAddedEvent.y + 50 < this.project.scene_height / 2 ? nodeAddedEvent.y + 50 : nodeAddedEvent.y;
                 this.onNodeCreation(nodeAddedEvent);
+              } else if (creationId && this.templateComponent()) {
+                this.templateComponent()!.onNodeCreated(creationId, true);
               }
             },
             error: (err) => {
+              if (creationId && this.templateComponent()) {
+                this.templateComponent()!.onNodeCreated(
+                  creationId,
+                  false,
+                  err.error?.message || err.message || 'Failed to load nodes'
+                );
+              }
               this.toasterService.error('Failed to load nodes: ' + (err.error?.message || err.message || 'Unknown error'));
               this.cd.markForCheck();
             },
@@ -1691,10 +1724,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   private showMessage(msg) {
-    if (this.notificationsVisibility) {
-      if (msg.type === 'error') this.toasterService.error(msg.message);
-      if (msg.type === 'warning') this.toasterService.warning(msg.message);
-    }
+    const options = { showToast: this.notificationsVisibility };
+    if (msg.type === 'error') this.toasterService.error(msg.message, options);
+    if (msg.type === 'warning') this.toasterService.warning(msg.message, options);
   }
 
   public hideMenu() {
@@ -1724,7 +1756,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
   addNewProject() {
     const dialogRef = this.dialog.open(AddBlankProjectDialogComponent, {
-      width: '400px',
+      panelClass: ['base-dialog-panel', 'dialog-small-panel'],
       autoFocus: false,
       disableClose: true,
     });
@@ -1734,7 +1766,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
   saveProject() {
     const dialogRef = this.dialog.open(SaveProjectDialogComponent, {
-      width: '400px',
+      panelClass: ['base-dialog-panel', 'dialog-small-panel'],
       autoFocus: false,
       disableClose: true,
     });
@@ -1764,7 +1796,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   importProject() {
     let uuid: string = '';
     const dialogRef = this.dialog.open(ImportProjectDialogComponent, {
-      width: '400px',
+      panelClass: ['base-dialog-panel', 'dialog-small-panel'],
       autoFocus: false,
       disableClose: true,
     });
@@ -1777,11 +1809,19 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe((isCancel: boolean) => {
       subscription.unsubscribe();
       if (uuid && !isCancel) {
-        this.bottomSheet.open(NavigationDialogComponent);
-        let bottomSheetRef = this.bottomSheet._openedBottomSheetRef;
-        bottomSheetRef.instance.projectMessage = 'imported project';
+        const navigationDialogRef = this.dialog.open(ConfirmationDialogComponent, {
+          panelClass: ['base-confirmation-dialog-panel', 'dialog-small-panel'],
+          autoFocus: '.cancel-button',
+          data: {
+            title: 'Open imported project?',
+            message: 'The project was imported successfully. Would you like to open it now?',
+            confirmButtonText: 'Open project',
+            tone: 'neutral',
+            icon: 'folder_open',
+          },
+        });
 
-        const bottomSheetSubscription = bottomSheetRef.afterDismissed().subscribe((result: boolean) => {
+        navigationDialogRef.afterClosed().subscribe((result: boolean) => {
           if (result) {
             this.projectService.open(this.controller, uuid).subscribe({
               next: () => {
@@ -1818,14 +1858,12 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   exportPortableProjectDialog() {
-    const dialogRef = this.dialog.open(ExportPortableProjectComponent, {
-      panelClass: ['base-dialog-panel', 'simple-dialog-panel'],
+    this.dialog.open(ExportPortableProjectComponent, {
+      panelClass: ['base-dialog-panel', 'dialog-medium-panel'],
       autoFocus: false,
       disableClose: true,
       data: { controllerDetails: this.controller, projectDetails: this.project },
     });
-
-    dialogRef.afterClosed().subscribe((isAddes: boolean) => {});
   }
 
   public uploadImageFile(event) {
@@ -1845,7 +1883,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       this.drawingService
         .add(this.controller, this.project.project_id, -(imageToUpload.width / 2), -(imageToUpload.height / 2), svg)
         .subscribe({
-          next: () => {},
+          next: () => this.toasterService.success('Image added to the topology.'),
           error: (err) => {
             const message = err.error?.message || err.message || 'Failed to add image';
             this.toasterService.error(message);
@@ -1861,14 +1899,22 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   public closeProject() {
-    const bottomSheetRef = this.bottomSheet.open(ConfirmationBottomSheetComponent, {
-      data: { message: 'Do you want to close the project?' },
-      panelClass: 'confirmation-bottom-sheet',
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      panelClass: ['base-confirmation-dialog-panel', 'dialog-small-panel', 'confirmation-warning-panel'],
+      autoFocus: '.cancel-button',
+      data: {
+        title: 'Close project?',
+        message: `Close "${this.project.name}"? Open consoles for this project will be disconnected.`,
+        confirmButtonText: 'Close project',
+        tone: 'warning',
+        icon: 'folder_off',
+      },
     });
-    const bottomSheetSubscription = bottomSheetRef.afterDismissed().subscribe((result: boolean) => {
+    dialogRef.afterClosed().subscribe((result: boolean) => {
       if (result) {
         this.projectService.close(this.controller, this.project.project_id).subscribe({
           next: () => {
+            this.toasterService.success(`Project "${this.project.name}" closed.`);
             this.router.navigate(['/controller', this.controller.id, 'projects']);
           },
           error: (err) => {
@@ -1882,14 +1928,22 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   public deleteProject() {
-    const bottomSheetRef = this.bottomSheet.open(ConfirmationBottomSheetComponent, {
-      data: { message: 'Do you want to delete the project?' },
-      panelClass: 'confirmation-bottom-sheet',
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      panelClass: ['base-confirmation-dialog-panel', 'dialog-small-panel', 'confirmation-danger-panel'],
+      autoFocus: '.cancel-button',
+      data: {
+        title: 'Delete project?',
+        message: `"${this.project.name}" and its project files will be permanently deleted.`,
+        note: 'This action cannot be undone.',
+        confirmButtonText: 'Delete project',
+        tone: 'danger',
+      },
     });
-    const bottomSheetSubscription = bottomSheetRef.afterDismissed().subscribe((result: boolean) => {
+    dialogRef.afterClosed().subscribe((result: boolean) => {
       if (result) {
         this.projectService.delete(this.controller, this.project.project_id).subscribe({
           next: () => {
+            this.toasterService.success(`Project "${this.project.name}" deleted.`);
             this.router.navigate(['/controller', this.controller.id, 'projects']);
           },
           error: (err) => {
@@ -1902,23 +1956,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     });
   }
 
-  public addNewTemplate() {
-    const dialogRef = this.dialog.open(NewTemplateDialogComponent, {
-      width: '800px',
-      maxHeight: '800px',
-      autoFocus: false,
-      disableClose: true,
-      panelClass: ['base-dialog-panel', 'configurator-dialog-panel', 'new-template-dialog-panel'],
-    });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
-  }
-
   public showReadme() {
     const dialogRef = this.dialog.open(ProjectReadmeComponent, {
-      width: '600px',
-      height: '650px',
+      panelClass: ['base-dialog-panel', 'dialog-medium-panel'],
       autoFocus: false,
       disableClose: true,
     });
@@ -1928,6 +1968,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   }
 
   public ngOnDestroy(): void {
+    this.destroyed = true;
+    this.notificationCenter.closePanel();
+
     // Close AI Chat when leaving project
     this.onLeaveProject();
 

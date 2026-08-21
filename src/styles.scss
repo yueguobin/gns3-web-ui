@@ -9,6 +9,8 @@
 @use 'styles/map' as *;
 @use 'styles/xterm-context-menu' as *;
 @use 'styles/markdown' as *;
+@use 'styles/template-wizard' as *;
+@use 'styles/density-tokens' as *;
 
 /* =============================================
 // Global Scrollbar Styles
@@ -69,39 +71,21 @@
 }
 
 /* =============================================
-// ToasterService Snackbar Styles
-// Material 3 themed notification styles
+// Notification toast overlay
 // ============================================= */
-.snackabar-success {
-  .mat-mdc-snack-bar-surface {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-    border-radius: 8px;
-  }
-  .mat-mdc-snack-bar-label {
-    white-space: pre-line;
-  }
-}
+.gns3-toast-panel.mat-mdc-snack-bar-container {
+  --mat-snack-bar-container-color: transparent;
+  --mat-snack-bar-supporting-text-color: var(--mat-sys-on-surface);
 
-.snackabar-warning {
-  .mat-mdc-snack-bar-surface {
-    background-color: var(--mat-sys-tertiary);
-    color: var(--mat-sys-on-tertiary);
-    border-radius: 8px;
+  .mat-mdc-snackbar-surface {
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
   }
-  .mat-mdc-snack-bar-label {
-    white-space: pre-line;
-  }
-}
 
-.snackabar-error {
-  .mat-mdc-snack-bar-surface {
-    background-color: var(--mat-sys-error);
-    color: var(--mat-sys-on-error);
-    border-radius: 8px;
-  }
   .mat-mdc-snack-bar-label {
-    white-space: pre-line;
+    padding: 0;
   }
 }
 
@@ -116,6 +100,59 @@
 
 .full-width-field {
   width: 100%;
+}
+
+/*
+ * Search, filter, and sort controls use a consistent rounded shape across
+ * management pages. The selectors intentionally target semantic field
+ * classes so regular data-entry forms retain their existing appearance.
+ */
+:where(mat-form-field[class*='search'], mat-form-field[class*='filter'], mat-form-field[class*='sort']) {
+  --mat-form-field-filled-container-shape: 12px;
+  --mat-form-field-outlined-container-shape: 0;
+}
+
+:where(
+    mat-form-field[class*='search'],
+    mat-form-field[class*='filter'],
+    mat-form-field[class*='sort']
+  ).mat-form-field-appearance-fill
+  .mat-mdc-text-field-wrapper {
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+:where(
+    mat-form-field[class*='search'],
+    mat-form-field[class*='filter'],
+    mat-form-field[class*='sort']
+  ).mat-form-field-appearance-outline
+  .mdc-notched-outline__leading {
+  border-radius: 12px 0 0;
+}
+
+:where(
+    mat-form-field[class*='search'],
+    mat-form-field[class*='filter'],
+    mat-form-field[class*='sort']
+  ).mat-form-field-appearance-outline
+  .mdc-notched-outline__trailing {
+  border-radius: 0 12px 0 0;
+}
+
+/*
+ * Data-table headers need clear separation from the page in every theme.
+ * `surface-container-highest` remains neutral in the Azure dark theme while
+ * the primary inset accent and sort arrow retain the active theme identity.
+ */
+html body .mat-mdc-table .mat-mdc-header-row {
+  background: var(--mat-sys-surface-container-highest);
+  box-shadow: inset 0 -2px var(--mat-sys-primary);
+  --mat-sort-arrow-color: var(--mat-sys-primary);
+}
+
+html body .mat-mdc-table .mat-mdc-header-row .mat-mdc-header-cell {
+  color: var(--mat-sys-on-surface);
 }
 
 app-root {
@@ -151,17 +188,36 @@ body .cdk-overlay-container .mat-mdc-menu-content.mat-mdc-menu-content {
   overflow: visible;
 }
 
-/* =============================================
-// Interface Menu Panel
-// ============================================= */
-body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.interface-menu-panel {
+body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.mat-mdc-menu-panel {
   max-height: 600px;
   overflow-y: auto;
 }
 
-body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.mat-mdc-menu-panel {
-  max-height: 600px;
-  overflow-y: auto;
+/* =============================================
+// Topology Context Menus
+// ============================================= */
+body
+  .cdk-overlay-container
+  .cdk-overlay-pane
+  :is(
+      .mat-mdc-menu-panel.context-menu-items,
+      .mat-mdc-menu-panel.interface-menu-panel,
+      .mat-mdc-menu-panel.map-settings-menu
+    ) {
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .mat-mdc-menu-item,
+  .mat-mdc-menu-item-text {
+    white-space: nowrap;
+  }
 }
 
 /* Template menu - fixed width and increased height to prevent double scrollbar */
@@ -190,6 +246,40 @@ body .cdk-overlay-container .cdk-overlay-pane .mat-mdc-menu-panel.template-menu 
 
 .mat-tab-header-pagination-controls-enabled .mat-tab-header-pagination {
   display: none;
+}
+
+/* Topology inspector tabs are scoped here because Material owns the nested tab DOM. */
+.topology-inspector .inspector-tabs {
+  .mat-mdc-tab-header {
+    flex: 0 0 auto;
+    padding-inline: var(--gns3-density-space-3);
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    cursor: move;
+    user-select: none;
+  }
+
+  .mat-mdc-tab {
+    min-width: 136px;
+  }
+
+  .mdc-tab__content {
+    gap: var(--gns3-density-space-2);
+  }
+
+  .mat-mdc-tab-body-wrapper,
+  .mat-mdc-tab-body,
+  .mat-mdc-tab-body-content {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mat-mdc-tab-body-wrapper {
+    flex: 1 1 auto;
+  }
+
+  .mat-mdc-tab-body-content {
+    overflow: hidden;
+  }
 }
 
 /* =============================================
@@ -511,7 +601,7 @@ mat-form-field {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-top: 16px;
+    margin-top: var(--gns3-density-space-4);
   }
 
   .mat-mdc-form-field-subscript-wrapper {
@@ -524,6 +614,12 @@ mat-form-field {
   }
 }
 
+/* In compact density, form fields reserve no extra helper-text space below
+   the input, which tightens the vertical rhythm of dense forms. */
+html[data-density='compact'] mat-form-field .mat-mdc-form-field-subscript-wrapper {
+  margin-top: 0;
+}
+
 /* Vertically center text prefix (e.g. "global-" in marker name field) */
 .mat-mdc-form-field-text-prefix {
   align-self: center;
@@ -533,10 +629,30 @@ mat-form-field {
 // Menu Density
 // ============================================= */
 .mat-mdc-menu-panel {
+  --gns3-menu-item-min-height: 48px;
+  --gns3-menu-item-hover-background: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 12%,
+    var(--mat-menu-container-color, var(--mat-sys-surface-container))
+  );
+  --gns3-menu-item-focus-background: color-mix(
+    in srgb,
+    var(--mat-sys-primary) 16%,
+    var(--mat-menu-container-color, var(--mat-sys-surface-container))
+  );
+  --mat-menu-item-hover-state-layer-color: var(--gns3-menu-item-hover-background);
+  --mat-menu-item-focus-state-layer-color: var(--gns3-menu-item-focus-background);
+}
+
+.mat-mdc-menu-panel .mat-mdc-menu-item {
+  min-height: var(--gns3-menu-item-min-height);
+}
+
+html[data-density='compact'] .mat-mdc-menu-panel {
   --gns3-menu-item-min-height: 40px;
 }
 
-.mat-mdc-menu-panel.context-menu-items {
+.mat-mdc-menu-panel:is(.context-menu-items, .interface-menu-panel, .map-settings-menu) {
   --gns3-menu-item-min-height: 36px;
 
   .mat-mdc-menu-content {
@@ -544,13 +660,96 @@ mat-form-field {
   }
 }
 
-.mat-mdc-menu-panel .mat-mdc-menu-item {
-  min-height: var(--gns3-menu-item-min-height);
+/* Workspace style controls are scoped globally so their Material fields share
+   the same density metrics as the rest of the application. */
+app-settings {
+  .settings__setting-row.settings__setting-row--style {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 860px);
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--gns3-density-space-5);
+  }
+
+  .settings__style-fields {
+    display: grid;
+    min-width: 0;
+    width: 100%;
+    max-width: 860px;
+    align-items: center;
+    gap: var(--gns3-density-space-4);
+
+    &--text,
+    &--link {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+  }
+
+  .settings__color-field {
+    display: grid;
+    height: var(--gns3-density-form-field-height);
+    box-sizing: border-box;
+    grid-template-columns: auto 32px minmax(62px, 1fr);
+    align-items: center;
+    gap: var(--gns3-density-space-2);
+    padding-inline: var(--gns3-density-space-3);
+    border: 1px solid var(--mat-sys-outline);
+    border-radius: var(--gns3-density-radius-sm);
+    color: var(--mat-sys-on-surface-variant);
+    background: var(--mat-sys-surface-container-lowest);
+    font: var(--mat-sys-body-small);
+
+    input {
+      width: 32px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    code {
+      overflow: hidden;
+      color: var(--mat-sys-on-surface);
+      font: var(--mat-sys-label-small);
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+    }
+  }
 }
 
-// Restore Material's touch-friendly target size on coarse-pointer devices.
-@media (pointer: coarse) {
-  .mat-mdc-menu-panel {
-    --gns3-menu-item-min-height: 48px;
+@media (max-width: 1180px) {
+  app-settings {
+    .settings__setting-row.settings__setting-row--style {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--gns3-density-space-3);
+    }
+
+    .settings__setting-row--style .settings__setting-copy {
+      max-width: none;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  app-settings {
+    .settings__style-fields--text,
+    .settings__style-fields--link {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+html[data-density='compact'] app-settings {
+  .settings__setting-row.settings__setting-row--style {
+    gap: var(--gns3-density-space-4);
+  }
+
+  .settings__style-fields {
+    gap: var(--gns3-density-space-3);
   }
 }

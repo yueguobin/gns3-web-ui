@@ -6,22 +6,23 @@ import {
   OnDestroy,
   OnInit,
   inject,
+  signal,
 } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { ProjectService } from '@services/project.service';
 import { filter, Subscription } from 'rxjs';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { ProgressService } from '../../common/progress/progress.service';
-import { NewTemplateDialogComponent } from '@components/project-map/new-template-dialog/new-template-dialog.component';
 import { LoggedUserComponent } from '@components/users/logged-user/logged-user.component';
 import { AiProfileDialogComponent } from '@components/user-management/ai-profile-dialog/ai-profile-dialog.component';
-import { ApiKeyManagementDialogComponent } from '@components/api-key-management/api-key-management-dialog.component';
-import { ApiKeyManagementDialogData } from '@components/api-key-management/api-key-management-dialog.component';
+import {
+  ApiKeyManagementDialogComponent,
+  ApiKeyManagementDialogData,
+} from '@components/api-key-management/api-key-management-dialog.component';
 import { Controller } from '@models/controller';
-import { Project } from '@models/project';
+import { User } from '@models/users/user';
 import { ControllerManagementService } from '@services/controller-management.service';
 import { ControllerService } from '@services/controller.service';
-import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
 import { ToasterService } from '@services/toaster.service';
 import { UserService } from '@services/user.service';
 import { ConnectionManagerService } from '@services/connection-manager.service';
@@ -31,8 +32,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
+import { NotificationCenterService } from '@services/notification-center.service';
 
 @Component({
   selector: 'app-default-layout',
@@ -46,26 +51,29 @@ import { CommonModule } from '@angular/common';
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    MatSidenavModule,
+    MatListModule,
     ProgressComponent,
+    NotificationCenterComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DefaultLayoutComponent implements OnInit, OnDestroy {
   public isInstalledSoftwareAvailable = false;
-  public isLoginPage = false;
-  public routeSubscription;
+  private routeSubscription: Subscription;
+  private breakpointSubscription: Subscription;
 
   controllerStatusSubscription: Subscription;
   shouldStopControllersOnClosing = true;
-  recentlyOpenedcontrollerId: string;
-  recentlyOpenedProjectId: string;
-  controllerIdProjectList: string;
   controllerId: string | undefined | null;
   public controller: Controller;
-  public project: Project;
-  private projectMapSubscription: Subscription = new Subscription();
 
-  private recentlyOpenedProjectService = inject(RecentlyOpenedProjectService);
+  // Sidebar state
+  readonly sidenavOpened = signal(true);
+  readonly isSmallScreen = signal(false);
+  readonly sidebarMode = signal<'side' | 'over'>('side');
+  readonly isAdministrator = signal(false);
+
   private controllerManagement = inject(ControllerManagementService);
   private toasterService = inject(ToasterService);
   private userService = inject(UserService);
@@ -74,29 +82,27 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   public router = inject(Router);
   private route = inject(ActivatedRoute);
   private controllerService = inject(ControllerService);
-  private projectService = inject(ProjectService);
   private cd = inject(ChangeDetectorRef);
   private connectionManager = inject(ConnectionManagerService);
+  private breakpointObserver = inject(BreakpointObserver);
+  readonly notificationCenter = inject(NotificationCenterService);
 
   ngOnInit() {
+    this.notificationCenter.closePanel();
     // Use filter and proper subscription for NavigationEnd
     this.routeSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => {
+        this.notificationCenter.closePanel();
         // Recursively traverse the route tree to find controller_id
         this.controllerId = this.getParamFromRoute(this.route, 'controller_id');
         this.getData();
-        this.checkIfUserIsLoginPage();
         this.cd.markForCheck();
       });
 
     // Initial load
     this.controllerId = this.getParamFromRoute(this.route, 'controller_id');
     this.getData();
-
-    this.recentlyOpenedcontrollerId = this.recentlyOpenedProjectService.getcontrollerId();
-    this.recentlyOpenedProjectId = this.recentlyOpenedProjectService.getProjectId();
-    this.controllerIdProjectList = this.recentlyOpenedProjectService.getcontrollerIdProjectList();
 
     this.isInstalledSoftwareAvailable = false; // Web application
 
@@ -116,6 +122,26 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
 
     // stop controllers only when in Electron (not applicable for web)
     this.shouldStopControllersOnClosing = false;
+
+    // Responsive sidebar: observe small screen breakpoints
+    this.breakpointSubscription = this.breakpointObserver
+      .observe([Breakpoints.XSmall, Breakpoints.Small])
+      .subscribe((state) => {
+        const small = state.matches;
+        this.isSmallScreen.set(small);
+        if (small) {
+          this.sidenavOpened.set(false);
+          this.sidebarMode.set('over');
+        } else {
+          this.sidenavOpened.set(true);
+          this.sidebarMode.set('side');
+        }
+        this.cd.markForCheck();
+      });
+  }
+
+  toggleSidenav() {
+    this.sidenavOpened.update((v) => !v);
   }
 
   /**
@@ -172,14 +198,6 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
     });
   }
 
-  checkIfUserIsLoginPage() {
-    if (this.router.url.includes('login')) {
-      this.isLoginPage = true;
-    } else {
-      this.isLoginPage = false;
-    }
-  }
-
   logout() {
     this.controllerService.get(+this.controllerId).then((controller: Controller) => {
       // Clear refresh token
@@ -194,18 +212,6 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
           this.router.navigate(['/controller', controller.id, 'login']);
         });
     });
-  }
-
-  listProjects() {
-    this.router
-      .navigate(['/controller', this.controllerIdProjectList, 'projects'])
-      .catch((error) => this.toasterService.error('Cannot list projects'));
-  }
-
-  backToProject() {
-    this.router
-      .navigate(['/controller', this.recentlyOpenedcontrollerId, 'project', this.recentlyOpenedProjectId])
-      .catch((error) => this.toasterService.error('Cannot navigate to the last opened project'));
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -223,31 +229,58 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
     return false;
   }
   getData() {
-    this.controllerService.get(+this.controllerId).then((controller: Controller) => {
-      this.controller = controller;
-    });
-  }
+    const requestedControllerId = this.controllerId;
+    this.controller = undefined;
+    this.isAdministrator.set(false);
 
-  public addNewTemplate() {
-    if (!this.controller) {
-      this.toasterService.error('Please select a controller first');
+    const numericControllerId = Number(requestedControllerId);
+    if (!Number.isInteger(numericControllerId) || numericControllerId <= 0) {
+      this.cd.markForCheck();
       return;
     }
 
-    const dialogRef = this.dialog.open(NewTemplateDialogComponent, {
-      width: '800px',
-      maxHeight: '800px',
-      autoFocus: false,
-      disableClose: true,
-      panelClass: ['base-dialog-panel', 'configurator-dialog-panel', 'new-template-dialog-panel'],
-    });
-    let instance = dialogRef.componentInstance;
-    instance.controller = this.controller;
-    instance.project = this.project;
+    this.controllerService.get(numericControllerId).then(
+      (controller: Controller) => {
+        if (this.controllerId !== requestedControllerId) {
+          return;
+        }
+
+        this.controller = controller;
+        if (!controller) {
+          this.cd.markForCheck();
+          return;
+        }
+        this.userService.getInformationAboutLoggedUser(controller).subscribe({
+          next: (user: User) => {
+            if (this.controllerId !== requestedControllerId) {
+              return;
+            }
+            this.isAdministrator.set(Boolean(user.is_superadmin));
+            this.cd.markForCheck();
+          },
+          error: () => {
+            if (this.controllerId !== requestedControllerId) {
+              return;
+            }
+            this.isAdministrator.set(false);
+            this.cd.markForCheck();
+          },
+        });
+      },
+      () => {
+        if (this.controllerId !== requestedControllerId) {
+          return;
+        }
+        this.controller = undefined;
+        this.isAdministrator.set(false);
+        this.cd.markForCheck();
+      }
+    );
   }
 
   ngOnDestroy() {
-    this.controllerStatusSubscription.unsubscribe();
-    this.routeSubscription.unsubscribe();
+    this.controllerStatusSubscription?.unsubscribe();
+    this.routeSubscription?.unsubscribe();
+    this.breakpointSubscription?.unsubscribe();
   }
 }

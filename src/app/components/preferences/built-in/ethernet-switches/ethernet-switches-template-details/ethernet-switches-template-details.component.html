@@ -1,23 +1,36 @@
 <div class="ethernet-switch-details">
   <header class="ethernet-switch-details__header">
-    @if (controller) {
-    <button class="ethernet-switch-details__back-btn" (click)="goBack()" mat-icon-button>
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    }
-    <h1 class="ethernet-switch-details__title">Ethernet switch template configuration</h1>
+    <div class="ethernet-switch-details__heading-row">
+      <div>
+        <div class="ethernet-switch-details__breadcrumb">
+          <button type="button" mat-button (click)="goBack()">Templates</button><mat-icon>chevron_right</mat-icon
+          ><span>Edit</span>
+        </div>
+        <h1 class="ethernet-switch-details__title">Edit template</h1>
+      </div>
+      <div class="ethernet-switch-details__header-actions">
+        <button type="button" mat-stroked-button (click)="goBack()">Back to templates</button>
+      </div>
+    </div>
   </header>
 
   @if (ethernetSwitchTemplate) {
   <main class="ethernet-switch-details__content">
+    <nav class="template-edit-tabs" aria-label="Template settings">
+      <button type="button" [class.is-active]="activeSection === 'general'" (click)="selectSection('general')">
+        General settings
+      </button>
+      <button type="button" [class.is-active]="activeSection === 'ports'" (click)="selectSection('ports')">Port settings</button>
+      <button type="button" [class.is-active]="activeSection === 'usage'" (click)="selectSection('usage')">Usage</button>
+    </nav>
     <section class="ethernet-switch-details__form-card">
-      <div class="ethernet-switch-details__section-header" (click)="toggleSection('general')">
+      <div class="ethernet-switch-details__section-header" (click)="selectSection('general')">
         <h3 class="ethernet-switch-details__section-title">General settings</h3>
         <mat-icon class="ethernet-switch-details__expand-icon">{{
-          generalSettingsExpanded() ? 'expand_less' : 'expand_more'
+          activeSection === 'general' ? 'expand_less' : 'expand_more'
         }}</mat-icon>
       </div>
-      @if (generalSettingsExpanded()) {
+      @if (activeSection === 'general') {
       <form class="ethernet-switch-details__form">
         <mat-form-field appearance="fill" class="ethernet-switch-details__field">
           <mat-label>Template name</mat-label>
@@ -52,7 +65,16 @@
               placeholder="Symbol"
             />
           </mat-form-field>
-          <button mat-button class="ethernet-switch-details__symbol-btn" (click)="chooseSymbol()">Choose symbol</button>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            class="ethernet-switch-details__symbol-btn"
+            (click)="chooseSymbol()"
+          >
+            <mat-icon>add</mat-icon>
+            Choose symbol
+          </button>
         </div>
 
         <mat-form-field appearance="fill" class="ethernet-switch-details__field">
@@ -100,25 +122,28 @@
     </section>
 
     <section class="ethernet-switch-details__form-card">
-      <div class="ethernet-switch-details__section-header" (click)="toggleSection('ports')">
+      <div class="ethernet-switch-details__section-header" (click)="selectSection('ports')">
         <h3 class="ethernet-switch-details__section-title">Port settings</h3>
         <mat-icon class="ethernet-switch-details__expand-icon">{{
-          portsExpanded() ? 'expand_less' : 'expand_more'
+          activeSection === 'ports' ? 'expand_less' : 'expand_more'
         }}</mat-icon>
       </div>
-      @if (portsExpanded()) {
-      <app-ports #ports [ethernetPorts]="ethernetSwitchTemplate.ports_mapping"></app-ports>
+      @if (activeSection === 'ports') {
+      <app-ports
+        [ethernetPorts]="ethernetSwitchTemplate.ports_mapping"
+        (ethernetPortsChange)="ethernetSwitchTemplate.ports_mapping = $event"
+      ></app-ports>
       }
     </section>
 
     <section class="ethernet-switch-details__form-card">
-      <div class="ethernet-switch-details__section-header" (click)="toggleSection('usage')">
+      <div class="ethernet-switch-details__section-header" (click)="selectSection('usage')">
         <h3 class="ethernet-switch-details__section-title">Usage</h3>
         <mat-icon class="ethernet-switch-details__expand-icon">{{
-          usageExpanded() ? 'expand_less' : 'expand_more'
+          activeSection === 'usage' ? 'expand_less' : 'expand_more'
         }}</mat-icon>
       </div>
-      @if (usageExpanded()) {
+      @if (activeSection === 'usage') {
       <div class="preferences__usage-form">
         <mat-form-field appearance="fill" class="preferences__usage-field--full">
           <mat-label>Usage notes</mat-label>

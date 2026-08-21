@@ -32,7 +32,6 @@
  */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ChangeDetectorRef, input, signal, ViewContainerRef, NO_ERRORS_SCHEMA } from '@angular/core';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
@@ -215,7 +214,6 @@ describe('ProjectMapComponent', () => {
   let mockThemeService: any;
   let mockAiChatStore: any;
   let mockMatDialog: any;
-  let mockMatBottomSheet: any;
   let mockRouter: any;
   let mockActivatedRoute: any;
   let mockTitle: any;
@@ -372,6 +370,7 @@ describe('ProjectMapComponent', () => {
     };
 
     mockNodeWidget = {
+      setController: vi.fn(),
       onContextMenu: new Subject<NodeContextMenu>(),
     };
 
@@ -559,13 +558,6 @@ describe('ProjectMapComponent', () => {
       open: vi.fn().mockReturnValue({
         afterClosed: vi.fn().mockReturnValue(of(false)),
         componentInstance: { onImportProject: of(null) },
-      }),
-    };
-
-    mockMatBottomSheet = {
-      open: vi.fn().mockReturnValue({
-        afterDismissed: vi.fn().mockReturnValue(of(false)),
-        instance: { projectMessage: '' },
       }),
     };
 
@@ -772,7 +764,6 @@ describe('ProjectMapComponent', () => {
         { provide: ThemeService, useValue: mockThemeService },
         { provide: AiChatStore, useValue: mockAiChatStore },
         { provide: MatDialog, useValue: mockMatDialog },
-        { provide: MatBottomSheet, useValue: mockMatBottomSheet },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Title, useValue: mockTitle },
@@ -882,6 +873,39 @@ describe('ProjectMapComponent', () => {
       expect(component.toolbarVisibility).toBe(true);
       expect(component.symbolScaling).toBe(true);
       expect(component.isAIChatVisible).toBe(false);
+    });
+
+    it('should persist topology inspector visibility and update its lazy-loaded state', () => {
+      const lazyLoadSpy = vi.mocked(component.lazyLoadTopologySummary);
+
+      component.toggleShowTopologySummary(false);
+
+      expect(component.isTopologySummaryVisible).toBe(false);
+      expect(mockMapSettingsService.toggleTopologySummary).toHaveBeenCalledWith(false);
+      expect(lazyLoadSpy).toHaveBeenCalled();
+    });
+
+    it('should complete a dragged batch only after the final node is created', () => {
+      const creationTracker = { onNodeCreated: vi.fn() };
+      vi.spyOn(component as any, 'templateComponent').mockReturnValue(creationTracker);
+      component.controller = mockController;
+      component.project = mockProject;
+      mockNodeService.createFromTemplate.mockReturnValue(of({ name: 'Router' } as Node));
+      mockProjectService.nodes.mockReturnValue(of([]));
+      const event = {
+        template: { name: 'Router' },
+        controller: 'local',
+        numberOfNodes: 3,
+        x: 0,
+        y: 0,
+        creationId: 'batch-1',
+      } as any;
+
+      component.onNodeCreation(event);
+
+      expect(mockNodeService.createFromTemplate).toHaveBeenCalledTimes(3);
+      expect(creationTracker.onNodeCreated).toHaveBeenCalledTimes(1);
+      expect(creationTracker.onNodeCreated).toHaveBeenCalledWith('batch-1', true);
     });
   });
 

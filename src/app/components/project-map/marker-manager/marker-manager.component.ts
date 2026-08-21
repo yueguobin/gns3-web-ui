@@ -16,7 +16,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { AbstractControl, ReactiveFormsModule, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -61,7 +61,7 @@ interface DefinitionRow {
   color: string | null;
   highlight_duration: number | null;
   direction: 'tx' | 'rx' | null;
-  data_link_type: string;
+  data_link_type: string | null;
   linkCount: number;
   paused: boolean;
 }
@@ -78,7 +78,7 @@ interface GroupMarker extends AggregateMarkerEntry {
 }
 
 /** A marker definition name may not start with the reserved `global` prefix. */
-function notGlobalName(control: UntypedFormControl): { notGlobalName: true } | null {
+function notGlobalName(control: AbstractControl): { notGlobalName: true } | null {
   const v = control.value;
   if (typeof v === 'string' && v.trim().toLowerCase().startsWith('global')) {
     return { notGlobalName: true };
@@ -559,13 +559,16 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const dltChanged = !!editing && origDlt !== (v.data_link_type ?? null);
     const done = () => {
       this.submittingDefinition.set(false);
+      this.toasterService.success(`Marker definition "${body.name}" ${editing ? 'updated' : 'created'}.`);
       this.cancelEditDefinition();
       this.loadDefinitions();
       this.loadAggregate();
     };
     const fail = (err: any) => {
       this.submittingDefinition.set(false);
-      this.defError.set(err.error?.message || err.message || 'Failed to save definition');
+      const message = err.error?.message || err.message || 'Failed to save definition';
+      this.defError.set(message);
+      this.toasterService.error(message);
       this.cdr.markForCheck();
     };
     const runUpdate = () => {
@@ -644,13 +647,16 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.markerService.deleteDefinition(controller, project.project_id, row.name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.deletingDefinition.set(null);
+        this.toasterService.success(`Marker definition "${row.name}" deleted.`);
         if (this.editingDefinition() === row.name) this.cancelEditDefinition();
         this.loadDefinitions();
         this.loadAggregate();
       },
       error: (err) => {
         this.deletingDefinition.set(null);
-        this.defError.set(err.error?.message || err.message || 'Failed to delete definition');
+        const message = err.error?.message || err.message || 'Failed to delete definition';
+        this.defError.set(message);
+        this.toasterService.error(message);
         this.cdr.markForCheck();
       },
     });
@@ -806,6 +812,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.markerService.create(controller, project.project_id, linkId, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.submittingMarker.set(null);
+        this.toasterService.success(`Marker "${body.name}" created.`);
         // Close the create form and return to the list — same behavior in the
         // selected-link and aggregate views. (The selected-link view previously
         // kept the form open via markerForm.reset().)
@@ -815,7 +822,9 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submittingMarker.set(null);
-        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to create marker' });
+        const message = err.error?.message || err.message || 'Failed to create marker';
+        this.linkError.set({ linkId, message });
+        this.toasterService.error(message);
         this.cdr.markForCheck();
       },
     });
@@ -832,12 +841,15 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.markerService.delete(controller, project.project_id, linkId, name).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.deletingMarker.set(null);
+        this.toasterService.success(`Marker "${name}" deleted.`);
         this.refreshLink(linkId);
         this.loadAggregate();
       },
       error: (err) => {
         this.deletingMarker.set(null);
-        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to delete marker' });
+        const message = err.error?.message || err.message || 'Failed to delete marker';
+        this.linkError.set({ linkId, message });
+        this.toasterService.error(message);
         this.cdr.markForCheck();
       },
     });
@@ -897,13 +909,16 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     this.markerService.update(controller, project.project_id, linkId, editing.name, body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.submittingEditMarker.set(false);
+        this.toasterService.success(`Marker "${editing.name}" updated.`);
         this.editingMarker.set(null);
         this.refreshLink(linkId);
         this.loadAggregate();
       },
       error: (err) => {
         this.submittingEditMarker.set(false);
-        this.linkError.set({ linkId, message: err.error?.message || err.message || 'Failed to update marker' });
+        const message = err.error?.message || err.message || 'Failed to update marker';
+        this.linkError.set({ linkId, message });
+        this.toasterService.error(message);
         this.cdr.markForCheck();
       },
     });

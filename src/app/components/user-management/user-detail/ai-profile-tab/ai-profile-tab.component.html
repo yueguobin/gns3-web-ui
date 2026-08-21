@@ -14,7 +14,7 @@
       </button>
       <button mat-raised-button color="primary" (click)="openCreateDialog()">
         <mat-icon>add</mat-icon>
-        New Configuration
+        New profile
       </button>
     </div>
   </div>
@@ -106,8 +106,7 @@
                   <button
                     mat-icon-button
                     (click)="deleteConfig(config)"
-                    color="warn"
-                    class="delete-btn"
+                    class="delete-btn destructive-icon-button"
                     [disabled]="!isEditable(config)"
                   >
                     <mat-icon>delete</mat-icon>

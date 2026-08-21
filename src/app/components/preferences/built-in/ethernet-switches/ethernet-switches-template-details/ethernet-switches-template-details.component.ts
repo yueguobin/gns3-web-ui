@@ -1,6 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, ViewChild, model, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, model, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,15 +18,19 @@ import { PortsComponent } from '../../../common/ports/ports.component';
 import { TemplateSymbolDialogComponent } from '@components/project-map/template-symbol-dialog/template-symbol-dialog.component';
 import { DialogConfigService } from '@services/dialog-config.service';
 
+type EthernetSwitchTemplateSection = 'general' | 'ports' | 'usage';
+
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-ethernet-switches-template-details',
   templateUrl: './ethernet-switches-template-details.component.html',
-  styleUrls: ['./ethernet-switches-template-details.component.scss', '../../../preferences.component.scss'],
+  styleUrls: [
+    './ethernet-switches-template-details.component.scss',
+    '../../../preferences.component.scss',
+    '../../../common/template-edit-page.scss',
+  ],
   imports: [
-    CommonModule,
-    FormsModule,
     RouterModule,
     MatIconModule,
     MatButtonModule,
@@ -40,7 +42,6 @@ import { DialogConfigService } from '@services/dialog-config.service';
   ],
 })
 export class EthernetSwitchesTemplateDetailsComponent implements OnInit {
-  @ViewChild(PortsComponent) portsComponent: PortsComponent;
   private route = inject(ActivatedRoute);
   private controllerService = inject(ControllerService);
   private builtInTemplatesService = inject(BuiltInTemplatesService);
@@ -66,10 +67,7 @@ export class EthernetSwitchesTemplateDetailsComponent implements OnInit {
   tags = model<string[]>([]);
   usage = model('');
 
-  // Section collapse states
-  generalSettingsExpanded = model(false);
-  portsExpanded = model(false);
-  usageExpanded = model(false);
+  activeSection: EthernetSwitchTemplateSection = 'general';
 
   ngOnInit() {
     const controller_id = this.route.snapshot.paramMap.get('controller_id');
@@ -119,7 +117,7 @@ export class EthernetSwitchesTemplateDetailsComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/controller', this.controller.id, 'preferences', 'builtin', 'ethernet-switches']);
+    this.router.navigate(['/controller', this.controller.id, 'preferences']);
   }
 
   onSave() {
@@ -132,15 +130,10 @@ export class EthernetSwitchesTemplateDetailsComponent implements OnInit {
     this.ethernetSwitchTemplate.tags = this.tags();
     this.ethernetSwitchTemplate.usage = this.usage();
 
-    // Only update ports_mapping if the ports component is rendered
-    // (it's conditionally rendered based on portsExpanded state)
-    if (this.portsComponent) {
-      this.ethernetSwitchTemplate.ports_mapping = this.portsComponent.ethernetPorts;
-    }
     this.builtInTemplatesService.saveTemplate(this.controller, this.ethernetSwitchTemplate).subscribe({
       next: () => {
         this.toasterService.success('Changes saved');
-        this.cd.markForCheck();
+        this.goBack();
       },
       error: (err) => {
         const message = err.error?.message || err.message || 'Failed to save template';
@@ -191,17 +184,7 @@ export class EthernetSwitchesTemplateDetailsComponent implements OnInit {
     }
   }
 
-  toggleSection(section: string): void {
-    switch (section) {
-      case 'general':
-        this.generalSettingsExpanded.set(!this.generalSettingsExpanded());
-        break;
-      case 'ports':
-        this.portsExpanded.set(!this.portsExpanded());
-        break;
-      case 'usage':
-        this.usageExpanded.set(!this.usageExpanded());
-        break;
-    }
+  selectSection(section: EthernetSwitchTemplateSection): void {
+    this.activeSection = section;
   }
 }

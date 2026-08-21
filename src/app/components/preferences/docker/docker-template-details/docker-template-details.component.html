@@ -1,15 +1,31 @@
 <div class="docker-details">
   <header class="docker-details__header">
-    @if (controller) {
-    <button class="docker-details__back-btn" (click)="goBack()" mat-icon-button>
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    }
-    <h1 class="docker-details__title">Docker container template configuration</h1>
+    <div class="docker-details__heading-row">
+      <div>
+        <div class="docker-details__breadcrumb">
+          <button type="button" mat-button (click)="goBack()">Templates</button><mat-icon>chevron_right</mat-icon
+          ><span>Edit</span>
+        </div>
+        <h1 class="docker-details__title">Edit template</h1>
+      </div>
+      <div class="docker-details__header-actions">
+        <button type="button" mat-stroked-button (click)="goBack()">Back to templates</button>
+      </div>
+    </div>
   </header>
 
   @if (dockerTemplate) {
   <main class="docker-details__content">
+    <nav class="template-edit-tabs" aria-label="Template settings">
+      <button type="button" [class.is-active]="activeSection === 'general'" (click)="selectSection('general')">
+        General settings
+      </button>
+      <button type="button" [class.is-active]="activeSection === 'advanced'" (click)="selectSection('advanced')">Advanced</button>
+      <button type="button" [class.is-active]="activeSection === 'extraFiles'" (click)="selectSection('extraFiles')">
+        Extra files
+      </button>
+      <button type="button" [class.is-active]="activeSection === 'usage'" (click)="selectSection('usage')">Usage</button>
+    </nav>
     <section class="docker-details__form-card">
       <div class="docker-details__section-header" (click)="toggleSection('general')">
         <h3 class="docker-details__section-title">General settings</h3>
@@ -17,7 +33,7 @@
           generalSettingsExpanded ? 'expand_less' : 'expand_more'
         }}</mat-icon>
       </div>
-      @if (generalSettingsExpanded) {
+      @if (activeSection === 'general') {
       <form class="form-container">
         <div class="two-column-grid">
           <mat-form-field class="form-field">
@@ -54,6 +70,7 @@
           </mat-form-field>
           <button
             mat-stroked-button
+            color="primary"
             class="docker-details__pull-btn"
             type="button"
             [disabled]="isPulling() || !image().trim()"
@@ -82,7 +99,10 @@
               placeholder="Symbol"
             />
           </mat-form-field>
-          <button mat-button class="docker-details__symbol-btn" (click)="chooseSymbol()">Choose symbol</button>
+          <button mat-stroked-button color="primary" class="docker-details__symbol-btn" (click)="chooseSymbol()">
+            <mat-icon>add</mat-icon>
+            Choose symbol
+          </button>
         </div>
         <mat-form-field class="form-field">
           <mat-label>Tags</mat-label>
@@ -202,10 +222,16 @@
               placeholder="HTTP path"
             />
           </mat-form-field>
-          <mat-checkbox [checked]="consoleAutoStart()" (change)="consoleAutoStart.set($event.checked)" class="grid-span-2"> Auto start console </mat-checkbox>
+          <mat-checkbox
+            [checked]="consoleAutoStart()"
+            (change)="consoleAutoStart.set($event.checked)"
+            class="grid-span-2"
+          >
+            Auto start console
+          </mat-checkbox>
         </div>
-        <button mat-button class="form-field" (click)="editCustomAdapters()">
-          Edit network configuration
+        <button mat-button class="form-field docker-details__config-btn" (click)="editCustomAdapters()">
+          Configure custom adapters
         </button>
       </form>
       }
@@ -216,13 +242,16 @@
         <h3 class="docker-details__section-title">Advanced</h3>
         <mat-icon class="docker-details__expand-icon">{{ advancedExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
       </div>
-      @if (advancedExpanded) {
+      @if (activeSection === 'advanced') {
       <div class="form-container">
         <h6 class="docker-details__section-subtitle">Start command</h6>
         <mat-form-field class="form-field">
-          <mat-label>Start command</mat-label>
           <textarea
-            matInput rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="12"
+            matInput
+            rows="1"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="12"
             [value]="startCommand()"
             (input)="startCommand.set($event.target.value)"
             type="text"
@@ -231,9 +260,12 @@
         </mat-form-field>
         <h6 class="docker-details__section-subtitle">Environment</h6>
         <mat-form-field class="form-field">
-          <mat-label>Environment</mat-label>
           <textarea
-            matInput rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="12"
+            matInput
+            rows="1"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="12"
             [value]="environment()"
             (input)="environment.set($event.target.value)"
             type="text"
@@ -242,20 +274,26 @@
         </mat-form-field>
         <h6 class="docker-details__section-subtitle">Extra volumes</h6>
         <mat-form-field class="form-field">
-          <mat-label>Extra volumes</mat-label>
           <textarea
-            matInput rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="12"
+            matInput
+            rows="1"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="12"
             [value]="extraVolumes()"
             (input)="extraVolumes.set($event.target.value)"
             type="text"
-            placeholder="Container directories to persist, one per line (e.g., /data&#10;/config)"
+            placeholder="Container directories to persist, one per line (e.g., /data/config)"
           ></textarea>
         </mat-form-field>
         <h6 class="docker-details__section-subtitle">Extra hosts</h6>
         <mat-form-field class="form-field">
-          <mat-label>Extra hosts</mat-label>
           <textarea
-            matInput rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="12"
+            matInput
+            rows="1"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="12"
             [value]="extraHosts()"
             (input)="extraHosts.set($event.target.value)"
             type="text"
@@ -267,11 +305,11 @@
     </section>
 
     <section class="docker-details__form-card">
-      <div class="docker-details__section-header" (click)="toggleSection('extraFiles')">
+      <div class="docker-details__section-header" (click)="selectSection('extraFiles')">
         <h3 class="docker-details__section-title">Extra files</h3>
-        <mat-icon class="docker-details__expand-icon">{{ extraFilesExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+        <mat-icon class="docker-details__expand-icon">{{ activeSection === 'extraFiles' ? 'expand_less' : 'expand_more' }}</mat-icon>
       </div>
-      @if (extraFilesExpanded) {
+      @if (activeSection === 'extraFiles') {
       <div class="form-container">
         <h6 class="docker-details__section-subtitle">Configuration files</h6>
         @for (config of extraConfigs(); track $index) {
@@ -299,7 +337,7 @@
         <h3 class="docker-details__section-title">Usage</h3>
         <mat-icon class="docker-details__expand-icon">{{ usageExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
       </div>
-      @if (usageExpanded) {
+      @if (activeSection === 'usage') {
       <div class="preferences__usage-form">
         <mat-form-field class="preferences__usage-field--full">
           <mat-label>Usage</mat-label>

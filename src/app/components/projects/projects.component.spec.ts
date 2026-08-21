@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { MatSort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, of, throwError, Subject } from 'rxjs';
 import { ProjectsComponent } from './projects.component';
@@ -28,7 +29,6 @@ describe('ProjectsComponent', () => {
   let mockToasterService: any;
   let mockNotificationService: any;
   let mockDialog: any;
-  let mockBottomSheet: any;
   let mockRouter: any;
   let mockActivatedRoute: any;
 
@@ -68,6 +68,8 @@ describe('ProjectsComponent', () => {
       delete: vi.fn().mockReturnValue(of({})),
       open: vi.fn().mockReturnValue(of({})),
       close: vi.fn().mockReturnValue(of({})),
+      getStatistics: vi.fn().mockReturnValue(of({ nodes: 2, links: 1, drawings: 0, snapshots: 0 })),
+      getReadmeFile: vi.fn().mockReturnValue(of('A useful project description.')),
     };
 
     mockSettingsService = {
@@ -104,16 +106,6 @@ describe('ProjectsComponent', () => {
       }),
     };
 
-    mockBottomSheet = {
-      open: vi.fn().mockReturnValue({
-        afterDismissed: vi.fn().mockReturnValue(of(true)),
-        instance: { projectMessage: '' },
-        _openedBottomSheetRef: {
-          instance: {},
-        },
-      }),
-    };
-
     mockRouter = {
       navigate: vi.fn(),
     };
@@ -136,7 +128,6 @@ describe('ProjectsComponent', () => {
         { provide: ToasterService, useValue: mockToasterService },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: MatBottomSheet, useValue: mockBottomSheet },
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
       ],
@@ -158,12 +149,32 @@ describe('ProjectsComponent', () => {
 
     it('should have displayedColumns with correct values', () => {
       fixture.detectChanges();
-      expect(component.displayedColumns).toEqual(['select', 'name', 'created_by', 'actions', 'delete']);
+      expect(component.displayedColumns).toEqual(['select', 'name', 'created_by', 'status', 'actions', 'delete']);
     });
 
     it('should have currentYear set to current year', () => {
       fixture.detectChanges();
       expect(component.currentYear).toBe(new Date().getFullYear());
+    });
+
+    it('should embed a paginator with a default page size of 25 in the list table footer', () => {
+      fixture.detectChanges();
+
+      const paginator = fixture.nativeElement.querySelector(
+        '.projects__table-container > .projects__table-footer mat-paginator',
+      );
+
+      expect(paginator).not.toBeNull();
+      expect(component['_pageSize']()).toBe(25);
+    });
+
+    it('should activate action tooltips', () => {
+      fixture.detectChanges();
+
+      const startAction = fixture.debugElement.query(By.css('.projects__action-button--start'));
+      const tooltip = startAction.injector.get(MatTooltip);
+
+      expect(tooltip.message).toBe('Start project');
     });
   });
 
@@ -210,12 +221,10 @@ describe('ProjectsComponent', () => {
     it('should clear selection on unChecked', () => {
       fixture.detectChanges();
       component.selection.select(mockProjects[0]);
-      component.isAllDelete = true;
 
       component.unChecked();
 
       expect(component.selection.selected.length).toBe(0);
-      expect(component.isAllDelete).toBe(false);
     });
 
     it('should select all projects on allChecked', () => {
@@ -225,7 +234,6 @@ describe('ProjectsComponent', () => {
       component.allChecked();
 
       expect(component.selection.selected.length).toBe(2);
-      expect(component.isAllDelete).toBe(true);
     });
 
     it('should return true from isAllSelected when all selected', () => {
@@ -247,26 +255,59 @@ describe('ProjectsComponent', () => {
 
       expect(result).toBe(false);
     });
-  });
 
-  describe('selectAllImages', () => {
-    it('should uncheck when all are selected', () => {
-      fixture.detectChanges();
-      component['_projects'].set([mockProjects[0]]);
-      component.selection.select(mockProjects[0]);
-
-      component.selectAllImages();
-
-      expect(component.selection.selected.length).toBe(0);
-    });
-
-    it('should select all when not all are selected', () => {
+    it('should select only projects matching the active filters', () => {
       fixture.detectChanges();
       component['_projects'].set(mockProjects);
+      component.searchText.set('Project A');
 
-      component.selectAllImages();
+      component.allChecked();
 
-      expect(component.selection.selected.length).toBe(2);
+      expect(component.selection.selected).toEqual([mockProjects[0]]);
+      expect(component.isAllSelected()).toBe(true);
+    });
+
+    it('should clear selected projects when a filter changes', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+      component.selection.select(mockProjects[1]);
+
+      component.searchText.set('Project A');
+      fixture.detectChanges();
+
+      expect(component.selection.isEmpty()).toBe(true);
+    });
+  });
+
+  describe('Project details', () => {
+    it('should load and display a README description after selecting a project', () => {
+      fixture.detectChanges();
+
+      component.selectProject(mockProjects[0]);
+      fixture.detectChanges();
+
+      const description = fixture.nativeElement.querySelector('.projects__detail-description');
+      expect(mockProjectService.getReadmeFile).toHaveBeenCalledWith(mockController, 'proj1');
+      expect(component.projectDescription()).toBe('A useful project description.');
+      expect(description.textContent.trim()).toBe('A useful project description.');
+    });
+
+    it('should clear the README description when details are closed', () => {
+      fixture.detectChanges();
+      component.selectProject(mockProjects[0]);
+
+      component.closeDetails();
+
+      expect(component.projectDescription()).toBe('');
+    });
+
+    it('should render grid status immediately after the project name', () => {
+      fixture.detectChanges();
+      component.toggleView('grid');
+      fixture.detectChanges();
+
+      const projectName = fixture.nativeElement.querySelector('.projects__card-name');
+      expect(projectName.nextElementSibling.classList.contains('projects__card-status')).toBe(true);
     });
   });
 
@@ -415,6 +456,35 @@ describe('ProjectsComponent', () => {
       });
 
       expect(component.isProjectLoading('proj1')).toBe(true);
+    });
+  });
+
+  describe('project lifecycle notifications', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      mockDialog.open.mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(true)),
+        componentInstance: {},
+      });
+      component.dialog = mockDialog;
+    });
+
+    it('should notify after deleting a project', () => {
+      component.delete(mockProjects[0]);
+
+      expect(mockToasterService.success).toHaveBeenCalledWith('Project "Project A" deleted.');
+    });
+
+    it('should notify after opening a project', () => {
+      component.open(mockProjects[0]);
+
+      expect(mockToasterService.success).toHaveBeenCalledWith('Project "Project A" opened.');
+    });
+
+    it('should notify after closing a project', () => {
+      component.close(mockProjects[1]);
+
+      expect(mockToasterService.success).toHaveBeenCalledWith('Project "Project B" closed.');
     });
   });
 
