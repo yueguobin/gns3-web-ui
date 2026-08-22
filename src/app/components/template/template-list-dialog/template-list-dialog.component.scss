@@ -1,4 +1,13 @@
 .dialog-title {
+  /* Compact palette title bar. The global dialog-header rule in _dialogs.scss
+     consumes these tokens (min-height/padding); redefining them here on the
+     title element wins without a specificity fight: 40px buttons + 2x4px
+     padding lands the bar at ~48px (44px compact) instead of 64px. */
+  --gns3-density-section-header-height: calc(
+    var(--gns3-density-space-1) * 2 + var(--gns3-density-section-header-title-size) * 1.2 + 1px
+  );
+  --gns3-density-section-header-padding: var(--gns3-density-space-1) 16px;
+
   display: flex;
   align-items: center;
   gap: var(--gns3-density-space-4);
@@ -27,6 +36,11 @@
   gap: var(--gns3-density-space-1);
 }
 
+/* Compact action bar: 16px padding around the 40px buttons (~56px total). */
+[mat-dialog-actions] {
+  --mat-dialog-actions-padding: 8px 16px;
+}
+
 .dialog-title__preferences {
   flex: 0 0 auto;
 
@@ -45,10 +59,45 @@
   gap: var(--gns3-density-space-3);
 }
 
+/* Advanced options: flattened expansion panel lying on the dialog surface
+   (no elevation, no own background) — token overrides avoid specificity
+   fights with .mat-expansion-panel's :not([class*=mat-elevation-z]) rule.
+   Separated from the template gallery by the same divider treatment
+   .dialog-section + .dialog-section uses, so it reads as its own block. */
+.advanced-options {
+  --mat-expansion-container-elevation-shadow: none;
+  --mat-expansion-container-background-color: transparent;
+
+  margin-top: var(--gns3-density-space-1);
+  padding-top: var(--gns3-density-space-1);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  /* Align the header text with the 16px content inset instead of the
+     Material default 24px. */
+  mat-expansion-panel-header {
+    padding: 0 16px;
+  }
+}
+
+/* Quiet separator between the node/compute fields and the position fields. */
+.advanced-options__divider {
+  height: 1px;
+  margin: var(--gns3-density-space-2) 0;
+  background: var(--mat-sys-outline-variant);
+  opacity: 0.5;
+}
+
 .dialog-section + .dialog-section {
   margin-top: var(--gns3-density-space-5);
   padding-top: var(--gns3-density-space-5);
   border-top: 1px solid var(--mat-sys-outline-variant);
+}
+
+.dialog-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gns3-density-space-2);
 }
 
 .dialog-section__title {
@@ -76,7 +125,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: var(--gns3-density-space-2);
-  max-height: calc(var(--gns3-density-form-field-height) * 5);
+  /* Height sized to exactly three card rows (icon + 2-line name + card
+     padding/gap) plus the gallery's own padding and border, so no fourth
+     row peeks over the fold. */
+  max-height: calc(
+    (var(--gns3-density-form-field-height) + 2.5em + var(--gns3-density-space-2) * 3) * 3 +
+      var(--gns3-density-space-2) * 4 + 2px
+  );
   padding: var(--gns3-density-space-2);
   overflow-y: auto;
   border: 1px solid var(--mat-sys-outline-variant);
@@ -176,6 +231,63 @@
   height: 18px;
   color: var(--mat-sys-primary);
   font-size: 18px;
+}
+
+/* List view: one full-width row per template (symbol + full name + type).
+   Follows the app's list idiom (topology summary rows): uniform row height
+   with hairline separators instead of gaps, rows spanning the full box. */
+.template-gallery--list {
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 0;
+  padding: 0;
+
+  .template-gallery__empty {
+    margin: var(--gns3-density-space-3);
+  }
+}
+
+.template-card--list {
+  grid-template-rows: none;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  min-height: var(--gns3-density-form-field-height);
+  align-content: stretch;
+  align-items: center;
+  justify-items: start;
+  gap: var(--gns3-density-space-3);
+  padding-inline: var(--gns3-density-space-3) calc(var(--gns3-density-space-3) + 24px);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .template-card__image-wrap {
+    width: 28px;
+    height: 28px;
+  }
+
+  .template-card__name {
+    min-height: 0;
+    text-align: left;
+    -webkit-line-clamp: 1;
+  }
+
+  .template-card__type {
+    justify-self: end;
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-label-small);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  /* The corner-anchored check suits tall grid cards; center it vertically
+     so it lines up with the row content. */
+  .template-card__selected-icon {
+    top: 50%;
+    right: var(--gns3-density-space-3);
+    transform: translateY(-50%);
+  }
 }
 
 .template-gallery__empty {
