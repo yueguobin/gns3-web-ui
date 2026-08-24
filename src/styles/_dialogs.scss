@@ -117,24 +117,6 @@
 // Configurator Dialog Styles - Main config pages
 // ============================================= */
 .configurator-dialog-panel {
-  --mat-dialog-container-max-width: 800px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 800px;
-    max-width: 800px;
-    max-height: 80vh;
-
-    .mat-mdc-dialog-surface {
-      border-radius: 16px;
-    }
-  }
-
-  /* Dialog content - with max-height for scroll */
-  .mat-mdc-dialog-content {
-    max-height: calc(80vh - 140px);
-  }
-
   /* Loading state - centered spinner while node data is fetched */
   .configurator-dialog-loading {
     display: flex;
@@ -276,24 +258,6 @@
 // Simple Dialog Styles - Sub dialogs like Image Creator
 // ============================================= */
 .simple-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-    max-height: 80vh;
-
-    .mat-mdc-dialog-surface {
-      border-radius: 16px;
-    }
-  }
-
-  /* Dialog content - with max-height for scroll */
-  .mat-mdc-dialog-content {
-    max-height: calc(80vh - 140px);
-  }
-
   /* Format options styling */
   .format-options {
     margin: 16px 0;
@@ -406,19 +370,6 @@
 // Custom Adapters Dialog
 // ============================================= */
 .custom-adapters-dialog-panel {
-  --mat-dialog-container-max-width: 1000px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 1000px;
-    max-width: 1000px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: 600px;
-    overflow-y: auto;
-  }
-
   /* Add adapter row with note */
   .add-adapter-row {
     display: grid;
@@ -439,34 +390,9 @@
 }
 
 /* =============================================
-// Edit Project Dialog
-// Inherits from base-dialog-panel + configurator-dialog-panel
-// Only overrides width (700px) and max-height (600px)
-// ============================================= */
-.edit-project-dialog-panel {
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 700px;
-    max-width: 700px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: 600px;
-  }
-}
-
-/* =============================================
 // Add ACE Dialog
 // ============================================= */
 .add-ace-dialog-panel {
-  --mat-dialog-container-max-width: 1000px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 1000px;
-    max-width: 1000px;
-  }
-
   .mat-mdc-dialog-content {
     overflow: visible;
     flex: none;
@@ -497,14 +423,9 @@
 // Inherits from base-dialog-panel + configurator-dialog-panel
 // ============================================= */
 .change-symbol-dialog-panel {
-  --mat-dialog-container-max-width: 800px;
-
   mat-dialog-container,
   .mat-mdc-dialog-container {
-    width: 800px;
-    max-width: 800px;
     height: 600px;
-    max-height: 600px;
   }
 }
 
@@ -566,33 +487,6 @@ body .cdk-overlay-container .mat-mdc-dialog-title::before {
 }
 
 /* =============================================
-// Information Dialog Panel
-// For general information and MD5 confirmation
-// ============================================= */
-.information-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-  }
-
-  .mat-mdc-dialog-content {
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
-  .information-dialog__message {
-    margin: 0;
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-}
-
-/* =============================================
 // Confirmation Danger Panel
 // For dangerous operations (delete, remove, etc.)
 // ============================================= */
@@ -625,105 +519,15 @@ body .cdk-overlay-container .mat-mdc-dialog-title::before {
 }
 
 /* =============================================
-// Confirmation Info Panel
-// For informational confirmations
-// ============================================= */
-.confirmation-info-panel {
-  .mat-mdc-dialog-surface {
-    border: 1px solid var(--mat-sys-primary-container);
-  }
-
-  .confirm-button,
-  button.mat-mdc-raised-button {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
-  }
-}
-
-/* =============================================
 // Project Management Dialogs
 // ============================================= */
-
-// Choose Name Dialog - 400px
-.choose-name-dialog-panel {
-  --mat-dialog-container-max-width: 400px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 400px;
-    max-width: 400px;
-  }
-}
-
-// Add Blank Project Dialog - 400px
-.add-blank-project-dialog-panel {
-  --mat-dialog-container-max-width: 400px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 400px;
-    max-width: 400px;
-  }
-}
-
-// Import Project Dialog - 400px
-.import-project-dialog-panel {
-  --mat-dialog-container-max-width: 400px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 400px;
-    max-width: 400px;
-  }
-}
-
-// Delete All Projects Confirmation - 550px x 650px
-.delete-all-projects-dialog-panel {
-  --mat-dialog-container-max-width: 550px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 550px;
-    max-width: 550px;
-    max-height: 650px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: calc(650px - 140px);
-    overflow-y: auto;
-  }
-}
 
 /* =============================================
 // Image Manager Dialogs
 // ============================================= */
 
-// Question Dialog - 450px
-.question-dialog-panel {
-  --mat-dialog-container-max-width: 450px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 450px;
-    max-width: 450px;
-  }
-}
-
 // Add Image Dialog - 600px
 .add-image-dialog-panel {
-  --mat-dialog-container-max-width: 600px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 600px;
-    max-width: 600px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: none;
-    overflow: visible;
-  }
-
   /* Dialog hint */
   .add-image-dialog-hint {
     display: flex;
@@ -759,74 +563,15 @@ body .cdk-overlay-container .mat-mdc-dialog-title::before {
   }
 }
 
-// Delete All Images Dialog - 550px x 650px
-.delete-all-images-dialog-panel {
-  --mat-dialog-container-max-width: 550px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 550px;
-    max-width: 550px;
-    max-height: 650px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: calc(650px - 140px);
-    overflow-y: auto;
-  }
-}
-
 /* =============================================
 // User/Role/Group Management Dialogs
 // ============================================= */
 
 // Add User Dialog - 600px (2-column form layout)
 .add-user-dialog-panel {
-  --mat-dialog-container-max-width: 600px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 600px;
-    max-width: 600px;
-  }
-
   .mat-mdc-dialog-content {
     overflow: visible;
     flex: none;
-  }
-}
-
-// Change User Password Dialog - 400px wide, content-sized height
-.change-user-password-dialog-panel {
-  --mat-dialog-container-max-width: 400px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 400px;
-    max-width: 400px;
-  }
-}
-
-// AI Profile Dialog - 700px
-// Inherits from base-dialog-panel
-// Similar to simple-dialog-panel but with 700px width
-.ai-profile-dialog-panel {
-  --mat-dialog-container-max-width: 700px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 700px;
-    max-width: 700px;
-    max-height: 80vh;
-
-    .mat-mdc-dialog-surface {
-      border-radius: 16px;
-    }
-  }
-
-  /* Dialog content - with max-height for scroll */
-  .mat-mdc-dialog-content {
-    max-height: calc(80vh - 140px);
   }
 }
 
@@ -1691,27 +1436,8 @@ html[data-density='compact'] .node-configurator-dialog-panel {
   }
 }
 
-// QEMU Configurator - 500px
-.qemu-configurator-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-  }
-}
-
-// Docker Configurator - 800px
+// Docker Configurator (standalone template-details shell)
 .docker-configurator-dialog-panel:not(.node-configurator-dialog-panel) {
-  --mat-dialog-container-max-width: 800px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 800px;
-    max-width: 800px;
-  }
-
   /* Two column grid layout for form fields */
   .two-column-grid {
     display: grid;
@@ -1729,66 +1455,8 @@ html[data-density='compact'] .node-configurator-dialog-panel {
 // Context Menu Action Dialogs
 // ============================================= */
 
-// Idle PC Action - 500px
-.idle-pc-action-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-  }
-}
-
-// Export Config Action - 500px
-.export-config-action-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-  }
-}
-
-// Import Config Action - 500px
-.import-config-action-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 500px;
-    max-width: 500px;
-  }
-}
-
-// Show Node Action - 600px x 600px
-.show-node-action-dialog-panel {
-  --mat-dialog-container-max-width: 600px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 600px;
-    max-width: 600px;
-    max-height: 600px;
-  }
-
-  .mat-mdc-dialog-content {
-    max-height: calc(600px - 140px);
-    overflow-y: auto;
-  }
-}
-
 // Edit Text Action - 700px (text editor with multiple columns)
 .edit-text-action-dialog-panel {
-  --mat-dialog-container-max-width: 700px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 700px;
-    max-width: 700px;
-  }
-
   /* Grid layout for form controls - 2 rows x 3 columns */
   .text-editor-grid {
     display: grid;
@@ -1810,39 +1478,15 @@ html[data-density='compact'] .node-configurator-dialog-panel {
 
 // Edit Config Action - 600px x 500px
 .edit-config-action-dialog-panel {
-  --mat-dialog-container-max-width: 600px;
-
   mat-dialog-container,
   .mat-mdc-dialog-container {
-    width: 600px;
-    max-width: 600px;
     height: 500px;
-    max-height: 500px;
   }
-
-  .mat-mdc-dialog-content {
-    max-height: calc(500px - 140px);
-    overflow-y: auto;
-  }
-}
-
-// Edit Style Action - 500px
-// Inherits from base-dialog-panel + simple-dialog-panel
-.edit-style-action-dialog-panel {
-  --mat-dialog-container-max-width: 500px;
 }
 
 /* =============================================
 // Other Component Dialogs
 // ============================================= */
-
-// Template Dialog - 600px
-// The old explicit width rules never won against the Standard Dialog System
-// (which resolved --gns3-dialog-width to 720px via the legacy group below);
-// set the variable instead so 600px actually applies.
-.template-dialog-panel {
-  --gns3-dialog-width: 600px;
-}
 
 // Add-nodes dialog: the collapsed "Advanced options" expansion panel lies flat
 // on the dialog surface; body content is inset and given vertical breathing
@@ -1857,37 +1501,8 @@ html[data-density='compact'] .node-configurator-dialog-panel {
   }
 }
 
-// Controller Dialogs - 350px/400px
-.controller-dialog-panel {
-  --mat-dialog-container-max-width: 400px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 400px;
-    max-width: 400px;
-  }
-}
-
-.controller-small-dialog-panel {
-  --mat-dialog-container-max-width: 350px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 350px;
-    max-width: 350px;
-  }
-}
-
 // Add ACE Dialog - 1000px
 .add-ace-dialog-panel {
-  --mat-dialog-container-max-width: 1000px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 1000px;
-    max-width: 1000px;
-  }
-
   .mat-mdc-dialog-content {
     overflow: visible;
     flex: none;
@@ -1898,14 +1513,9 @@ html[data-density='compact'] .node-configurator-dialog-panel {
 // Inherits from base-dialog-panel + simple-dialog-panel
 // Only overrides width (700px) and height (500px)
 .add-user-to-group-dialog-panel {
-  --mat-dialog-container-max-width: 700px;
-
   mat-dialog-container,
   .mat-mdc-dialog-container {
-    width: 700px;
-    max-width: 700px;
     height: 500px;
-    max-height: 500px;
 
     .mat-mdc-dialog-surface {
       border-radius: 16px;
@@ -1941,14 +1551,6 @@ html[data-density='compact'] .node-configurator-dialog-panel {
 // Inherits from base-dialog-panel, only overrides width
 // ============================================= */
 .code-block-dialog-panel {
-  --mat-dialog-container-max-width: 1200px;
-
-  mat-dialog-container,
-  .mat-mdc-dialog-container {
-    width: 1200px;
-    max-width: 1200px;
-  }
-
   /* Override content padding for code display */
   .mat-mdc-dialog-content {
     padding: 0;
@@ -2172,11 +1774,19 @@ html[data-density='compact'] .node-configurator-dialog-panel {
     .custom-adapters-dialog-panel
   ):not(.node-configurator-dialog-panel):not(.docker-network-config-dialog-panel) {
   --gns3-dialog-max-height: calc(100vh - 32px);
+  // The viewport cap lives in its own custom property on purpose: the CSS
+  // pipeline strips calc() from min() arguments, and Chrome drops the whole
+  // declaration when a var() shares a min() with the resulting bare sum.
+  --gns3-dialog-viewport-cap: calc(100vw - 32px);
+  // Material caps the overlay pane itself at --mat-dialog-container-max-width
+  // (560px fallback) and the pane constrains the whole flex chain, so the SDS
+  // must feed its width into that token or every dialog collapses to 560px.
+  --mat-dialog-container-max-width: min(var(--gns3-dialog-width, 440px), var(--gns3-dialog-viewport-cap));
 
   mat-dialog-container,
   .mat-mdc-dialog-container {
-    width: min(var(--gns3-dialog-width, 440px), calc(100vw - 32px));
-    max-width: min(var(--gns3-dialog-width, 440px), calc(100vw - 32px));
+    width: min(var(--gns3-dialog-width, 440px), var(--gns3-dialog-viewport-cap));
+    max-width: min(var(--gns3-dialog-width, 440px), var(--gns3-dialog-viewport-cap));
     max-height: var(--gns3-dialog-max-height);
   }
 
@@ -2246,62 +1856,8 @@ html[data-density='compact'] .node-configurator-dialog-panel {
   }
 }
 
-// Legacy assignments kept as compatibility aliases while callers migrate to
-// dialog-small-panel, dialog-medium-panel, dialog-large-panel, and
-// dialog-extra-large-panel.
-:is(.configurator-dialog-panel:not(.node-configurator-dialog-panel), .edit-project-dialog-panel) {
-  --gns3-dialog-width: 880px;
-}
-
-:is(
-    .custom-adapters-dialog-panel,
-    .add-ace-dialog-panel,
-    .docker-configurator-dialog-panel:not(.node-configurator-dialog-panel),
-    .code-block-dialog-panel
-  ) {
-  --gns3-dialog-width: 1040px;
-}
-
-.ai-profile-dialog-panel {
-  --gns3-dialog-width: 880px;
-}
-
-:is(
-    .simple-dialog-panel,
-    .change-symbol-dialog-panel,
-    .controller-dialog-panel,
-    .controller-small-dialog-panel,
-    .edit-controller-dialog-panel,
-    .add-controller-dialog-panel,
-    .add-user-dialog-panel,
-    .show-node-action-dialog-panel,
-    .edit-text-action-dialog-panel,
-    .edit-style-action-dialog-panel,
-    .edit-config-action-dialog-panel,
-    .export-config-action-dialog-panel,
-    .import-config-action-dialog-panel,
-    .qemu-configurator-dialog-panel,
-    .fault-injection-dialog-panel
-  ) {
-  --gns3-dialog-width: 720px;
-}
-
-:is(
-    .base-confirmation-dialog-panel,
-    .information-dialog-panel,
-    .question-dialog-panel,
-    .choose-name-dialog-panel,
-    .add-blank-project-dialog-panel,
-    .import-project-dialog-panel,
-    .add-image-dialog-panel,
-    .delete-all-images-dialog-panel,
-    .delete-all-projects-dialog-panel,
-    .change-user-password-dialog-panel,
-    .idle-pc-action-dialog-panel
-  ) {
-  --gns3-dialog-width: 440px;
-}
-
+// The four standard sizes are the single width source for the SDS shell;
+// every dialog call site declares exactly one of them.
 .dialog-small-panel {
   --gns3-dialog-width: 440px;
 }
@@ -2316,6 +1872,32 @@ html[data-density='compact'] .node-configurator-dialog-panel {
 
 .dialog-extra-large-panel {
   --gns3-dialog-width: 1040px;
+}
+
+// Optional viewport-ratio height tiers. Opt-in modifiers combined with a
+// size class: dialogs stay content-sized unless they declare one. Height is
+// scoped to the tier (not the SDS core) so purpose-built fixed-height rules
+// elsewhere keep winning. The core max-height still clamps against the
+// viewport.
+.dialog-height-60-panel {
+  mat-dialog-container,
+  .mat-mdc-dialog-container {
+    height: 60vh;
+  }
+}
+
+.dialog-height-80-panel {
+  mat-dialog-container,
+  .mat-mdc-dialog-container {
+    height: 80vh;
+  }
+}
+
+// Width deviations from the four standard sizes. Declared AFTER the size
+// classes so the override wins regardless of class order on the panel element.
+// Template gallery and read-only node info fit 600px.
+:is(.template-dialog-panel, .show-node-action-dialog-panel) {
+  --gns3-dialog-width: 600px;
 }
 
 // Shared destructive actions use semantic error tokens in every dialog size.
@@ -2339,19 +1921,7 @@ button.destructive-icon-button {
 
 // Short dialogs still need a clear content area between their title and
 // action row. This also covers legacy forms without mat-dialog-content.
-:is(
-    .dialog-small-panel,
-    .information-dialog-panel,
-    .question-dialog-panel,
-    .choose-name-dialog-panel,
-    .add-blank-project-dialog-panel,
-    .import-project-dialog-panel,
-    .add-image-dialog-panel,
-    .delete-all-images-dialog-panel,
-    .delete-all-projects-dialog-panel,
-    .change-user-password-dialog-panel,
-    .idle-pc-action-dialog-panel
-  ) {
+.dialog-small-panel {
   .mat-mdc-dialog-content,
   .modal-form-container {
     padding-block: 24px;
@@ -2419,20 +1989,7 @@ html[data-density='compact'] .mat-mdc-dialog-actions {
   }
 }
 
-html[data-density='compact']
-  :is(
-    .dialog-small-panel,
-    .information-dialog-panel,
-    .question-dialog-panel,
-    .choose-name-dialog-panel,
-    .add-blank-project-dialog-panel,
-    .import-project-dialog-panel,
-    .add-image-dialog-panel,
-    .delete-all-images-dialog-panel,
-    .delete-all-projects-dialog-panel,
-    .change-user-password-dialog-panel,
-    .idle-pc-action-dialog-panel
-  ) {
+html[data-density='compact'] .dialog-small-panel {
   .mat-mdc-dialog-content,
   .modal-form-container {
     padding-block: 16px;
