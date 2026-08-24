@@ -51,6 +51,7 @@ import { ProjectsComponent } from '@components/projects/projects.component';
 import { ControllersComponent } from '@components/controllers/controllers.component';
 import { ConsoleComponent } from '@components/settings/console/console.component';
 import { SettingsComponent } from '@components/settings/settings.component';
+import { ServerSettingsComponent } from '@components/server-settings/server-settings.component';
 import { SystemStatusComponent } from '@components/system-status/system-status.component';
 import { WebConsoleFullWindowComponent } from '@components/web-console-full-window/web-console-full-window.component';
 import { NodeFileManagerPageComponent } from '@components/project-map/node-file-manager-page/node-file-manager-page.component';
@@ -99,6 +100,11 @@ const routes: Routes = [
       { path: 'controller/:controller_id/settings', component: SettingsComponent },
       { path: 'controller/:controller_id/settings/console', component: ConsoleComponent },
       {
+        path: 'controller/:controller_id/server-settings',
+        component: ServerSettingsComponent,
+        canActivate: [LoginGuard, AdministratorGuard],
+      },
+      {
         path: 'controller/:controller_id/management/pools/:pool_id',
         component: ResourcePoolDetailsComponent,
         canActivate: [LoginGuard, AdministratorGuard],
@@ -127,7 +133,6 @@ const routes: Routes = [
         component: NewTemplateDialogComponent,
         canActivate: [LoginGuard],
       },
-      // { path: 'controller/:controller_id/preferences/general', component: GeneralPreferencesComponent },
       {
         path: 'controller/:controller_id/computes',
         component: ComputesComponent,
@@ -187,7 +192,6 @@ const routes: Routes = [
         canActivate: [LoginGuard],
       },
 
-      //{ path: 'controller/:controller_id/preferences/dynamips', component: DynamipsPreferencesComponent },
       {
         path: 'controller/:controller_id/preferences/dynamips/templates',
         component: IosTemplatesComponent,
@@ -209,7 +213,6 @@ const routes: Routes = [
         canActivate: [LoginGuard],
       },
 
-      // { path: 'controller/:controller_id/preferences/qemu', component: QemuPreferencesComponent },
       {
         path: 'controller/:controller_id/preferences/qemu/templates',
         component: QemuVmTemplatesComponent,
@@ -231,7 +234,6 @@ const routes: Routes = [
         canActivate: [LoginGuard],
       },
 
-      // { path: 'controller/:controller_id/preferences/vpcs', component: VpcsPreferencesComponent },
       {
         path: 'controller/:controller_id/preferences/vpcs/templates',
         component: VpcsTemplatesComponent,
