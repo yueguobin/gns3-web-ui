@@ -45,6 +45,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { version } from '../../version';
+import { MarkdownViewerComponent } from '../../common/markdown-viewer/markdown-viewer.component';
 
 @Component({
   selector: 'app-projects',
@@ -52,6 +53,7 @@ import { version } from '../../version';
   styleUrl: './projects.component.scss',
   imports: [
     CommonModule,
+    MarkdownViewerComponent,
     FormsModule,
     RouterModule,
     MatDialogModule,
@@ -478,7 +480,7 @@ export class ProjectsComponent implements OnInit {
     const dialogRef = this.dialog.open(EditProjectDialogComponent, {
       autoFocus: false,
       disableClose: true,
-      panelClass: ['base-dialog-panel', 'configurator-dialog-panel', 'edit-project-dialog-panel', 'dialog-large-panel'],
+      panelClass: ['base-dialog-panel', 'configurator-dialog-panel', 'edit-project-dialog-panel', 'dialog-extra-large-panel'],
     });
     let instance = dialogRef.componentInstance;
     instance.controller = this.controller;
