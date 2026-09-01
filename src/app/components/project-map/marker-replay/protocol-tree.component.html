@@ -1,0 +1,33 @@
+<div class="gns3-replay__tree-toolbar">
+  <span class="gns3-replay__tree-summary">protocol tree</span>
+  @if (hasExpandable()) {
+    <button class="gns3-replay__tree-tool" matTooltip="Expand all" (click)="expandAll()">
+      <mat-icon>unfold_more</mat-icon>
+    </button>
+    <button class="gns3-replay__tree-tool" matTooltip="Collapse all" (click)="collapseAll()">
+      <mat-icon>unfold_less</mat-icon>
+    </button>
+  }
+</div>
+
+<div class="gns3-replay__tree">
+  @for (row of rows(); track row.key) {
+    <div
+      class="gns3-replay__tree-row"
+      [class.gns3-replay__tree-row--proto]="row.node.element === 'proto'"
+      [class.gns3-replay__tree-row--selected]="selectedKey() === row.key"
+      (click)="toggle(row)"
+      [title]="rowTooltip(row.node)"
+    >
+      @for (g of guides(row.depth); track $index) {
+        <span class="gns3-replay__tree-guide"></span>
+      }
+      @if (row.hasChildren) {
+        <mat-icon class="gns3-replay__tree-chevron">{{ expanded().has(row.key) ? 'expand_more' : 'chevron_right' }}</mat-icon>
+      } @else {
+        <span class="gns3-replay__tree-leaf"></span>
+      }
+      <span class="gns3-replay__tree-text">{{ rowText(row.node) }}</span>
+    </div>
+  }
+</div>

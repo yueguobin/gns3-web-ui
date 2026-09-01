@@ -25,7 +25,7 @@ import { LinksDataSource } from '../../../cartography/datasources/links-datasour
 import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
 import { formatDelta, formatFrameTime } from './replay-timeline-math';
 import { placeWindow } from './replay-geometry';
-import { ProtocolTreeNodeComponent } from './protocol-tree-node.component';
+import { ProtocolTreeComponent } from './protocol-tree.component';
 
 /** Leader-line endpoint pair in viewport px (window edge → link anchor). */
 interface Leader {
@@ -69,7 +69,7 @@ interface Leader {
     MatButtonModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    ProtocolTreeNodeComponent,
+    ProtocolTreeComponent,
     ResizableDirective,
     ResizeHandleDirective,
   ],
@@ -96,6 +96,14 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   readonly winHeight = signal(this.DEFAULT_H);
   readonly winLeft = signal(this.FALLBACK.left);
   readonly winTop = signal(this.FALLBACK.top);
+  /**
+   * True once the user has DRAGGED the window: it leaves auto-anchor mode and
+   * stays at the dropped spot (clamped to the viewport) while the leader line
+   * keeps tracking the link. `reanchor()` snaps back to placed mode.
+   */
+  readonly pinned = signal(false);
+  /** True while a header drag gesture is in flight. */
+  readonly dragging = signal(false);
   /** False when the frame's link is not on the map (deleted) or geometry failed. */
   readonly anchored = signal(false);
   /** Leader line geometry; null while unanchored. */
@@ -123,7 +131,14 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   /** Protocol chain for the crumbs row (ETH › IPV4 › TCP …) once decoded. */
   readonly breadcrumb = computed(() => {
     const ok = this.detailOk();
-    return ok ? ok.detail.tree.map((n) => n.name.toUpperCase()) : [];
+    // Skip PDML plumbing (`geninfo`) and the capture-metadata `frame` proto —
+    // the crumbs are the network-protocol chain, like Wireshark's protocol
+    // column (eth:ethertype:ip:icmp).
+    return ok
+      ? ok.detail.tree
+          .filter((n) => n.element === 'proto' && n.name !== 'geninfo' && n.name !== 'frame')
+          .map((n) => n.name.toUpperCase())
+      : [];
   });
 
   private observer: MutationObserver | null = null;
@@ -157,6 +172,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.teardownDrag();
     this.observer?.disconnect();
     this.observer = null;
     for (const s of this.subs) s.unsubscribe();
@@ -187,6 +203,37 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
 
   /** Recompute anchor → window placement → leader line. One pass. */
   private reposition(): void {
+    if (this.pinned()) {
+      // Pinned by drag: keep the user's spot, just never let it escape the
+      // viewport (the browser window may have shrunk underneath it).
+      const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
+      const vh = typeof window !== 'undefined' ? window.innerHeight : this.winHeight();
+      const minTop = 64; // project toolbar
+      this.winLeft.set(Math.min(Math.max(this.winLeft(), 0), Math.max(0, vw - this.winWidth())));
+      this.winTop.set(Math.min(Math.max(this.winTop(), minTop), Math.max(minTop, vh - this.winHeight())));
+    } else {
+      const frame = this.svc.currentFrame();
+      if (!frame) return;
+      const anchor = this.linkCenterScreen(frame.link_id);
+      if (anchor) {
+        const viewport = {
+          width: typeof window !== 'undefined' ? window.innerWidth : this.winWidth(),
+          height: typeof window !== 'undefined' ? window.innerHeight : this.winHeight(),
+          topOffset: 64, // project toolbar
+        };
+        const { rect } = placeWindow(anchor, { width: this.winWidth(), height: this.winHeight() }, viewport);
+        this.winLeft.set(rect.left);
+        this.winTop.set(rect.top);
+      }
+    }
+    this.updateLeader();
+  }
+
+  /**
+   * Point the leader at the current link from wherever the window sits —
+   * placed OR pinned. The window end attaches to the edge facing the anchor.
+   */
+  private updateLeader(): void {
     const frame = this.svc.currentFrame();
     if (!frame) return;
     const anchor = this.linkCenterScreen(frame.link_id);
@@ -196,23 +243,13 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
       this.leader.set(null);
       return;
     }
-    const viewport = {
-      width: typeof window !== 'undefined' ? window.innerWidth : this.winWidth(),
-      height: typeof window !== 'undefined' ? window.innerHeight : this.winHeight(),
-      topOffset: 64, // project toolbar
-    };
-    const { rect, side } = placeWindow(
-      anchor,
-      { width: this.winWidth(), height: this.winHeight() },
-      viewport
-    );
-    this.winLeft.set(rect.left);
-    this.winTop.set(rect.top);
     this.anchored.set(true);
-    // Attach the leader to the window edge FACING the link.
+    const left = this.winLeft();
+    const top = this.winTop();
+    const attachLeftEdge = anchor.x < left + this.winWidth() / 2;
     this.leader.set({
-      x1: side === 'right' ? rect.left : rect.left + rect.width,
-      y1: rect.top + rect.height / 2,
+      x1: attachLeftEdge ? left : left + this.winWidth(),
+      y1: top + this.winHeight() / 2,
       x2: anchor.x,
       y2: anchor.y,
     });
@@ -262,6 +299,65 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     this.winHeight.set(height);
     this.resizing.set(false);
     // Re-place with the new size (may flip to the link's other side / re-clamp).
+    this.requestReposition();
+  }
+
+  // ---- manual position (header drag pins, re-anchor releases) ----
+
+  /** In-flight drag teardown, set while a header gesture is active. */
+  private cleanupDrag: (() => void) | null = null;
+
+  /**
+   * Dragging the header moves the window and, on release, PINS it there
+   * (auto-anchor off). A plain header click without movement does not pin.
+   */
+  onHeaderMouseDown(e: MouseEvent): void {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement | null)?.closest('button')) return; // buttons click, not drag
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startLeft = this.winLeft();
+    const startTop = this.winTop();
+    const minTop = 64; // project toolbar
+    let moved = false;
+
+    const onMove = (ev: MouseEvent): void => {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      moved = true;
+      const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
+      const vh = typeof window !== 'undefined' ? window.innerHeight : this.winHeight();
+      this.winLeft.set(Math.min(Math.max(startLeft + dx, 0), Math.max(0, vw - this.winWidth())));
+      this.winTop.set(Math.min(Math.max(startTop + dy, minTop), Math.max(minTop, vh - this.winHeight())));
+      this.updateLeader();
+    };
+    const onUp = (): void => {
+      this.teardownDrag();
+      this.dragging.set(false);
+      if (moved) this.pinned.set(true);
+      this.updateLeader();
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    this.cleanupDrag = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    this.dragging.set(true);
+  }
+
+  private teardownDrag(): void {
+    this.cleanupDrag?.();
+    this.cleanupDrag = null;
+  }
+
+  /** Snap back to auto-anchor mode — the window re-places beside its link. */
+  reanchor(): void {
+    this.pinned.set(false);
     this.requestReposition();
   }
 

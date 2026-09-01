@@ -34,7 +34,8 @@
     opacity: 0.92;
   }
 
-  &--resizing {
+  &--resizing,
+  &--dragging {
     user-select: none;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-tertiary) 45%, transparent),
       0 8px 24px color-mix(in srgb, var(--mat-sys-shadow) 15%, transparent);
@@ -49,6 +50,8 @@
   background: var(--mat-sys-surface-container);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   flex-shrink: 0;
+  cursor: move;
+  user-select: none;
 }
 
 .gns3-replay__window-icon {
@@ -86,6 +89,33 @@
   border-radius: 8px;
   padding: 1px 6px;
   white-space: nowrap;
+}
+
+// Appears once the window has been dragged (pinned) — snaps it back to
+// auto-placement beside its link.
+.gns3-replay__window-reanchor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mat-sys-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+  }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
 }
 
 // One-line protocol chain (ETH › IPV4 › TCP …) — the frame at a glance.
@@ -169,80 +199,6 @@
 .gns3-replay__detail-error-actions {
   display: flex;
   justify-content: flex-end;
-}
-
-.gns3-replay__tree {
-  padding: 2px 0 8px;
-}
-
-.gns3-replay__tree-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-right: 8px;
-  min-height: 20px;
-  font-size: 11px;
-  color: var(--mat-sys-on-surface);
-  cursor: default;
-
-  &:hover {
-    background: var(--mat-sys-surface-container);
-  }
-
-  // Section band: the protocol row's own padding box spans the container
-  // width, so a background here reads as a full-bleed heading.
-  &--proto {
-    margin-top: 3px;
-    font-weight: 600;
-    border-radius: 4px;
-    background: var(--mat-sys-surface-container);
-
-    &:first-child {
-      margin-top: 0;
-    }
-
-    .gns3-replay__tree-showname {
-      color: var(--mat-sys-on-surface);
-    }
-  }
-
-  &--hidden {
-    opacity: 0.55;
-  }
-}
-
-.gns3-replay__tree-chevron {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: var(--mat-sys-on-surface-variant);
-}
-
-.gns3-replay__tree-leaf {
-  width: 14px;
-  flex-shrink: 0;
-}
-
-.gns3-replay__tree-label {
-  color: var(--mat-sys-on-surface-variant);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.gns3-replay__tree-value {
-  color: var(--mat-sys-on-surface);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.gns3-replay__tree-showname {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 // ---- resize handles (geometry cloned from marker-manager) ----
