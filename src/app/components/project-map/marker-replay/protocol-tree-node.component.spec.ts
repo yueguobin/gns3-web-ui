@@ -33,14 +33,53 @@ describe('ProtocolTreeNodeComponent', () => {
     if (fixture) fixture.destroy();
   });
 
-  it('renders name, showname and the [pos+size] chip verbatim (all strings)', () => {
+  it('renders the showname split into label/value (values verbatim strings)', () => {
     fixture.componentRef.setInput('node', ttlField);
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.gns3-replay__tree-name')?.textContent).toBe('ip.ttl');
-    expect(el.querySelector('.gns3-replay__tree-showname')?.textContent).toBe('Time to Live: 64');
-    expect(el.querySelector('.gns3-replay__tree-loc')?.textContent).toBe('[22+1]');
+    expect(el.querySelector('.gns3-replay__tree-label')?.textContent).toBe('Time to Live:');
+    expect(el.querySelector('.gns3-replay__tree-value')?.textContent).toBe('64');
+  });
+
+  it('keeps the raw name and [pos+size] out of the row — they live in the tooltip', () => {
+    fixture.componentRef.setInput('node', ttlField);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gns3-replay__tree-name')).toBeNull();
+    expect(el.querySelector('.gns3-replay__tree-loc')).toBeNull();
+    expect(el.querySelector('.gns3-replay__tree-row')?.getAttribute('title')).toContain('ip.ttl');
+    expect(el.querySelector('.gns3-replay__tree-row')?.getAttribute('title')).toContain('[22+1]');
+  });
+
+  it('proto rows keep the whole showname as their heading (no label/value split)', () => {
+    fixture.componentRef.setInput('node', ipProto);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gns3-replay__tree-row--proto .gns3-replay__tree-showname')?.textContent).toBe(
+      'Internet Protocol Version 4, Src: 10.0.0.1, Dst: 10.0.0.2'
+    );
+    expect(el.querySelector('.gns3-replay__tree-row--proto .gns3-replay__tree-label')).toBeNull();
+  });
+
+  it('fields without a showname fall back to name + show/value', () => {
+    fixture.componentRef.setInput('node', { ...ttlField, showname: undefined });
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gns3-replay__tree-label')?.textContent).toBe('ip.ttl');
+    expect(el.querySelector('.gns3-replay__tree-value')?.textContent).toBe('64');
+  });
+
+  it('shownames without a ": " render as one plain span', () => {
+    fixture.componentRef.setInput('node', { ...ttlField, showname: 'No matching signature' });
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gns3-replay__tree-showname')?.textContent).toBe('No matching signature');
+    expect(el.querySelector('.gns3-replay__tree-label')).toBeNull();
   });
 
   it('expands top-level protocols by default and renders their children', () => {

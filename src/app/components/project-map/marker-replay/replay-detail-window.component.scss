@@ -16,12 +16,12 @@
   fill: var(--mat-sys-tertiary);
 }
 
+// Size comes from the inline width/height bindings (resize-driven); only
+// shape, chrome and typography live here.
 .gns3-replay__window {
   position: fixed;
-  width: 400px;
   display: flex;
   flex-direction: column;
-  max-height: 320px;
   background: var(--mat-sys-surface);
   border: 2px solid var(--mat-sys-tertiary);
   border-radius: 8px;
@@ -32,6 +32,12 @@
   &--unanchored {
     border-color: var(--mat-sys-outline-variant);
     opacity: 0.92;
+  }
+
+  &--resizing {
+    user-select: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-tertiary) 45%, transparent),
+      0 8px 24px color-mix(in srgb, var(--mat-sys-shadow) 15%, transparent);
   }
 }
 
@@ -61,10 +67,15 @@
   text-overflow: ellipsis;
 }
 
-.gns3-replay__window-brief {
+.gns3-replay__window-frame {
   margin-left: auto;
-  font-size: 11px;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
   color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container-high);
+  border-radius: 8px;
+  padding: 1px 6px;
   white-space: nowrap;
 }
 
@@ -77,30 +88,54 @@
   white-space: nowrap;
 }
 
-.gns3-replay__meta-grid {
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 2px 8px;
+// One-line protocol chain (ETH › IPV4 › TCP …) — the frame at a glance.
+.gns3-replay__crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  flex-shrink: 0;
+}
+
+.gns3-replay__crumb {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+.gns3-replay__crumb-sep {
+  font-size: 10px;
+  color: var(--mat-sys-outline);
+}
+
+// Compact metadata line — the old 4-row key/value grid spent a third of the
+// window on facts the header/timeline already show.
+.gns3-replay__meta-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   flex-shrink: 0;
 }
 
-.gns3-replay__meta-key {
+.gns3-replay__chip {
   font-size: 10px;
-  color: var(--mat-sys-on-surface-variant);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  align-self: center;
-}
-
-.gns3-replay__meta-val {
-  font-size: 11px;
   color: var(--mat-sys-on-surface);
-  font-variant-numeric: tabular-nums;
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+  padding: 2px 7px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
 }
 
 .gns3-replay__window-body {
@@ -137,15 +172,15 @@
 }
 
 .gns3-replay__tree {
-  padding: 4px 0 8px;
+  padding: 2px 0 8px;
 }
 
 .gns3-replay__tree-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding-right: 8px;
-  min-height: 18px;
+  min-height: 20px;
   font-size: 11px;
   color: var(--mat-sys-on-surface);
   cursor: default;
@@ -154,12 +189,20 @@
     background: var(--mat-sys-surface-container);
   }
 
+  // Section band: the protocol row's own padding box spans the container
+  // width, so a background here reads as a full-bleed heading.
   &--proto {
+    margin-top: 3px;
     font-weight: 600;
-    color: var(--mat-sys-on-surface);
+    border-radius: 4px;
+    background: var(--mat-sys-surface-container);
 
-    .gns3-replay__tree-name {
-      color: var(--mat-sys-primary);
+    &:first-child {
+      margin-top: 0;
+    }
+
+    .gns3-replay__tree-showname {
+      color: var(--mat-sys-on-surface);
     }
   }
 
@@ -181,10 +224,19 @@
   flex-shrink: 0;
 }
 
-.gns3-replay__tree-name {
-  font-family: monospace;
+.gns3-replay__tree-label {
   color: var(--mat-sys-on-surface-variant);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gns3-replay__tree-value {
+  color: var(--mat-sys-on-surface);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .gns3-replay__tree-showname {
@@ -193,10 +245,74 @@
   text-overflow: ellipsis;
 }
 
-.gns3-replay__tree-loc {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-size: 9px;
-  color: var(--mat-sys-outline);
-  font-variant-numeric: tabular-nums;
+// ---- resize handles (geometry cloned from marker-manager) ----
+
+.gns3-replay__resize-handle {
+  position: absolute;
+  z-index: 100;
+  background: transparent;
+
+  &--top {
+    top: -4px;
+    left: 12px;
+    right: 12px;
+    height: 12px;
+    cursor: ns-resize;
+  }
+
+  &--right {
+    top: 12px;
+    right: -4px;
+    bottom: 12px;
+    width: 12px;
+    cursor: ew-resize;
+  }
+
+  &--bottom {
+    bottom: 0;
+    left: 12px;
+    right: 12px;
+    height: 12px;
+    cursor: ns-resize;
+  }
+
+  &--left {
+    top: 12px;
+    left: -4px;
+    bottom: 12px;
+    width: 12px;
+    cursor: ew-resize;
+  }
+
+  &--top-left {
+    top: -6px;
+    left: -6px;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+  }
+
+  &--top-right {
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    cursor: nesw-resize;
+  }
+
+  &--bottom-left {
+    bottom: 0;
+    left: -6px;
+    width: 20px;
+    height: 20px;
+    cursor: nesw-resize;
+  }
+
+  &--bottom-right {
+    bottom: 0;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+  }
 }

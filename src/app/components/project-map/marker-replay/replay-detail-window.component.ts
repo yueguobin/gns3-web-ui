@@ -16,6 +16,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subscription } from 'rxjs';
 import { select } from 'd3-selection';
+import { ResizeEvent, ResizableDirective, ResizeHandleDirective } from 'angular-resizable-element';
 
 import { MarkerReplayService } from '@services/marker-replay.service';
 import { MapScaleService } from '@services/mapScale.service';
@@ -52,12 +53,26 @@ interface Leader {
  * The anchor uses the link path's bounding-box CENTER in viewport coordinates
  * (`getBoundingClientRect`), so every map transform — including the parallel-
  * link bundle translate — is already applied by the browser.
+ *
+ * SIZING: the user drag-resizes the window (mwlResizable, the same chrome as
+ * marker-manager); the anchoring engine stays authoritative for POSITION —
+ * after a resize the window is re-placed (possibly flipped to the link's other
+ * side) with its new size. Position is computed, size is yours.
  */
 @Component({
   selector: 'app-replay-detail-window',
   templateUrl: './replay-detail-window.component.html',
   styleUrl: './replay-detail-window.component.scss',
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatTooltipModule, MatProgressSpinnerModule, ProtocolTreeNodeComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    ProtocolTreeNodeComponent,
+    ResizableDirective,
+    ResizeHandleDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
@@ -69,17 +84,24 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   private readonly linksDataSource = inject(LinksDataSource);
   private readonly nodesDataSource = inject(NodesDataSource);
 
-  readonly WIN_W = 400;
-  readonly WIN_H = 320;
+  readonly DEFAULT_W = 440;
+  readonly DEFAULT_H = 420;
+  readonly MIN_W = 320;
+  readonly MIN_H = 220;
   /** Fallback position while no anchor has ever resolved (top-right, below toolbar). */
   private readonly FALLBACK = { left: 0, top: 80 };
 
+  /** User-owned window size (drag-resize); placement consumes both. */
+  readonly winWidth = signal(this.DEFAULT_W);
+  readonly winHeight = signal(this.DEFAULT_H);
   readonly winLeft = signal(this.FALLBACK.left);
   readonly winTop = signal(this.FALLBACK.top);
   /** False when the frame's link is not on the map (deleted) or geometry failed. */
   readonly anchored = signal(false);
   /** Leader line geometry; null while unanchored. */
   readonly leader = signal<Leader | null>(null);
+  /** True while a resize gesture is in flight (suppresses anchor re-placement). */
+  readonly resizing = signal(false);
 
   /** Type-narrowed views of the detail state for the template. */
   readonly detailOk = computed(() => {
@@ -96,6 +118,12 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     if (d.kind === 'unavailable') return 'Frame detail unavailable — tshark is not usable on this server.';
     if (d.kind === 'missing') return 'Frame data is stale — the capture may have been rebuilt.';
     return d.message;
+  });
+
+  /** Protocol chain for the crumbs row (ETH › IPV4 › TCP …) once decoded. */
+  readonly breadcrumb = computed(() => {
+    const ok = this.detailOk();
+    return ok ? ok.detail.tree.map((n) => n.name.toUpperCase()) : [];
   });
 
   private observer: MutationObserver | null = null;
@@ -169,11 +197,15 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
       return;
     }
     const viewport = {
-      width: typeof window !== 'undefined' ? window.innerWidth : this.WIN_W,
-      height: typeof window !== 'undefined' ? window.innerHeight : this.WIN_H,
+      width: typeof window !== 'undefined' ? window.innerWidth : this.winWidth(),
+      height: typeof window !== 'undefined' ? window.innerHeight : this.winHeight(),
       topOffset: 64, // project toolbar
     };
-    const { rect, side } = placeWindow(anchor, { width: this.WIN_W, height: this.WIN_H }, viewport);
+    const { rect, side } = placeWindow(
+      anchor,
+      { width: this.winWidth(), height: this.winHeight() },
+      viewport
+    );
     this.winLeft.set(rect.left);
     this.winTop.set(rect.top);
     this.anchored.set(true);
@@ -196,6 +228,41 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     const rect = path.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return null; // not rendered
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  // ---- drag-resize (mwlResizable; position stays anchor-owned) ----
+
+  /**
+   * Arrow property on purpose: the library invokes the callback as
+   * `this.validateResize(…)` with the DIRECTIVE as `this`, so a plain method
+   * would read the directive's (missing) MIN_W/MIN_H — its guard would silently
+   * never fire.
+   */
+  readonly validate = (event: ResizeEvent): boolean => {
+    const w = event.rectangle.width;
+    const h = event.rectangle.height;
+    if (w !== undefined && w < this.MIN_W) return false;
+    if (h !== undefined && h < this.MIN_H) return false;
+    return true;
+  };
+
+  onResizeStart(): void {
+    this.resizing.set(true);
+  }
+
+  onResizeEnd(event: ResizeEvent): void {
+    // Clamp locally — WindowBoundaryService's config is GLOBAL shared state
+    // (its 500px minWidth suits marker-manager, not this window).
+    const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
+    const vh = typeof window !== 'undefined' ? window.innerHeight : this.winHeight();
+    const width = Math.min(Math.max(event.rectangle.width || this.winWidth(), this.MIN_W), Math.max(vw - 32, this.MIN_W));
+    const height = Math.min(Math.max(event.rectangle.height || this.winHeight(), this.MIN_H), Math.max(vh - 96, this.MIN_H));
+
+    this.winWidth.set(width);
+    this.winHeight.set(height);
+    this.resizing.set(false);
+    // Re-place with the new size (may flip to the link's other side / re-clamp).
+    this.requestReposition();
   }
 
   // ---- template helpers ----
