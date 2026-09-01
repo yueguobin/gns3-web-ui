@@ -41,6 +41,7 @@ describe('MarkerManagerComponent', () => {
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      setEnabled: vi.fn(),
     };
     linkService = { getLink: vi.fn() };
     registry = { reconcileLink: vi.fn(), rebuildFromAggregate: vi.fn(), removeLink: vi.fn() };
@@ -224,6 +225,87 @@ describe('MarkerManagerComponent', () => {
       stale.complete();
 
       expect(link.markers).toHaveProperty('mymarker');
+    });
+  });
+
+  describe('Replay tab (tag aggregate)', () => {
+    /** Aggregate with tag 5 on two links (one still capturing) and paused tag 9. */
+    const aggregate = () => ({
+      'l1/global-arp': { bpf: 'arp', link_id: 'l1', node_id: 'n1', tag: 5, inherited_from: 'arp' },
+      'l2/global-arp': { bpf: 'arp', link_id: 'l2', node_id: 'n2', tag: 5, inherited_from: 'arp', enabled: false },
+      'l2/private-x': { bpf: 'icmp', link_id: 'l2', node_id: 'n2', tag: 5 },
+      'l1/global-web': { bpf: 'tcp port 80', link_id: 'l1', node_id: 'n1', tag: 9, enabled: false },
+    });
+
+    beforeEach(() => {
+      markerService.listDefinitions.mockReturnValue(of({}));
+      markerService.aggregateList.mockReturnValue(of(aggregate()));
+      fixture.detectChanges();
+    });
+
+    it('groups aggregate markers by tag client-side', () => {
+      const tags = component.tags();
+      expect(tags.map((t) => t.tag)).toEqual([5, 9]);
+
+      const tag5 = tags[0];
+      expect(tag5.markers).toHaveLength(3);
+      expect(tag5.linkCount).toBe(2); // l1 + l2
+      expect(tag5.enabled.map((m) => m.name)).toEqual(['global-arp', 'private-x']); // l2's copy is paused
+
+      const tag9 = tags[1];
+      expect(tag9.enabled).toHaveLength(0);
+      expect(tag9.linkCount).toBe(1);
+    });
+
+    it('Replay emits immediately when nothing under the tag is capturing', () => {
+      const emitted = vi.fn();
+      component.startReplay.subscribe(emitted);
+
+      component.startReplayFor(component.tags()[1]); // tag 9, all paused
+      expect(emitted).toHaveBeenCalledWith(9);
+      expect(component.pausePanelTag()).toBeNull();
+    });
+
+    it('capturing tags open the pause panel instead of emitting', () => {
+      const emitted = vi.fn();
+      component.startReplay.subscribe(emitted);
+
+      component.startReplayFor(component.tags()[0]); // tag 5, two capturing
+      expect(emitted).not.toHaveBeenCalled();
+      expect(component.pausePanelTag()).toBe(5);
+    });
+
+    it('pauseAllAndReplay pauses every enabled marker, refreshes, then emits', () => {
+      const emitted = vi.fn();
+      component.startReplay.subscribe(emitted);
+      markerService.setEnabled.mockReturnValue(of({}));
+      markerService.aggregateList.mockClear();
+
+      component.pauseAllAndReplay(component.tags()[0]);
+
+      expect(markerService.setEnabled).toHaveBeenCalledTimes(2);
+      expect(markerService.setEnabled).toHaveBeenCalledWith(controller, 'proj-1', 'l1', 'global-arp', false);
+      expect(markerService.setEnabled).toHaveBeenCalledWith(controller, 'proj-1', 'l2', 'private-x', false);
+      expect(markerService.aggregateList).toHaveBeenCalled(); // refreshed state
+      expect(emitted).toHaveBeenCalledWith(5);
+      expect(component.pausingTag()).toBeNull();
+      expect(component.pausePanelTag()).toBeNull();
+    });
+
+    it('pauseAllAndReplay surfaces failures and does not emit', () => {
+      const emitted = vi.fn();
+      component.startReplay.subscribe(emitted);
+      markerService.setEnabled.mockReturnValue(
+        throwError(() => ({ error: { message: 'nope' }, message: 'nope' }))
+      );
+
+      component.startReplayFor(component.tags()[0]); // opens the pause panel
+      expect(component.pausePanelTag()).toBe(5);
+      component.pauseAllAndReplay(component.tags()[0]);
+
+      expect(emitted).not.toHaveBeenCalled();
+      expect(component.pausingTag()).toBeNull();
+      expect(component.pausePanelTag()).toBe(5); // panel stays open for a retry
     });
   });
 });

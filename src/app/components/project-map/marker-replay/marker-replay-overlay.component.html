@@ -1,0 +1,41 @@
+<div class="gns3-replay" [style.z-index]="zIndex()" (mousedown)="onWindowFocus()">
+  <div class="gns3-replay__header">
+    <mat-icon class="gns3-replay__icon">history</mat-icon>
+    <div class="gns3-replay__title">
+      <span class="gns3-replay__title-text">Tag replay</span>
+      <span class="gns3-replay__tag">tag {{ tag() }}</span>
+    </div>
+    <span class="gns3-replay__position">{{ positionLabel() }}</span>
+    <button mat-icon-button class="gns3-replay__close" (click)="close()" matTooltip="Close replay">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="gns3-replay__body">
+    @if (svc.loadingRange()) {
+      <div class="gns3-replay__state">
+        <mat-spinner class="gns3-replay__state-spinner" [diameter]="22"></mat-spinner>
+        <span>Loading timeline…</span>
+      </div>
+    } @else if (svc.rangeError(); as msg) {
+      <div class="gns3-replay__state gns3-replay__state--error">
+        <span>{{ msg }}</span>
+        @if (svc.rangeErrorKind() === 'network') {
+          <button mat-stroked-button class="gns3-replay__retry" (click)="svc.reloadTimeline()">Retry</button>
+        }
+      </div>
+    } @else if (svc.isEmpty()) {
+      <div class="gns3-replay__state">
+        <span>No frames captured under this tag. Pause markers after traffic, then replay.</span>
+      </div>
+    } @else {
+      <app-replay-timeline></app-replay-timeline>
+    }
+  </div>
+</div>
+
+<!-- Anchored detail window: fixed-position (viewport space), must live OUTSIDE
+     the panel div so no ancestor clipping/stacking context constrains it. -->
+@if (!svc.loadingRange() && svc.rangeError() === null && !svc.isEmpty()) {
+  <app-replay-detail-window [zIndex]="zIndex()"></app-replay-detail-window>
+}
