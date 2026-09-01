@@ -216,7 +216,9 @@ describe('MarkerManagerComponent', () => {
       component.loadAggregate(); // request #2 (newer)
 
       // Newer response lands first and carries the just-created marker.
-      fresh.next({ 'l1/mymarker': { bpf: 'ip', link_id: 'l1', color: '#ff0000' } });
+      // (No `color` hex here — the hardcoded-colors pre-commit check flags
+      // hex literals in staged files, and this test never asserts the value.)
+      fresh.next({ 'l1/mymarker': { bpf: 'ip', link_id: 'l1' } });
       fresh.complete();
       expect(link.markers).toHaveProperty('mymarker');
 
