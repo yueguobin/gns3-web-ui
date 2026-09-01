@@ -12,6 +12,7 @@
   class="gns3-replay__window"
   [class.gns3-replay__window--unanchored]="!anchored()"
   [class.gns3-replay__window--resizing]="resizing()"
+  [class.gns3-replay__window--dragging]="dragging()"
   [style.left.px]="winLeft()"
   [style.top.px]="winTop()"
   [style.width.px]="winWidth()"
@@ -32,10 +33,19 @@
   <div class="gns3-replay__resize-handle gns3-replay__resize-handle--bottom-left" mwlResizeHandle [resizeEdges]="{ bottom: true, left: true }"></div>
   <div class="gns3-replay__resize-handle gns3-replay__resize-handle--bottom-right" mwlResizeHandle [resizeEdges]="{ bottom: true, right: true }"></div>
 
-  <div class="gns3-replay__window-header">
+  <div class="gns3-replay__window-header" (mousedown)="onHeaderMouseDown($event)">
     <mat-icon class="gns3-replay__window-icon">frame_inspect</mat-icon>
     <span class="gns3-replay__window-title">{{ frame.marker }}</span>
     <span class="gns3-replay__window-frame">#{{ frame.frame_number }}</span>
+    @if (pinned() && anchored()) {
+      <button
+        class="gns3-replay__window-reanchor"
+        matTooltip="Dragged — click to re-anchor beside the link"
+        (click)="reanchor()"
+      >
+        <mat-icon>anchor</mat-icon>
+      </button>
+    }
     @if (!anchored()) {
       <span class="gns3-replay__window-hint" matTooltip="This frame's link is not on the map">unanchored</span>
     }
@@ -68,11 +78,7 @@
         <span>Decoding frame…</span>
       </div>
     } @else if (detailOk(); as ok) {
-      <div class="gns3-replay__tree">
-        @for (node of ok.detail.tree; track $index) {
-          <app-protocol-tree-node [node]="node" [depth]="0"></app-protocol-tree-node>
-        }
-      </div>
+      <app-protocol-tree [tree]="ok.detail.tree"></app-protocol-tree>
     } @else if (detailError(); as err) {
       <div class="gns3-replay__detail-error">
         <span>{{ errorMessage() }}</span>

@@ -44,13 +44,23 @@ describe('ReplayDetailWindowComponent', () => {
     tshark_version: 'TShark 4.6.7',
     field_count: 2,
     hex: 'ab',
+    // Mirrors real tshark PDML: a geninfo plumbing proto first, and
+    // hide="yes" filter-only combination fields (ip.addr/ip.host) among the
+    // real ones — neither may render.
     tree: [
+      {
+        element: 'proto',
+        name: 'geninfo',
+        showname: 'General information',
+        children: [{ element: 'field', name: 'num', showname: 'Number', show: '1', children: [] }],
+      },
       {
         element: 'proto',
         name: 'ip',
         showname: 'Internet Protocol Version 4, Src: 10.0.0.1',
         children: [
           { element: 'field', name: 'ip.ttl', showname: 'Time to Live: 64', show: '64', value: '40', size: '1', pos: '22', children: [] },
+          { element: 'field', name: 'ip.addr', showname: 'Source or Destination Address: 10.0.0.1', hide: 'yes', children: [] },
         ],
       },
     ],
@@ -163,17 +173,25 @@ describe('ReplayDetailWindowComponent', () => {
     expect(el.querySelector('.gns3-replay__leader')).toBeNull();
   });
 
-  it('renders the decoded protocol tree and protocol crumbs', async () => {
+  it('renders the decoded protocol tree collapsed, expandable on click, plus crumbs', async () => {
     await load();
     svc.detail.set({ status: 'ok', detail });
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    const rows = el.querySelectorAll('.gns3-replay__tree-row');
-    expect(rows.length).toBe(2); // proto expanded by default → field visible
-    expect(el.querySelector('.gns3-replay__tree-label')?.textContent).toBe('Time to Live:');
-    expect(el.querySelector('.gns3-replay__tree-value')?.textContent).toBe('64');
+    // All collapsed by default: only the protocol row, no fields yet — and
+    // neither geninfo nor the hidden combination field ever shows up.
+    expect(el.querySelectorAll('.gns3-replay__tree-row').length).toBe(1);
+    expect(el.textContent).toContain('Internet Protocol Version 4');
+    expect(el.textContent).not.toContain('Time to Live');
+    expect(el.textContent).not.toContain('General information');
     expect(el.querySelector('.gns3-replay__crumb')?.textContent).toBe('IP');
+
+    (el.querySelector('.gns3-replay__tree-row') as HTMLElement).click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.gns3-replay__tree-row').length).toBe(2);
+    expect(el.textContent).toContain('Time to Live: 64');
+    expect(el.textContent).not.toContain('Source or Destination');
   });
 
   it('unavailable (tshark) errors render inline with a Retry that re-fires the pipeline', async () => {
@@ -244,6 +262,71 @@ describe('ReplayDetailWindowComponent', () => {
       await flushFrames();
       expect(component.winWidth()).toBe(500);
       expect(component.winHeight()).toBe(300);
+    });
+  });
+
+  describe('drag-to-pin position', () => {
+    /** Dispatch a header drag gesture: down at (100,100), move by (dx,dy), up. */
+    async function dragBy(dx: number, dy: number) {
+      const header = (fixture.nativeElement as HTMLElement).querySelector(
+        '.gns3-replay__window-header'
+      ) as HTMLElement;
+      header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
+      if (dx || dy) document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + dx, clientY: 100 + dy }));
+      document.dispatchEvent(new MouseEvent('mouseup'));
+      await flushFrames();
+    }
+
+    it('dragging the header pins the window at the dropped spot; leader still tracks', async () => {
+      await load();
+      const left = component.winLeft();
+      const top = component.winTop();
+
+      await dragBy(120, 40);
+
+      expect(component.pinned()).toBe(true);
+      expect(component.winLeft()).toBe(left + 120);
+      expect(component.winTop()).toBe(top + 40);
+      expect(component.leader()).not.toBeNull();
+      // Leader attaches to the edge facing the link (window now left of it).
+      expect(component.leader()!.x1).toBe(component.winLeft() + component.winWidth());
+    });
+
+    it('a header click without movement does not pin', async () => {
+      await load();
+      await dragBy(0, 0);
+      expect(component.pinned()).toBe(false);
+    });
+
+    it('map zoom does not move a pinned window (it would re-place an unpinned one)', async () => {
+      await load();
+      await dragBy(120, 40);
+      const left = component.winLeft();
+
+      TestBed.inject(MapScaleService).scaleChangeEmitter.emit();
+      await flushFrames();
+
+      expect(component.pinned()).toBe(true);
+      expect(component.winLeft()).toBe(left);
+      expect(component.leader()).not.toBeNull();
+    });
+
+    it('the re-anchor button releases the pin and re-places beside the link', async () => {
+      await load();
+      await dragBy(120, 40);
+      const pinnedLeft = component.winLeft();
+
+      const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+        '.gns3-replay__window-reanchor'
+      );
+      expect(btn).toBeTruthy();
+      btn!.click();
+      await flushFrames();
+
+      expect(component.pinned()).toBe(false);
+      // placeWindow for this fixture flips left of the anchor (560) at 440px wide.
+      expect(component.winLeft()).not.toBe(pinnedLeft);
+      expect(component.winLeft()).toBe(560 - 28 - component.winWidth());
     });
   });
 });
