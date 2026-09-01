@@ -5,6 +5,7 @@ import { EventEmitter } from '@angular/core';
 
 import { ReplayDetailWindowComponent } from './replay-detail-window.component';
 import { MarkerReplayService } from '@services/marker-replay.service';
+import type { ResizeEvent } from 'angular-resizable-element';
 import { HttpController } from '@services/http-controller.service';
 import { ToasterService } from '@services/toaster.service';
 import { MapScaleService } from '@services/mapScale.service';
@@ -137,8 +138,10 @@ describe('ReplayDetailWindowComponent', () => {
     await load();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.gns3-replay__window')).toBeTruthy();
+    // Compact chip line (was a 4-row key/value grid) + frame # in the header.
+    expect(el.querySelector('.gns3-replay__meta-chips')).toBeTruthy();
     expect(el.textContent).toContain('98 B');
-    expect(el.textContent).toContain('#1');
+    expect(el.querySelector('.gns3-replay__window-frame')?.textContent).toContain('#1');
     expect(el.querySelector('.gns3-replay__window--unanchored')).toBeNull();
   });
 
@@ -160,7 +163,7 @@ describe('ReplayDetailWindowComponent', () => {
     expect(el.querySelector('.gns3-replay__leader')).toBeNull();
   });
 
-  it('renders the decoded protocol tree', async () => {
+  it('renders the decoded protocol tree and protocol crumbs', async () => {
     await load();
     svc.detail.set({ status: 'ok', detail });
     fixture.detectChanges();
@@ -168,7 +171,9 @@ describe('ReplayDetailWindowComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const rows = el.querySelectorAll('.gns3-replay__tree-row');
     expect(rows.length).toBe(2); // proto expanded by default → field visible
-    expect(el.textContent).toContain('Time to Live: 64');
+    expect(el.querySelector('.gns3-replay__tree-label')?.textContent).toBe('Time to Live:');
+    expect(el.querySelector('.gns3-replay__tree-value')?.textContent).toBe('64');
+    expect(el.querySelector('.gns3-replay__crumb')?.textContent).toBe('IP');
   });
 
   it('unavailable (tshark) errors render inline with a Retry that re-fires the pipeline', async () => {
@@ -202,5 +207,43 @@ describe('ReplayDetailWindowComponent', () => {
     await load();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.gns3-replay__detail-state')?.textContent).toContain('settle on a frame');
+  });
+
+  describe('drag-resize', () => {
+    const ev = (width?: number, height?: number): ResizeEvent =>
+      ({ rectangle: { top: 100, left: 100, width, height }, edges: {} }) as ResizeEvent;
+
+    it('rejects resize gestures below the minimum size', () => {
+      expect(component.validate(ev(100, 100))).toBe(false);
+      expect(component.validate(ev(component.MIN_W - 1, 300))).toBe(false);
+      expect(component.validate(ev(400, component.MIN_H - 1))).toBe(false);
+      expect(component.validate(ev(400, 300))).toBe(true);
+      // One axis untouched (undefined) is fine — only the moved edge is judged.
+      expect(component.validate(ev(undefined, 300))).toBe(true);
+    });
+
+    it('clamps an under-minimum end event and re-places the window with the new size', async () => {
+      await load();
+      // Default 440px window flips LEFT of the anchor (jsdom viewport 1024);
+      // after clamping to 320px it fits on the RIGHT side — proves placement
+      // consumed the resized dimensions.
+      const before = component.winLeft();
+
+      component.onResizeEnd(ev(100, 100));
+      await flushFrames();
+
+      expect(component.winWidth()).toBe(component.MIN_W);
+      expect(component.winHeight()).toBe(component.MIN_H);
+      expect(component.resizing()).toBe(false);
+      expect(component.winLeft()).toBeGreaterThan(before);
+    });
+
+    it('accepts a valid end event as-is', async () => {
+      await load();
+      component.onResizeEnd(ev(500, 300));
+      await flushFrames();
+      expect(component.winWidth()).toBe(500);
+      expect(component.winHeight()).toBe(300);
+    });
   });
 });
