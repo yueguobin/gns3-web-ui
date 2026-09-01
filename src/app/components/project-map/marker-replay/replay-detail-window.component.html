@@ -1,0 +1,68 @@
+@if (svc.currentFrame(); as frame) {
+<!-- Full-viewport leader-line overlay: a plain "this window describes this
+     link" callout — dot at the link end, NOT a traffic-direction arrow. -->
+@if (anchored() && leader(); as l) {
+<svg class="gns3-replay__leader" [style.z-index]="zIndex()">
+  <line class="gns3-replay__leader-line" [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2"></line>
+  <circle class="gns3-replay__leader-dot" [attr.cx]="l.x2" [attr.cy]="l.y2" r="4"></circle>
+</svg>
+}
+
+<div
+  class="gns3-replay__window"
+  [class.gns3-replay__window--unanchored]="!anchored()"
+  [style.left.px]="winLeft()"
+  [style.top.px]="winTop()"
+  [style.z-index]="zIndex()"
+>
+  <div class="gns3-replay__window-header">
+    <mat-icon class="gns3-replay__window-icon">frame_inspect</mat-icon>
+    <span class="gns3-replay__window-title">{{ frame.marker }}</span>
+    <span class="gns3-replay__window-brief">{{ frame.len }} B</span>
+    @if (!anchored()) {
+      <span class="gns3-replay__window-hint" matTooltip="This frame's link is not on the map">unanchored</span>
+    }
+  </div>
+
+  <div class="gns3-replay__meta-grid">
+    <span class="gns3-replay__meta-key">Time</span>
+    <span class="gns3-replay__meta-val">{{ frameTime(frame.ts) }} ({{ deltaLabel(frame.ts) }})</span>
+    <span class="gns3-replay__meta-key">Length</span>
+    <span class="gns3-replay__meta-val">{{ frame.len }} B</span>
+    <span class="gns3-replay__meta-key">Link</span>
+    <span class="gns3-replay__meta-val">{{ linkLabel(frame.link_id) }}</span>
+    <span class="gns3-replay__meta-key">Frame</span>
+    <span class="gns3-replay__meta-val">#{{ frame.frame_number }} @ {{ frame.node_id.slice(0, 8) }}</span>
+  </div>
+
+  <div class="gns3-replay__window-body">
+    @if (svc.detail().status === 'loading') {
+      <div class="gns3-replay__detail-state">
+        <mat-spinner class="gns3-replay__detail-spinner" [diameter]="20"></mat-spinner>
+        <span>Decoding frame…</span>
+      </div>
+    } @else if (detailOk(); as ok) {
+      <div class="gns3-replay__tree">
+        @for (node of ok.detail.tree; track $index) {
+          <app-protocol-tree-node [node]="node" [depth]="0"></app-protocol-tree-node>
+        }
+      </div>
+    } @else if (detailError(); as err) {
+      <div class="gns3-replay__detail-error">
+        <span>{{ errorMessage() }}</span>
+        <div class="gns3-replay__detail-error-actions">
+          @if (err.kind === 'missing') {
+            <button mat-stroked-button (click)="svc.reloadTimeline()">Reload timeline</button>
+          } @else {
+            <button mat-stroked-button (click)="svc.retryDetail()">Retry</button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="gns3-replay__detail-state">
+        <span>Scroll the timeline and settle on a frame to decode it.</span>
+      </div>
+    }
+  </div>
+</div>
+}
