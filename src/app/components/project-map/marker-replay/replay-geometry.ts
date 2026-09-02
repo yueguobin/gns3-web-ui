@@ -177,3 +177,34 @@ export function snapRect(tentative: Rect, siblings: Rect[], threshold: number = 
   }
   return { left, top, width: tentative.width, height: tentative.height };
 }
+
+// ---- cluster join (new pins beside hand-arranged windows) -----------------
+
+/**
+ * Where a NEW pinned window joins the user's hand-arranged cluster: flush
+ * (zero-gap — the same contact magnetic snapping produces) right of the
+ * RIGHTMOST arranged window, top-aligned with it; when the viewport's right
+ * edge is reached the cluster wraps to a fresh row flush BELOW, aligned with
+ * the leftmost arranged window. Null when nothing is arranged — the caller
+ * docks into the comparison row instead.
+ */
+export function clusterAppend(
+  arranged: Rect[],
+  mine: { width: number; height: number },
+  viewport: { width: number; height: number }
+): { left: number; top: number } | null {
+  if (arranged.length === 0) return null;
+  const rightmost = arranged.reduce((a, b) => (a.left + a.width >= b.left + b.width ? a : b));
+  let left = rightmost.left + rightmost.width;
+  let top = rightmost.top;
+  if (left + mine.width > viewport.width - VIEWPORT_MARGIN) {
+    const bottom = arranged.reduce((a, b) => (a.top + a.height >= b.top + b.height ? a : b));
+    const leftmost = arranged.reduce((a, b) => (a.left <= b.left ? a : b));
+    left = leftmost.left;
+    top = bottom.top + bottom.height;
+  }
+  // Clamp into the viewport (a cluster near an edge may still overlap it).
+  left = Math.max(0, Math.min(left, Math.max(0, viewport.width - mine.width)));
+  top = Math.max(64, Math.min(top, Math.max(64, viewport.height - mine.height)));
+  return { left, top };
+}

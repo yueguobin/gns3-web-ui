@@ -418,26 +418,60 @@ export class MarkerReplayService {
     this.pinRects.delete(id);
   }
 
-  // ---- pinned-window rect registry (magnetic drag snapping) ----------------
+  // ---- pinned-window rect registry (snapping + dock/cluster placement) ------
 
-  /** Structural rect — satisfies replay-geometry's Rect without importing it. */
-  private readonly pinRects = new Map<number, { left: number; top: number; width: number; height: number }>();
+  /** Structural rect plus where the window sits — satisfies geometry's Rect. */
+  private readonly pinRects = new Map<
+    number,
+    { left: number; top: number; width: number; height: number; docked: boolean }
+  >();
 
   /**
-   * A pinned window reports its settled rect (dock placement, drag end, resize
-   * end, viewport reflow) so siblings can magnetically snap against it while
-   * dragging. Plain Map on purpose: written on every coalesced reposition pass,
-   * read synchronously inside drag mousemoves — no signal churn needed.
+   * Bumped ONLY when a window's docked flag flips (dragged out of the row /
+   * re-docked / first report). The dock row re-indexes (docked-only slots) and
+   * new-pin cluster joins depend on it; pure rect moves happen inside every
+   * reposition pass and must NOT retrigger anything.
    */
-  reportPinRect(id: number, rect: { left: number; top: number; width: number; height: number }): void {
-    this.pinRects.set(id, rect);
+  readonly dockVersion = signal(0);
+
+  /**
+   * A pinned window reports its settled rect and whether it sits in the dock
+   * row or was hand-arranged (dragged/resized out) — feeding both magnetic
+   * snapping and the dock-row/cluster placement decisions. Plain Map on
+   * purpose: read synchronously inside drag mousemoves, no signal churn.
+   */
+  reportPinRect(
+    id: number,
+    rect: { left: number; top: number; width: number; height: number },
+    docked: boolean
+  ): void {
+    const prev = this.pinRects.get(id);
+    this.pinRects.set(id, { ...rect, docked });
+    if (prev?.docked !== docked) this.dockVersion.update((v) => v + 1);
   }
 
   /** Settled sibling rects for snapping — everyone except the dragged window. */
   pinSiblingRects(exceptId: number): { left: number; top: number; width: number; height: number }[] {
     const out: { left: number; top: number; width: number; height: number }[] = [];
-    for (const [id, r] of this.pinRects) if (id !== exceptId) out.push(r);
+    for (const [id, r] of this.pinRects) {
+      if (id !== exceptId) out.push({ left: r.left, top: r.top, width: r.width, height: r.height });
+    }
     return out;
+  }
+
+  /** Hand-arranged (freed) rects in pin order — a NEW pin joins beside them. */
+  freedPinRects(): { left: number; top: number; width: number; height: number }[] {
+    return this.pinnedDetails()
+      .map((p) => this.pinRects.get(p.id))
+      .filter((r): r is NonNullable<typeof r> => !!r && !r.docked)
+      .map(({ left, top, width, height }) => ({ left, top, width, height }));
+  }
+
+  /** Ids sitting in the dock row, pin order (slot indexing; unreported = docked). */
+  dockedPinIds(): number[] {
+    return this.pinnedDetails()
+      .filter((p) => this.pinRects.get(p.id)?.docked !== false)
+      .map((p) => p.id);
   }
 
   /** The user's preferred window size from their last manual resize (session-only). */
