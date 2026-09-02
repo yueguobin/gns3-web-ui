@@ -122,6 +122,26 @@ describe('ReplayTimelineComponent', () => {
     expect(svc.currentFrameIndex()).toBe(5);
   });
 
+  it('the 📌 button freezes the current frame into a comparison window', () => {
+    loadRange(fullRange(40));
+    svc.setCurrentIndex(3);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const btn = el.querySelector<HTMLButtonElement>('.gns3-replay__pin-btn');
+    expect(btn).toBeTruthy();
+    btn!.click();
+    fixture.detectChanges();
+
+    expect(svc.pinnedDetails()).toHaveLength(1);
+    expect(svc.pinnedDetails()[0].frame.ts).toBe(frames(40)[3].ts);
+    // Same frame pinned → the button disables until the cursor moves on.
+    expect(btn!.disabled).toBe(true);
+    svc.setCurrentIndex(4);
+    fixture.detectChanges();
+    expect(el.querySelector<HTMLButtonElement>('.gns3-replay__pin-btn')!.disabled).toBe(false);
+  });
+
   it('bookmark chips appear for bookmarks and jump back to the frame', () => {
     loadRange(fullRange(40));
     svc.setCurrentIndex(5);

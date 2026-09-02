@@ -17,6 +17,17 @@
     >
       <mat-icon [class.gns3-replay__bookmark-icon--active]="svc.isBookmarked(svc.currentFrame())">flag</mat-icon>
     </button>
+    <!-- Pin sits beside the bookmark — both "mark this frame" actions, one
+         click from the browsing flow (no trip to the detail window header). -->
+    <button
+      mat-icon-button
+      class="gns3-replay__pin-btn"
+      [disabled]="!svc.currentFrame() || alreadyPinned()"
+      (click)="svc.pinCurrent()"
+      [matTooltip]="alreadyPinned() ? 'Already pinned for comparison' : 'Freeze this frame into a comparison window'"
+    >
+      <mat-icon>push_pin</mat-icon>
+    </button>
     <button
       mat-icon-button
       class="gns3-replay__step-btn"
