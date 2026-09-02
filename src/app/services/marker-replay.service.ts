@@ -415,6 +415,29 @@ export class MarkerReplayService {
   /** Drop a pinned window. */
   unpin(id: number): void {
     this.pinnedDetails.set(this.pinnedDetails().filter((p) => p.id !== id));
+    this.pinRects.delete(id);
+  }
+
+  // ---- pinned-window rect registry (magnetic drag snapping) ----------------
+
+  /** Structural rect — satisfies replay-geometry's Rect without importing it. */
+  private readonly pinRects = new Map<number, { left: number; top: number; width: number; height: number }>();
+
+  /**
+   * A pinned window reports its settled rect (dock placement, drag end, resize
+   * end, viewport reflow) so siblings can magnetically snap against it while
+   * dragging. Plain Map on purpose: written on every coalesced reposition pass,
+   * read synchronously inside drag mousemoves — no signal churn needed.
+   */
+  reportPinRect(id: number, rect: { left: number; top: number; width: number; height: number }): void {
+    this.pinRects.set(id, rect);
+  }
+
+  /** Settled sibling rects for snapping — everyone except the dragged window. */
+  pinSiblingRects(exceptId: number): { left: number; top: number; width: number; height: number }[] {
+    const out: { left: number; top: number; width: number; height: number }[] = [];
+    for (const [id, r] of this.pinRects) if (id !== exceptId) out.push(r);
+    return out;
   }
 
   /** Retry a pinned window's failed decode. */

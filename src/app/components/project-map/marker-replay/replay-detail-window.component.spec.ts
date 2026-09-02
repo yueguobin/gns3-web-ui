@@ -14,6 +14,7 @@ import { LinksDataSource } from '../../../cartography/datasources/links-datasour
 import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
 import { Controller } from '@models/controller';
 import { ReplayFrame, ReplayFrameDetail, ReplayRangeResponse } from '@models/marker-replay';
+import { dockSlot } from './replay-geometry';
 
 describe('ReplayDetailWindowComponent', () => {
   let fixture: ComponentFixture<ReplayDetailWindowComponent>;
@@ -358,6 +359,10 @@ describe('ReplayDetailWindowComponent', () => {
       expect(el.querySelector('.gns3-replay__window-pin')).toBeNull();
       expect(el.querySelector('.gns3-replay__window-frame')?.textContent).toContain('#1');
       expect(el.querySelector('.gns3-replay__window-icon')?.textContent).toContain('push_pin');
+      // Snapshot chrome: primary-border modifier, and a PRIMARY leader line to
+      // its link — the persistent window→hop association while docked.
+      expect(el.querySelector('.gns3-replay__window--snapshot')).toBeTruthy();
+      expect(el.querySelector('.gns3-replay__leader--pin')).toBeTruthy();
 
       // The cursor moves to l2's frame — the pinned window must NOT follow
       // (neither content nor re-anchoring: l2 has no link group on the map).
@@ -367,6 +372,102 @@ describe('ReplayDetailWindowComponent', () => {
       await flushFrames();
       expect(el.querySelector('.gns3-replay__window-frame')?.textContent).toContain('#1');
       expect(component.winLeft()).toBe(left);
+    });
+
+    it('docks at the bottom-left comparison slot matching its index among the pins', async () => {
+      await load();
+      const pins = [
+        { id: 1, frame: frames[0], state: { status: 'ok', detail } as const },
+        { id: 2, frame: frames[1], state: { status: 'ok', detail } as const },
+      ];
+      svc.pinnedDetails.set(pins);
+      fixture.componentRef.setInput('pinned', pins[1]); // the SECOND pin
+      fixture.detectChanges();
+      await flushFrames();
+
+      const slot = dockSlot(1, 2, { width: window.innerWidth, height: window.innerHeight });
+      expect(component.winLeft()).toBe(slot.left);
+      expect(component.winTop()).toBe(slot.top);
+      expect(component.winWidth()).toBe(slot.width);
+      expect(component.winHeight()).toBe(slot.height);
+
+      // Unpinning the first shifts this one's index → it reflows to slot 0.
+      svc.pinnedDetails.set([pins[1]]);
+      fixture.detectChanges();
+      await flushFrames();
+      expect(component.winLeft()).toBe(dockSlot(0, 1, { width: window.innerWidth, height: window.innerHeight }).left);
+    });
+
+    it('resizing a docked snapshot frees it; re-anchor returns it to the dock', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+      await flushFrames();
+      expect(component.dragPinned()).toBe(false); // docked
+
+      const ev = { rectangle: { top: 0, left: 0, width: 500, height: 400 }, edges: {} } as any;
+      component.onResizeEnd(ev);
+      await flushFrames();
+      // The dock owns size while docked — a resize detaches the window and
+      // keeps the user's dimensions.
+      expect(component.dragPinned()).toBe(true);
+      expect(component.winWidth()).toBe(500);
+      expect(component.winHeight()).toBe(400);
+
+      component.reanchor();
+      await flushFrames();
+      expect(component.dragPinned()).toBe(false);
+      const slot = dockSlot(0, 1, { width: window.innerWidth, height: window.innerHeight });
+      expect(component.winWidth()).toBe(slot.width); // size back under dock control
+      expect(component.winLeft()).toBe(slot.left);
+    });
+
+    it('dragging a snapshot magnetically snaps against a settled sibling', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+      await flushFrames();
+      // Docked slot in jsdom (1024×768): left 16, top 432, size 440×320.
+      expect(component.winLeft()).toBe(16);
+      expect(component.winTop()).toBe(432);
+
+      // A settled sibling nowhere near the dock slot.
+      svc.reportPinRect(2, { left: 300, top: 200, width: 440, height: 320 });
+
+      // Drag toward it: raw (16+294, 432-229) = (310, 203) — both axes within
+      // the 12px snap threshold of the sibling's (300, 200).
+      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__window-header') as HTMLElement;
+      header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 394, clientY: -129 }));
+      document.dispatchEvent(new MouseEvent('mouseup'));
+      await flushFrames();
+
+      expect(component.dragPinned()).toBe(true);
+      expect(component.winLeft()).toBe(300); // snapped flush/aligned
+      expect(component.winTop()).toBe(200);
+    });
+
+    it('a snapshot whose link left the map shows the unanchored degradation', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+      await flushFrames();
+
+      svgFixture!.remove(); // the map (and this pin's link) disappears
+      svgFixture = null;
+      component.reanchor();
+      await flushFrames();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.gns3-replay__window--unanchored')).toBeTruthy();
+      expect(el.querySelector('.gns3-replay__leader')).toBeNull();
+      expect(el.textContent).toContain('unanchored');
     });
 
     it('the close button unpins the snapshot', async () => {

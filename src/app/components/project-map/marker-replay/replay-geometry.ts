@@ -77,3 +77,98 @@ export function placeWindow(
 
   return { rect: { left, top, width: win.width, height: win.height }, side };
 }
+
+// ---- pinned-window dock ---------------------------------------------------
+
+/** Target dock tile size (the window's own defaults). */
+export const DOCK_TILE_W = 440;
+export const DOCK_TILE_H = 320;
+/** Gap between dock tiles and rows. */
+export const DOCK_GAP = 12;
+/** Right reserve so tiles don't slide under the docked replay panel. */
+export const DOCK_RIGHT_RESERVE = 296;
+/** Bottom dock never rises above the project toolbar (+ margin). */
+const DOCK_TOP_LIMIT = 80;
+
+export interface DockSlot {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Uniform slot for pinned comparison window `index` of `count`: a
+ * bottom-anchored flow that fills left→right and wraps UPWARD, in pin order —
+ * the deterministic "comparison row" (vs. the live window, which anchors
+ * beside its link). While docked the slot owns BOTH position and size;
+ * dragging or resizing a window frees it (`reanchor()` re-docks it).
+ */
+export function dockSlot(
+  index: number,
+  count: number,
+  viewport: { width: number; height: number }
+): DockSlot {
+  const left0 = VIEWPORT_MARGIN;
+  // The replay panel (right-docked, ~280px) is only reserved once the viewport
+  // is wide enough for it to matter — narrow screens use the full width.
+  const right =
+    viewport.width > DOCK_RIGHT_RESERVE + DOCK_TILE_W + VIEWPORT_MARGIN
+      ? viewport.width - DOCK_RIGHT_RESERVE
+      : viewport.width - VIEWPORT_MARGIN;
+  const usableW = Math.max(DOCK_GAP, right - left0);
+  const cols = Math.max(1, Math.floor((usableW + DOCK_GAP) / (DOCK_TILE_W + DOCK_GAP)));
+  const width = Math.max(200, Math.min(DOCK_TILE_W, Math.floor((usableW - (cols - 1) * DOCK_GAP) / cols)));
+
+  const rows = Math.max(1, Math.ceil(count / cols));
+  const usableH = Math.max(DOCK_GAP, viewport.height - VIEWPORT_MARGIN - DOCK_TOP_LIMIT);
+  const height = Math.max(160, Math.min(DOCK_TILE_H, Math.floor((usableH - (rows - 1) * DOCK_GAP) / rows)));
+
+  const col = index % cols;
+  const row = Math.floor(index / cols); // row 0 = bottom
+  return {
+    left: left0 + col * (width + DOCK_GAP),
+    top: viewport.height - VIEWPORT_MARGIN - height - row * (height + DOCK_GAP),
+    width,
+    height,
+  };
+}
+
+// ---- magnetic snap (dragging pinned windows) ------------------------------
+
+/** Snap distance in px — a dragged edge within this of a sibling's attaches. */
+export const SNAP_THRESHOLD = 12;
+
+/**
+ * Magnetic snap of a dragged pinned window against its settled siblings'
+ * rects: within {@link SNAP_THRESHOLD} an edge attaches flush (side-by-side)
+ * or aligns (column/row), per axis independently — the nearest candidate per
+ * axis wins, so dragging two windows together builds flush comparison grids.
+ * No perpendicular-overlap requirement: aligning to a window in another row is
+ * exactly how tidy columns get built.
+ */
+export function snapRect(tentative: Rect, siblings: Rect[], threshold: number = SNAP_THRESHOLD): Rect {
+  let left = tentative.left;
+  let top = tentative.top;
+  let bestX = threshold + 1;
+  let bestY = threshold + 1;
+  for (const s of siblings) {
+    // My LEFT may attach to: the sibling's left (align), its right edge
+    // (I sit on its right), or its left minus my width (I sit on its left).
+    for (const cx of [s.left, s.left + s.width, s.left - tentative.width]) {
+      const d = Math.abs(cx - tentative.left);
+      if (d < bestX) {
+        bestX = d;
+        left = cx;
+      }
+    }
+    for (const cy of [s.top, s.top + s.height, s.top - tentative.height]) {
+      const d = Math.abs(cy - tentative.top);
+      if (d < bestY) {
+        bestY = d;
+        top = cy;
+      }
+    }
+  }
+  return { left, top, width: tentative.width, height: tentative.height };
+}

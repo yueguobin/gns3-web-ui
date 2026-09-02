@@ -16,6 +16,18 @@
   fill: var(--mat-sys-tertiary);
 }
 
+// A PINNED snapshot's leader — primary to match its --snapshot border, so the
+// line itself distinguishes frozen comparison windows from the live one.
+.gns3-replay__leader--pin {
+  .gns3-replay__leader-line {
+    stroke: var(--mat-sys-primary);
+  }
+
+  .gns3-replay__leader-dot {
+    fill: var(--mat-sys-primary);
+  }
+}
+
 // Size comes from the inline width/height bindings (resize-driven); only
 // shape, chrome and typography live here.
 .gns3-replay__window {
@@ -32,6 +44,21 @@
   &--unanchored {
     border-color: var(--mat-sys-outline-variant);
     opacity: 0.92;
+  }
+
+  // Pinned comparison snapshot — deliberately distinct from the live window
+  // (tertiary border, link-anchored): primary border + denser header, so the
+  // frozen comparison row reads as its own layer of the UI.
+  &--snapshot {
+    border-color: var(--mat-sys-primary);
+
+    .gns3-replay__window-header {
+      background: var(--mat-sys-surface-container-high);
+    }
+
+    .gns3-replay__window-icon {
+      color: var(--mat-sys-primary);
+    }
   }
 
   &--resizing,

@@ -50,7 +50,6 @@
       [zBoost]="zAssign().get('pin-' + p.id) ?? 0"
       [pinned]="p"
       [changedPaths]="pinDiff()"
-      [offsetIndex]="$index + 1"
       (windowFocused)="focusWindow('pin-' + p.id)"
     ></app-replay-detail-window>
   }
