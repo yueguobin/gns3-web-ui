@@ -257,7 +257,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
       // leader line (PRIMARY, vs. the live window's outline grey) keeps the
       // persistent window→hop association the dock would otherwise lose.
       if (!this.dragPinned()) {
-        const slot = dockSlot(this.pinIndex(), this.pinCount(), { width: vw, height: vh });
+        const slot = dockSlot(this.pinIndex(), this.pinCount(), { width: vw, height: vh }, this.svc.userWindowSize() ?? undefined);
         this.winLeft.set(slot.left);
         this.winTop.set(slot.top);
         this.winWidth.set(slot.width);
@@ -359,6 +359,8 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     this.winWidth.set(width);
     this.winHeight.set(height);
     this.resizing.set(false);
+    // Remember the chosen size for the session — later pins dock at it.
+    this.svc.rememberWindowSize(width, height);
     // A docked snapshot owns its size — resizing one frees it (the dock would
     // otherwise snap the size back); the live window re-places with the new
     // size as before.

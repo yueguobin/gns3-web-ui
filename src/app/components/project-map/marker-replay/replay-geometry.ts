@@ -80,9 +80,9 @@ export function placeWindow(
 
 // ---- pinned-window dock ---------------------------------------------------
 
-/** Target dock tile size (the window's own defaults). */
+/** Default dock tile size — the user's last manual resize overrides it. */
 export const DOCK_TILE_W = 440;
-export const DOCK_TILE_H = 320;
+export const DOCK_TILE_H = 360;
 /** Gap between dock tiles and rows. */
 export const DOCK_GAP = 12;
 /** Right reserve so tiles don't slide under the docked replay panel. */
@@ -103,11 +103,16 @@ export interface DockSlot {
  * the deterministic "comparison row" (vs. the live window, which anchors
  * beside its link). While docked the slot owns BOTH position and size;
  * dragging or resizing a window frees it (`reanchor()` re-docks it).
+ *
+ * `target` is the desired tile size — the session's remembered user size when
+ * one exists (the last manual resize), else the {@link DOCK_TILE_W}/
+ * {@link DOCK_TILE_H} defaults; rows/columns still compress it to fit.
  */
 export function dockSlot(
   index: number,
   count: number,
-  viewport: { width: number; height: number }
+  viewport: { width: number; height: number },
+  target: { width: number; height: number } = { width: DOCK_TILE_W, height: DOCK_TILE_H }
 ): DockSlot {
   const left0 = VIEWPORT_MARGIN;
   // The replay panel (right-docked, ~280px) is only reserved once the viewport
@@ -117,12 +122,12 @@ export function dockSlot(
       ? viewport.width - DOCK_RIGHT_RESERVE
       : viewport.width - VIEWPORT_MARGIN;
   const usableW = Math.max(DOCK_GAP, right - left0);
-  const cols = Math.max(1, Math.floor((usableW + DOCK_GAP) / (DOCK_TILE_W + DOCK_GAP)));
-  const width = Math.max(200, Math.min(DOCK_TILE_W, Math.floor((usableW - (cols - 1) * DOCK_GAP) / cols)));
+  const cols = Math.max(1, Math.floor((usableW + DOCK_GAP) / (target.width + DOCK_GAP)));
+  const width = Math.max(200, Math.min(target.width, Math.floor((usableW - (cols - 1) * DOCK_GAP) / cols)));
 
   const rows = Math.max(1, Math.ceil(count / cols));
   const usableH = Math.max(DOCK_GAP, viewport.height - VIEWPORT_MARGIN - DOCK_TOP_LIMIT);
-  const height = Math.max(160, Math.min(DOCK_TILE_H, Math.floor((usableH - (rows - 1) * DOCK_GAP) / rows)));
+  const height = Math.max(160, Math.min(target.height, Math.floor((usableH - (rows - 1) * DOCK_GAP) / rows)));
 
   const col = index % cols;
   const row = Math.floor(index / cols); // row 0 = bottom

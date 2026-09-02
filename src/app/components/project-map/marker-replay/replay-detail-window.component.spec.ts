@@ -419,9 +419,30 @@ describe('ReplayDetailWindowComponent', () => {
       component.reanchor();
       await flushFrames();
       expect(component.dragPinned()).toBe(false);
-      const slot = dockSlot(0, 1, { width: window.innerWidth, height: window.innerHeight });
-      expect(component.winWidth()).toBe(slot.width); // size back under dock control
+      // The resize was REMEMBERED — re-docking returns at the user's size,
+      // not the default tile.
+      const slot = dockSlot(0, 1, { width: window.innerWidth, height: window.innerHeight }, { width: 500, height: 400 });
+      expect(component.winWidth()).toBe(slot.width);
+      expect(component.winHeight()).toBe(slot.height);
       expect(component.winLeft()).toBe(slot.left);
+    });
+
+    it('a manual resize becomes the dock size for later pins', async () => {
+      await load();
+      // The user resizes the LIVE window to their preferred comparison size.
+      component.onResizeEnd({ rectangle: { top: 0, left: 0, width: 520, height: 380 }, edges: {} } as any);
+      await flushFrames();
+      expect(svc.userWindowSize()).toEqual({ width: 520, height: 380 });
+
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+      await flushFrames();
+
+      const slot = dockSlot(0, 1, { width: window.innerWidth, height: window.innerHeight }, { width: 520, height: 380 });
+      expect(component.winWidth()).toBe(slot.width); // 520 — remembered, not 440
+      expect(component.winHeight()).toBe(slot.height); // 380
     });
 
     it('dragging a snapshot magnetically snaps against a settled sibling', async () => {
@@ -431,18 +452,18 @@ describe('ReplayDetailWindowComponent', () => {
       fixture.componentRef.setInput('pinned', pin);
       fixture.detectChanges();
       await flushFrames();
-      // Docked slot in jsdom (1024×768): left 16, top 432, size 440×320.
-      expect(component.winLeft()).toBe(16);
-      expect(component.winTop()).toBe(432);
+      const startLeft = component.winLeft();
+      const startTop = component.winTop();
+      expect(startLeft).toBe(16); // dock slot bottom-left in jsdom 1024×768
 
       // A settled sibling nowhere near the dock slot.
       svc.reportPinRect(2, { left: 300, top: 200, width: 440, height: 320 });
 
-      // Drag toward it: raw (16+294, 432-229) = (310, 203) — both axes within
-      // the 12px snap threshold of the sibling's (300, 200).
+      // Drag toward it: raw (start + 294, start − 229) = (310, ~top-229) —
+      // within the 12px snap threshold of the sibling's (300, 200).
       const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__window-header') as HTMLElement;
       header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
-      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 394, clientY: -129 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + 294, clientY: 100 + (200 - startTop) + 3 }));
       document.dispatchEvent(new MouseEvent('mouseup'));
       await flushFrames();
 
