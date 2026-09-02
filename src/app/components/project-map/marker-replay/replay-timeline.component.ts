@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ReplayFrame } from '@models/marker-replay';
-import { MarkerReplayService } from '@services/marker-replay.service';
+import { MarkerReplayService, sameReplayFrame } from '@services/marker-replay.service';
 import {
   MAX_STEP_BUCKETS,
   MAX_STEP_FRAMES,
@@ -63,6 +63,15 @@ export class ReplayTimelineComponent {
   readonly svc = inject(MarkerReplayService);
 
   readonly ROW_H = TAPE_ROW_H;
+
+  /**
+   * Whether the frame under the cursor is already frozen into a comparison
+   * window — keeps the 📌 here in sync with the live window's header button.
+   */
+  readonly alreadyPinned = computed(() => {
+    const frame = this.svc.currentFrame();
+    return !!frame && this.svc.pinnedDetails().some((p) => sameReplayFrame(p.frame, frame));
+  });
 
   private wheelState: WheelState = initialWheelState();
 

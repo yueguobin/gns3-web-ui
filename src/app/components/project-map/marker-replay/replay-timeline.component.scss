@@ -17,7 +17,8 @@
 }
 
 .gns3-replay__step-btn,
-.gns3-replay__bookmark-btn {
+.gns3-replay__bookmark-btn,
+.gns3-replay__pin-btn {
   // Size via MDC's own tokens so its arithmetic (padding = (state-layer −
   // icon)/2) keeps the icon concentric with the hover/press circle. Hardcoding
   // width/height alone leaves the default 8px padding (computed for 40/24) and
