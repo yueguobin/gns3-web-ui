@@ -1,8 +1,11 @@
 @if (activeFrame(); as frame) {
 <!-- Full-viewport leader-line overlay: a plain "this window describes this
-     link" callout — dot at the link end, NOT a traffic-direction arrow. -->
+     link" callout — dot at the link end, NOT a traffic-direction arrow. The
+     LIVE window's line is outline grey; a PINNED snapshot's is primary (same
+     family as its --snapshot border), keeping the window→hop association
+     visible while the snapshots sit in the dock row. -->
 @if (anchored() && leader(); as l) {
-<svg class="gns3-replay__leader" [style.z-index]="zVal()">
+<svg class="gns3-replay__leader" [class.gns3-replay__leader--pin]="!isLive()" [style.z-index]="zVal()">
   <line class="gns3-replay__leader-line" [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2"></line>
   <circle class="gns3-replay__leader-dot" [attr.cx]="l.x2" [attr.cy]="l.y2" r="4"></circle>
 </svg>
@@ -10,6 +13,7 @@
 
 <div
   class="gns3-replay__window"
+  [class.gns3-replay__window--snapshot]="!isLive()"
   [class.gns3-replay__window--unanchored]="!anchored()"
   [class.gns3-replay__window--resizing]="resizing()"
   [class.gns3-replay__window--dragging]="dragging()"
@@ -37,6 +41,16 @@
   <div class="gns3-replay__window-header" (mousedown)="onHeaderMouseDown($event)">
     <mat-icon class="gns3-replay__window-icon">{{ isLive() ? 'frame_inspect' : 'push_pin' }}</mat-icon>
     <span class="gns3-replay__window-title">{{ frame.marker }}</span>
+    <span class="gns3-replay__window-frame">#{{ frame.frame_number }}</span>
+    @if (dragPinned()) {
+      <button
+        class="gns3-replay__window-reanchor"
+        [matTooltip]="isLive() ? 'Dragged — click to re-anchor beside the link' : 'Dragged — click to return to the comparison row'"
+        (click)="reanchor()"
+      >
+        <mat-icon>anchor</mat-icon>
+      </button>
+    }
     @if (isLive()) {
       <button
         class="gns3-replay__window-reanchor gns3-replay__window-pin"
@@ -54,16 +68,6 @@
         (click)="unpinCurrent()"
       >
         <mat-icon>close</mat-icon>
-      </button>
-    }
-    <span class="gns3-replay__window-frame">#{{ frame.frame_number }}</span>
-    @if (dragPinned() && anchored()) {
-      <button
-        class="gns3-replay__window-reanchor"
-        matTooltip="Dragged — click to re-anchor beside the link"
-        (click)="reanchor()"
-      >
-        <mat-icon>anchor</mat-icon>
       </button>
     }
     @if (!anchored()) {

@@ -575,6 +575,18 @@ describe('MarkerReplayService state machine', () => {
       expect(service.pinnedDetails()[0].state.status).toBe('ok');
     });
 
+    it('unpin also drops the window’s snap-registry rect', () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      service.pinCurrent();
+      const id = service.pinnedDetails()[0].id;
+      service.reportPinRect(id, { left: 10, top: 20, width: 440, height: 320 });
+      expect(service.pinSiblingRects(999)).toHaveLength(1);
+
+      service.unpin(id);
+      expect(service.pinSiblingRects(999)).toHaveLength(0);
+    });
+
     it('caps pins at 8, dropping the oldest with a warning toast', () => {
       const many = Array.from({ length: 9 }, (_, i) => frame(`${1000 + i}.000000`, 'l1', i + 1));
       mockRoutes({ range: () => of(rangeOf(many)) });

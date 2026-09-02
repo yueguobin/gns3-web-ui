@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { canvasToScreen, placeWindow, ANCHOR_GAP, VIEWPORT_MARGIN } from './replay-geometry';
+import {
+  canvasToScreen,
+  placeWindow,
+  dockSlot,
+  snapRect,
+  ANCHOR_GAP,
+  VIEWPORT_MARGIN,
+  DOCK_GAP,
+  DOCK_TILE_W,
+  DOCK_TILE_H,
+  DOCK_RIGHT_RESERVE,
+  SNAP_THRESHOLD,
+} from './replay-geometry';
 
 describe('canvasToScreen', () => {
   it('applies the map transform: canvas*k + zeroZero + pan', () => {
@@ -57,5 +69,99 @@ describe('placeWindow', () => {
   it('a window taller than the viewport pins to the toolbar', () => {
     const { rect } = placeWindow({ x: 800, y: 500 }, { width: 380, height: 2000 }, viewport);
     expect(rect.top).toBe(viewport.topOffset + VIEWPORT_MARGIN);
+  });
+});
+
+describe('dockSlot (pinned comparison row)', () => {
+  const wide = { width: 1920, height: 1080 };
+
+  it('a single pin docks at the bottom-left with the target tile size', () => {
+    const s = dockSlot(0, 1, wide);
+    expect(s).toMatchObject({ left: VIEWPORT_MARGIN, top: wide.height - VIEWPORT_MARGIN - DOCK_TILE_H });
+    expect(s.width).toBe(DOCK_TILE_W);
+    expect(s.height).toBe(DOCK_TILE_H);
+  });
+
+  it('pins flow left→right along the bottom, never overlapping', () => {
+    const n = 3;
+    const slots = Array.from({ length: n }, (_, i) => dockSlot(i, n, wide));
+    for (let i = 1; i < n; i++) {
+      expect(slots[i].top).toBe(slots[0].top); // same bottom row
+      expect(slots[i].left).toBe(slots[i - 1].left + slots[i - 1].width + DOCK_GAP);
+    }
+    expect(slots[2].left + slots[2].width).toBeLessThanOrEqual(wide.width - DOCK_RIGHT_RESERVE);
+  });
+
+  it('overflowing pins wrap UPWARD to a second row', () => {
+    // 1920 - 296 reserve → 3 columns of 440; 4 pins → row 2 above the first.
+    const bottom = dockSlot(2, 4, wide);
+    const above = dockSlot(3, 4, wide);
+    expect(above.top).toBe(bottom.top - bottom.height - DOCK_GAP);
+    expect(above.left).toBe(VIEWPORT_MARGIN); // wraps to the row's first column
+  });
+
+  it('keeps full-size tiles when they fit: two pins share one row at 1280', () => {
+    const vp = { width: 1280, height: 800 };
+    const slots = Array.from({ length: 2 }, (_, i) => dockSlot(i, 2, vp));
+    expect(slots[1].top).toBe(slots[0].top); // one row — no wrap, no shrink
+    expect(slots[0].width).toBe(DOCK_TILE_W);
+    expect(slots[1].left + slots[1].width).toBeLessThanOrEqual(vp.width - DOCK_RIGHT_RESERVE);
+  });
+
+  it('height compresses when many rows would rise past the toolbar', () => {
+    const vp = { width: 900, height: 500 }; // 1 column → 4 pins = 4 rows
+    const s = dockSlot(0, 4, vp);
+    expect(s.height).toBeLessThan(DOCK_TILE_H);
+    expect(s.top).toBeGreaterThanOrEqual(80); // never above the toolbar zone
+  });
+
+  it('narrow viewports use the full width (no replay-panel reserve)', () => {
+    const vp = { width: 700, height: 800 };
+    const s = dockSlot(0, 1, vp);
+    expect(s.left).toBe(VIEWPORT_MARGIN);
+    expect(s.left + s.width).toBeLessThanOrEqual(vp.width - VIEWPORT_MARGIN);
+  });
+});
+
+describe('snapRect (magnetic drag snap)', () => {
+  const sibling = { left: 200, top: 300, width: 440, height: 320 };
+  const mine = { width: 440, height: 320 };
+
+  it('attaches flush when my left lands near the sibling’s right edge', () => {
+    // Dragged to left 646+10 — within threshold of sibling.right (640).
+    const r = snapRect({ left: 650, top: 100, ...mine }, [sibling]);
+    expect(r.left).toBe(640); // sibling.left + sibling.width
+    expect(r.top).toBe(100); // nothing near vertically
+  });
+
+  it('attaches me on the sibling’s left when my right edge approaches it', () => {
+    const rightSibling = { left: 700, top: 300, width: 440, height: 320 };
+    // Dragged to left 265 → my right edge is 705, 5px past the sibling's 700.
+    const r = snapRect({ left: 265, top: 100, ...mine }, [rightSibling]);
+    expect(r.left).toBe(260); // sibling.left - my width → right edges flush at 700
+  });
+
+  it('aligns tops across rows (columns without perpendicular overlap)', () => {
+    const r = snapRect({ left: 800, top: 308, ...mine }, [sibling]);
+    expect(r.left).toBe(800); // far away horizontally — no x snap
+    expect(r.top).toBe(300); // aligned to the sibling's top
+  });
+
+  it('does nothing beyond the threshold', () => {
+    const r = snapRect({ left: sibling.left + SNAP_THRESHOLD + 1, top: 999, ...mine }, [sibling]);
+    expect(r.left).toBe(sibling.left + SNAP_THRESHOLD + 1);
+    expect(r.top).toBe(999);
+  });
+
+  it('the nearest candidate per axis wins across several siblings', () => {
+    const near = { left: 505, top: 300, width: 100, height: 100 };
+    const r = snapRect({ left: 500, top: 306, ...mine }, [sibling, near]);
+    expect(r.left).toBe(505); // |505-500|=5 beats sibling's |200-500|
+    expect(r.top).toBe(300); // both siblings offer top 300
+  });
+
+  it('size passes through untouched', () => {
+    const r = snapRect({ left: 0, top: 0, width: 777, height: 111 }, []);
+    expect(r).toEqual({ left: 0, top: 0, width: 777, height: 111 });
   });
 });
