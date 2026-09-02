@@ -121,6 +121,15 @@ describe('dockSlot (pinned comparison row)', () => {
     expect(s.left).toBe(VIEWPORT_MARGIN);
     expect(s.left + s.width).toBeLessThanOrEqual(vp.width - VIEWPORT_MARGIN);
   });
+
+  it('a remembered user size becomes the tile target (still column-bound)', () => {
+    const s = dockSlot(0, 2, { width: 1920, height: 1080 }, { width: 500, height: 400 });
+    expect(s.width).toBe(500);
+    expect(s.height).toBe(400);
+    // Narrow remembered width lets MORE tiles share the row.
+    const narrow = dockSlot(1, 2, { width: 1100, height: 800 }, { width: 380, height: 400 });
+    expect(narrow.left).toBe(dockSlot(0, 2, { width: 1100, height: 800 }, { width: 380, height: 400 }).left + 380 + DOCK_GAP);
+  });
 });
 
 describe('snapRect (magnetic drag snap)', () => {

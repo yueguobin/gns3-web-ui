@@ -440,6 +440,23 @@ export class MarkerReplayService {
     return out;
   }
 
+  /** The user's preferred window size from their last manual resize (session-only). */
+  private lastUserSize: { width: number; height: number } | null = null;
+
+  /**
+   * Any manual resize updates the session's preferred size: subsequently
+   * pinned windows dock at that size instead of the default tile — resize
+   * once to something comfortable, every later 📌 matches.
+   */
+  rememberWindowSize(width: number, height: number): void {
+    this.lastUserSize = { width, height };
+  }
+
+  /** Preferred dock tile size, or null while no manual resize happened. */
+  userWindowSize(): { width: number; height: number } | null {
+    return this.lastUserSize;
+  }
+
   /** Retry a pinned window's failed decode. */
   retryPin(id: number): void {
     const pin = this.pinnedDetails().find((p) => p.id === id);

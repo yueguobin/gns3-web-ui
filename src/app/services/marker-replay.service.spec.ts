@@ -587,6 +587,12 @@ describe('MarkerReplayService state machine', () => {
       expect(service.pinSiblingRects(999)).toHaveLength(0);
     });
 
+    it('remembers the last manual resize for the session', () => {
+      expect(service.userWindowSize()).toBeNull();
+      service.rememberWindowSize(520, 380);
+      expect(service.userWindowSize()).toEqual({ width: 520, height: 380 });
+    });
+
     it('caps pins at 8, dropping the oldest with a warning toast', () => {
       const many = Array.from({ length: 9 }, (_, i) => frame(`${1000 + i}.000000`, 'l1', i + 1));
       mockRoutes({ range: () => of(rangeOf(many)) });
