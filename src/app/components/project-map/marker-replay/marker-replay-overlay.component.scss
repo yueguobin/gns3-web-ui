@@ -64,8 +64,11 @@
   }
 
   &__close {
-    width: 28px;
-    height: 28px;
+    // Size via MDC's token (padding = (state-layer − icon)/2) so the icon
+    // stays concentric with the hover/press circle — hardcoding width/height
+    // leaves the default 8px padding (computed for a 40px button) and the
+    // icon drifts off-center. Icon keeps its default 24px box.
+    --mat-icon-button-state-layer-size: 28px;
     flex-shrink: 0;
   }
 

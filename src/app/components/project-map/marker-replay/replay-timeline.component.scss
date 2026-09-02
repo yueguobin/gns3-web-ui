@@ -18,11 +18,15 @@
 
 .gns3-replay__step-btn,
 .gns3-replay__bookmark-btn {
-  width: 32px;
-  height: 32px;
+  // Size via MDC's own tokens so its arithmetic (padding = (state-layer −
+  // icon)/2) keeps the icon concentric with the hover/press circle. Hardcoding
+  // width/height alone leaves the default 8px padding (computed for 40/24) and
+  // the icon sits off-center inside the circle.
+  --mat-icon-button-state-layer-size: 32px;
+  --mat-icon-button-icon-size: 20px;
 
+  // .mat-icon's box is hardcoded 24px — align it with the icon-size token.
   mat-icon {
-    font-size: 20px;
     width: 20px;
     height: 20px;
   }
