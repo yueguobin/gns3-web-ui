@@ -624,9 +624,12 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * One-click "pause every marker under the tag, then replay": batch
-   * {@link MarkerService.setEnabled} over the still-enabled markers (the
-   * controller's fast path — no NIO rebuild), refresh the aggregate, and hand
+   * One-click "pause every marker under the tag, then replay". Two pause paths:
+   * inherited copies are project-level rules the server REFUSES to write
+   * per-link, so they pause once via their source definition
+   * ({@link MarkerService.pauseDefinition} toggles off every fanned-out copy);
+   * private markers pause per-link via {@link MarkerService.setEnabled} (the
+   * controller's fast path — no NIO rebuild). Then refresh both lists and hand
    * the tag to the replay overlay.
    */
   pauseAllAndReplay(row: TagRow): void {
@@ -634,11 +637,23 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
     const project = this.project();
     if (!controller || !project || this.pausingTag() !== null || row.enabled.length === 0) return;
     this.pausingTag.set(row.tag);
-    forkJoin(
-      row.enabled.map((m) =>
+
+    // Distinct definitions behind the still-enabled inherited copies — one
+    // pause call each, however many links the rule fanned out to (idempotent;
+    // every copy of a definition carries its tag, so nothing outside this tag
+    // is touched). Private markers go one-by-one through the per-link path.
+    const definitions = new Set(
+      row.enabled.filter((m) => m.inherited_from).map((m) => m.inherited_from!)
+    );
+    const privates = row.enabled.filter((m) => !m.inherited_from);
+    forkJoin([
+      ...[...definitions].map((name) =>
+        this.markerService.pauseDefinition(controller, project.project_id, name)
+      ),
+      ...privates.map((m) =>
         this.markerService.setEnabled(controller, project.project_id, m.link_id, m.name, false)
-      )
-    )
+      ),
+    ])
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -646,6 +661,7 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
           this.pausePanelTag.set(null);
           this.toasterService.success(`Paused ${row.enabled.length} marker(s) under tag ${row.tag}.`);
           this.loadAggregate();
+          this.loadDefinitions(); // the definitions' `paused` flags changed too
           this.startReplay.emit(row.tag);
         },
         error: (err) => {

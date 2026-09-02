@@ -383,7 +383,16 @@
                 <div class="gns3-replay-tags__pause-title">Pause these markers to unlock replay:</div>
                 <ul class="gns3-replay-tags__pause-list">
                   @for (m of row.enabled; track m.link_id + '/' + m.name) {
-                    <li>{{ linkLabel(m.link_id) }} — {{ m.name }}</li>
+                    <li>
+                      {{ linkLabel(m.link_id) }} — {{ m.name }}
+                      @if (m.inherited_from) {
+                        <span
+                          class="marker-manager__chip marker-manager__chip--inherited"
+                          matTooltip="Global rule — paused via its definition"
+                          >inherited</span
+                        >
+                      }
+                    </li>
                   }
                 </ul>
                 <div class="gns3-replay-tags__pause-actions">

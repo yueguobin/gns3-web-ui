@@ -37,6 +37,7 @@ describe('MarkerManagerComponent', () => {
       createDefinition: vi.fn(),
       updateDefinition: vi.fn(),
       deleteDefinition: vi.fn(),
+      pauseDefinition: vi.fn(),
       aggregateList: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -241,6 +242,7 @@ describe('MarkerManagerComponent', () => {
 
     beforeEach(() => {
       markerService.listDefinitions.mockReturnValue(of({}));
+      markerService.pauseDefinition.mockReturnValue(of({}));
       markerService.aggregateList.mockReturnValue(of(aggregate()));
       fixture.detectChanges();
     });
@@ -277,18 +279,25 @@ describe('MarkerManagerComponent', () => {
       expect(component.pausePanelTag()).toBe(5);
     });
 
-    it('pauseAllAndReplay pauses every enabled marker, refreshes, then emits', () => {
+    it('pauseAllAndReplay routes inherited copies via their definition, private ones per-link', () => {
       const emitted = vi.fn();
       component.startReplay.subscribe(emitted);
       markerService.setEnabled.mockReturnValue(of({}));
       markerService.aggregateList.mockClear();
+      markerService.listDefinitions.mockClear();
 
       component.pauseAllAndReplay(component.tags()[0]);
 
-      expect(markerService.setEnabled).toHaveBeenCalledTimes(2);
-      expect(markerService.setEnabled).toHaveBeenCalledWith(controller, 'proj-1', 'l1', 'global-arp', false);
+      // tag 5 enabled = l1/global-arp (inherited from 'arp') + l2/private-x.
+      // The server rejects per-link writes on inherited markers, so the ONE
+      // definition pause covers both global-arp copies (incl. l2's paused one);
+      // only the private marker takes the per-link fast path.
+      expect(markerService.pauseDefinition).toHaveBeenCalledTimes(1);
+      expect(markerService.pauseDefinition).toHaveBeenCalledWith(controller, 'proj-1', 'arp');
+      expect(markerService.setEnabled).toHaveBeenCalledTimes(1);
       expect(markerService.setEnabled).toHaveBeenCalledWith(controller, 'proj-1', 'l2', 'private-x', false);
-      expect(markerService.aggregateList).toHaveBeenCalled(); // refreshed state
+      expect(markerService.aggregateList).toHaveBeenCalled(); // refreshed aggregate
+      expect(markerService.listDefinitions).toHaveBeenCalled(); // paused flags refreshed
       expect(emitted).toHaveBeenCalledWith(5);
       expect(component.pausingTag()).toBeNull();
       expect(component.pausePanelTag()).toBeNull();
