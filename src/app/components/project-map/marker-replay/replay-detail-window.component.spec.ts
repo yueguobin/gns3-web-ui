@@ -457,7 +457,7 @@ describe('ReplayDetailWindowComponent', () => {
       expect(startLeft).toBe(16); // dock slot bottom-left in jsdom 1024×768
 
       // A settled sibling nowhere near the dock slot.
-      svc.reportPinRect(2, { left: 300, top: 200, width: 440, height: 320 });
+      svc.reportPinRect(2, { left: 300, top: 200, width: 440, height: 320 }, true);
 
       // Drag toward it: raw (start + 294, start − 229) = (310, ~top-229) —
       // within the 12px snap threshold of the sibling's (300, 200).
@@ -489,6 +489,43 @@ describe('ReplayDetailWindowComponent', () => {
       expect(el.querySelector('.gns3-replay__window--unanchored')).toBeTruthy();
       expect(el.querySelector('.gns3-replay__leader')).toBeNull();
       expect(el.textContent).toContain('unanchored');
+    });
+
+    it('a NEW pin joins the hand-arranged cluster flush beside it (not the dock)', async () => {
+      await load();
+      // Pin #1 docks, then the user drags it out to (100, 200) — hand-arranged.
+      const pin1 = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin1]);
+      fixture.componentRef.setInput('pinned', pin1);
+      fixture.detectChanges();
+      await flushFrames();
+
+      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__window-header') as HTMLElement;
+      header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + 84, clientY: 100 - 232 }));
+      document.dispatchEvent(new MouseEvent('mouseup'));
+      await flushFrames();
+      // jsdom dock slot is (16, 392) → dragged by (84, −232) lands at (100, 160).
+      const arrangedLeft = component.winLeft();
+      const arrangedTop = component.winTop();
+      expect(component.dragPinned()).toBe(true);
+      expect(svc.freedPinRects()).toHaveLength(1);
+
+      // Pin #2 arrives (simulate its FRESH window: not yet placed, not dragged).
+      const pin2 = { id: 2, frame: frames[1], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin1, pin2]);
+      (component as any)['placed'] = false;
+      component.dragPinned.set(false);
+      fixture.componentRef.setInput('pinned', pin2);
+      fixture.detectChanges();
+      await flushFrames();
+
+      // Joined the cluster: flush right of pin #1 (440 wide), top-aligned,
+      // freed (part of the arrangement) rather than docked at the bottom row.
+      expect(component.dragPinned()).toBe(true);
+      expect(component.winLeft()).toBe(arrangedLeft + 440);
+      expect(component.winTop()).toBe(arrangedTop);
+      expect(svc.dockedPinIds()).toEqual([]); // both windows live in the cluster
     });
 
     it('the close button unpins the snapshot', async () => {

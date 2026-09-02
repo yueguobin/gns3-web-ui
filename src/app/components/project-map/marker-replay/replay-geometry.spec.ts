@@ -4,6 +4,7 @@ import {
   placeWindow,
   dockSlot,
   snapRect,
+  clusterAppend,
   ANCHOR_GAP,
   VIEWPORT_MARGIN,
   DOCK_GAP,
@@ -172,5 +173,34 @@ describe('snapRect (magnetic drag snap)', () => {
   it('size passes through untouched', () => {
     const r = snapRect({ left: 0, top: 0, width: 777, height: 111 }, []);
     expect(r).toEqual({ left: 0, top: 0, width: 777, height: 111 });
+  });
+});
+
+describe('clusterAppend (new pins join the arranged cluster)', () => {
+  const arranged = { left: 500, top: 300, width: 440, height: 360 };
+  const mine = { width: 440, height: 360 };
+
+  it('attaches flush right, top-aligned with the rightmost arranged window', () => {
+    expect(clusterAppend([arranged], mine, { width: 1920, height: 1080 })).toEqual({ left: 940, top: 300 });
+  });
+
+  it('wraps flush below the cluster when the viewport right edge is reached', () => {
+    // 940 + 440 > 1000 − 16 → new row below, aligned with the cluster's left.
+    expect(clusterAppend([arranged], mine, { width: 1000, height: 1080 })).toEqual({ left: 500, top: 660 });
+  });
+
+  it('picks the rightmost of several arranged windows', () => {
+    const second = { left: 940, top: 300, width: 300, height: 360 };
+    expect(clusterAppend([arranged, second], mine, { width: 1920, height: 1080 })).toEqual({ left: 1240, top: 300 });
+  });
+
+  it('null with nothing arranged — the caller docks instead', () => {
+    expect(clusterAppend([], mine, { width: 1920, height: 1080 })).toBeNull();
+  });
+
+  it('clamps when the cluster sits near the viewport edges', () => {
+    const edge = { left: 1600, top: 900, width: 300, height: 200 };
+    // Wraps below (1900+440 overflows) at left 1600/top 1100 — both clamp.
+    expect(clusterAppend([edge], mine, { width: 1920, height: 1080 })).toEqual({ left: 1480, top: 720 });
   });
 });

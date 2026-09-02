@@ -580,11 +580,35 @@ describe('MarkerReplayService state machine', () => {
       service.start(ctrl, PROJECT_ID, TAG);
       service.pinCurrent();
       const id = service.pinnedDetails()[0].id;
-      service.reportPinRect(id, { left: 10, top: 20, width: 440, height: 320 });
+      service.reportPinRect(id, { left: 10, top: 20, width: 440, height: 320 }, true);
       expect(service.pinSiblingRects(999)).toHaveLength(1);
 
       service.unpin(id);
       expect(service.pinSiblingRects(999)).toHaveLength(0);
+    });
+
+    it('tracks docked vs freed windows (dock row + cluster join sources)', () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      service.pinCurrent(); // frame 0
+      service.setCurrentIndex(1);
+      service.pinCurrent(); // frame 1
+      const [a, b] = service.pinnedDetails();
+
+      service.reportPinRect(a.id, { left: 0, top: 0, width: 440, height: 360 }, true);
+      service.reportPinRect(b.id, { left: 500, top: 200, width: 440, height: 360 }, false);
+
+      expect(service.dockedPinIds()).toEqual([a.id]);
+      expect(service.freedPinRects()).toEqual([{ left: 500, top: 200, width: 440, height: 360 }]);
+      expect(service.pinSiblingRects(a.id)).toEqual([{ left: 500, top: 200, width: 440, height: 360 }]);
+
+      // Rect-only reports do NOT bump the version; docked↔freed flips do.
+      const v = service.dockVersion();
+      service.reportPinRect(b.id, { left: 501, top: 200, width: 440, height: 360 }, false);
+      expect(service.dockVersion()).toBe(v);
+      service.reportPinRect(b.id, { left: 501, top: 200, width: 440, height: 360 }, true);
+      expect(service.dockVersion()).toBe(v + 1);
+      expect(service.dockedPinIds()).toEqual([a.id, b.id]);
     });
 
     it('remembers the last manual resize for the session', () => {
