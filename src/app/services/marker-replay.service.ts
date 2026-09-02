@@ -5,6 +5,7 @@ import { select } from 'd3-selection';
 import { Controller } from '@models/controller';
 import {
   DetailState,
+  PinnedDetail,
   ReplayBucket,
   ReplayFrame,
   ReplayFrameDetail,
@@ -35,6 +36,8 @@ export const DETAIL_DEBOUNCE_MS = 200;
 export const BUCKET_SETTLE_MS = 200;
 const DETAIL_CACHE_CAP = 50;
 const BOOKMARK_CAP = 100;
+/** Max frozen comparison windows per session; the oldest pin drops past it. */
+const PINNED_CAP = 8;
 /** Materialized seconds kept for instant revisit (frames are shared refs). */
 const MATERIALIZED_CAP = 60;
 /** Persistent CSS class on the current frame's link path (styled in styles.scss). */
@@ -154,6 +157,13 @@ export class MarkerReplayService {
   /** Bookmarked frames in timeline order, session-only. */
   readonly bookmarks = signal<ReplayFrame[]>([]);
   readonly detail = signal<DetailState>({ status: 'idle' });
+  /**
+   * Frames frozen into comparison windows ({@link PINNED_CAP} max, oldest
+   * drops). Each entry owns its detail lifecycle so a snapshot survives both
+   * cursor moves and detail-cache (LRU) eviction.
+   */
+  readonly pinnedDetails = signal<PinnedDetail[]>([]);
+  private pinSeq = 0;
 
   readonly currentFrame = computed(() => this.frames()[this.currentFrameIndex()] ?? null);
   /** Whether the tape currently navigates frames (vs. bucket bars). */
@@ -376,6 +386,49 @@ export class MarkerReplayService {
     }
     this.pendingJump = frame;
     this.setCurrentBucket(bucketIdx);
+  }
+
+  // ---- Pinned comparison windows ------------------------------------------
+
+  /**
+   * Freeze the current frame into its own comparison window (no-op if already
+   * pinned — tuple identity). The decode goes through the SHARED detail cache:
+   * a frame decoded moments ago pins with zero extra requests.
+   */
+  pinCurrent(): void {
+    const frame = this.currentFrame();
+    if (!frame) return;
+    const list = this.pinnedDetails();
+    if (list.some((p) => sameReplayFrame(p.frame, frame))) return;
+    const entry: PinnedDetail = { id: ++this.pinSeq, frame, state: { status: 'loading' } };
+    const next = [...list, entry];
+    if (next.length > PINNED_CAP) {
+      next.shift();
+      this.toaster.warning('Pin limit reached — unpinned the oldest frame.');
+    }
+    this.pinnedDetails.set(next);
+    this.fetchDetail(frame)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((state) => this.updatePinState(entry.id, state));
+  }
+
+  /** Drop a pinned window. */
+  unpin(id: number): void {
+    this.pinnedDetails.set(this.pinnedDetails().filter((p) => p.id !== id));
+  }
+
+  /** Retry a pinned window's failed decode. */
+  retryPin(id: number): void {
+    const pin = this.pinnedDetails().find((p) => p.id === id);
+    if (!pin || pin.state.status === 'ok') return;
+    this.updatePinState(id, { status: 'loading' });
+    this.fetchDetail(pin.frame)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((state) => this.updatePinState(id, state));
+  }
+
+  private updatePinState(id: number, state: DetailState): void {
+    this.pinnedDetails.update((list) => list.map((p) => (p.id === id ? { ...p, state } : p)));
   }
 
   // ---- Detail ------------------------------------------------------------

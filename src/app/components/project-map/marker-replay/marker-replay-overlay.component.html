@@ -34,8 +34,24 @@
   </div>
 </div>
 
-<!-- Anchored detail window: fixed-position (viewport space), must live OUTSIDE
-     the panel div so no ancestor clipping/stacking context constrains it. -->
+<!-- Detail windows: fixed-position (viewport space), must live OUTSIDE the
+     panel div so no ancestor clipping/stacking context constrains them. The
+     LIVE window follows the timeline cursor; each PINNED window freezes one
+     frame for side-by-side comparison (anchored beside its own source link). -->
 @if (!svc.loadingRange() && svc.rangeError() === null && !svc.isEmpty()) {
-  <app-replay-detail-window [zIndex]="zIndex()"></app-replay-detail-window>
+  <app-replay-detail-window
+    [zIndex]="zIndex()"
+    [zBoost]="zAssign().get('live') ?? 0"
+    (windowFocused)="focusWindow('live')"
+  ></app-replay-detail-window>
+  @for (p of svc.pinnedDetails(); track p.id) {
+    <app-replay-detail-window
+      [zIndex]="zIndex()"
+      [zBoost]="zAssign().get('pin-' + p.id) ?? 0"
+      [pinned]="p"
+      [changedPaths]="pinDiff()"
+      [offsetIndex]="$index + 1"
+      (windowFocused)="focusWindow('pin-' + p.id)"
+    ></app-replay-detail-window>
+  }
 }

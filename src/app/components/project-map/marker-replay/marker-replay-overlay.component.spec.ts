@@ -140,4 +140,82 @@ describe('MarkerReplayOverlayComponent', () => {
     el.querySelector<HTMLButtonElement>('.gns3-replay__close')!.click();
     expect(emitted).toHaveBeenCalled();
   });
+
+  it('renders one pinned window per snapshot beside the live window', () => {
+    mockHttp.get.mockReturnValue(of(range));
+    fixture.detectChanges();
+
+    svc.pinnedDetails.set([
+      { id: 1, frame: frames[0], state: { status: 'ok', detail: detailFor(frames[0], 64) } },
+      { id: 2, frame: frames[1], state: { status: 'ok', detail: detailFor(frames[1], 63) } },
+    ]);
+    fixture.detectChanges();
+
+    // Live + two pinned windows; the pinned ones carry the close button.
+    const windows = fixture.nativeElement.querySelectorAll('.gns3-replay__window');
+    expect(windows.length).toBe(3);
+    expect(fixture.nativeElement.querySelectorAll('.gns3-replay__window-close').length).toBe(2);
+
+    // Two decoded pins → the shared diff flags the differing TTL leaf, fed to
+    // every pinned window's tree.
+    expect(component.pinDiff().has('ip/ip.ttl')).toBe(true);
+  });
+
+  it('focusing a window raises it above its siblings (z boost counter)', () => {
+    mockHttp.get.mockReturnValue(of(range));
+    fixture.detectChanges();
+    svc.pinnedDetails.set([{ id: 1, frame: frames[0], state: { status: 'ok', detail: detailFor(frames[0], 64) } }]);
+    fixture.detectChanges();
+
+    const windows = () =>
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.gns3-replay__window')).map(
+        (w) => w.style.zIndex
+      );
+
+    const before = windows();
+    component.focusWindow('live'); // click on the live window
+    fixture.detectChanges();
+    const after = windows();
+    expect(after[0]).not.toBe(before[0]); // live got bumped…
+    expect(Number(after[0])).toBeGreaterThan(Number(after[1])); // …above the pin
+  });
+
+  it('fewer than two decoded pins yield an empty diff', () => {
+    mockHttp.get.mockReturnValue(of(range));
+    fixture.detectChanges();
+    svc.pinnedDetails.set([
+      { id: 1, frame: frames[0], state: { status: 'ok', detail: detailFor(frames[0], 64) } },
+      { id: 2, frame: frames[1], state: { status: 'loading' } },
+    ]);
+    fixture.detectChanges();
+    expect(component.pinDiff().size).toBe(0);
+  });
 });
+
+/** Decoded-frame fixture whose ip.ttl leaf value differs with `ttl`. */
+function detailFor(f: ReplayFrame, ttl: number) {
+  return {
+    ts: f.ts,
+    source: { node_id: f.node_id, link_id: f.link_id, marker: f.marker, frame_number: f.frame_number },
+    tshark_version: 'TShark 4.6.7',
+    field_count: 1,
+    hex: 'ab',
+    tree: [
+      {
+        element: 'proto' as const,
+        name: 'ip',
+        showname: 'Internet Protocol Version 4',
+        children: [
+          {
+            element: 'field' as const,
+            name: 'ip.ttl',
+            showname: `Time to Live: ${ttl}`,
+            show: `${ttl}`,
+            value: ttl.toString(16),
+            children: [],
+          },
+        ],
+      },
+    ],
+  };
+}

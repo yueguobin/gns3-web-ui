@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,11 +19,12 @@ import { Subscription } from 'rxjs';
 import { select } from 'd3-selection';
 import { ResizeEvent, ResizableDirective, ResizeHandleDirective } from 'angular-resizable-element';
 
-import { MarkerReplayService } from '@services/marker-replay.service';
+import { MarkerReplayService, sameReplayFrame } from '@services/marker-replay.service';
 import { MapScaleService } from '@services/mapScale.service';
 import { MapSettingsService } from '@services/mapsettings.service';
 import { LinksDataSource } from '../../../cartography/datasources/links-datasource';
 import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
+import { PinnedDetail } from '@models/marker-replay';
 import { formatDelta, formatFrameTime } from './replay-timeline-math';
 import { placeWindow } from './replay-geometry';
 import { ProtocolTreeComponent } from './protocol-tree.component';
@@ -36,12 +38,20 @@ interface Leader {
 }
 
 /**
- * The current frame's detail window, ANCHORED next to its source link:
+ * A frame's detail window, ANCHORED next to its source link — instantiated
+ * twice over:
+ *  - LIVE (no {@link pinned} input): follows the timeline cursor
+ *    (`svc.currentFrame()`), plus a 📌 button that freezes the current frame
+ *    into a pinned snapshot;
+ *  - PINNED ({@link pinned} set): a frozen comparison snapshot (Wireshark's
+ *    "open packet in a new window") anchored to ITS frame's link, showing the
+ *    cross-window diff ({@link changedPaths}) — pin one frame per hop and the
+ *    windows line up along the packet's path on the map.
+ *
+ * Both modes:
  *  - a leader line (screen-space SVG overlay) ties the window to the link —
  *    a plain "this window describes this link" callout with a DOT at the link
  *    end, deliberately NOT an arrowhead (must not read as a traffic direction);
- *  - the link itself stays persistently highlighted (`marker-replay-active`,
- *    toggled by the service) while it carries the current frame;
  *  - the window repositions on map pan/zoom/redraw.
  *
  * Reposition triggers: a MutationObserver on `g.canvas`'s transform attribute
@@ -77,6 +87,16 @@ interface Leader {
 })
 export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   readonly zIndex = input(1000);
+  /** Focus stacking boost from the overlay's click-to-front counter. */
+  readonly zBoost = input(0);
+  /** Set → PINNED mode: the window freezes this snapshot instead of the cursor. */
+  readonly pinned = input<PinnedDetail | null>(null);
+  /** Cross-window diff paths (pinned mode; null on the live window). */
+  readonly changedPaths = input<ReadonlySet<string> | null>(null);
+  /** Cascade offset while no anchor has resolved (pinned windows stack visibly). */
+  readonly offsetIndex = input(0);
+  /** Any mousedown inside the window — the overlay raises it above its siblings. */
+  readonly windowFocused = output<void>();
 
   readonly svc = inject(MarkerReplayService);
   private readonly mapScale = inject(MapScaleService);
@@ -99,9 +119,10 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   /**
    * True once the user has DRAGGED the window: it leaves auto-anchor mode and
    * stays at the dropped spot (clamped to the viewport) while the leader line
-   * keeps tracking the link. `reanchor()` snaps back to placed mode.
+   * keeps tracking the link. `reanchor()` snaps back to placed mode. (Distinct
+   * from the {@link pinned} INPUT — a frozen comparison snapshot.)
    */
-  readonly pinned = signal(false);
+  readonly dragPinned = signal(false);
   /** True while a header drag gesture is in flight. */
   readonly dragging = signal(false);
   /** False when the frame's link is not on the map (deleted) or geometry failed. */
@@ -112,16 +133,27 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   readonly resizing = signal(false);
 
   /** Type-narrowed views of the detail state for the template. */
+  readonly isLive = computed(() => this.pinned() === null);
+  /** The frame this window describes: its own snapshot, or the cursor's. */
+  readonly activeFrame = computed(() => this.pinned()?.frame ?? this.svc.currentFrame());
+  /** Own detail lifecycle in pinned mode; the shared one when live. */
+  readonly detailState = computed(() => this.pinned()?.state ?? this.svc.detail());
+  /** Live-window 📌 state: disabled once this exact frame is already pinned. */
+  readonly alreadyPinned = computed(() => {
+    const frame = this.activeFrame();
+    return !!frame && this.svc.pinnedDetails().some((p) => sameReplayFrame(p.frame, frame));
+  });
+  readonly zVal = computed(() => this.zIndex() + this.zBoost());
   readonly detailOk = computed(() => {
-    const d = this.svc.detail();
+    const d = this.detailState();
     return d.status === 'ok' ? d : null;
   });
   readonly detailError = computed(() => {
-    const d = this.svc.detail();
+    const d = this.detailState();
     return d.status === 'error' ? d : null;
   });
   readonly errorMessage = computed(() => {
-    const d = this.svc.detail();
+    const d = this.detailState();
     if (d.status !== 'error') return '';
     if (d.kind === 'unavailable') return 'Frame detail unavailable — tshark is not usable on this server.';
     if (d.kind === 'missing') return 'Frame data is stale — the capture may have been rebuilt.';
@@ -147,13 +179,21 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   private rafPending = false;
 
   constructor() {
-    // Frame changes may move to another link — re-anchor.
+    // LIVE frame changes may move to another link — re-anchor. Pinned windows
+    // never follow the cursor (their frame is frozen), map moves only.
     effect(() => {
-      if (this.svc.currentFrame()) this.requestReposition();
+      if (!this.pinned() && this.svc.currentFrame()) this.requestReposition();
     });
   }
 
   ngOnInit(): void {
+    // Cascade the FALLBACK spot so several never-anchored windows (links off
+    // the map) don't stack pixel-perfect on top of each other.
+    const i = this.offsetIndex();
+    if (i > 0) {
+      this.winLeft.set(this.FALLBACK.left + 24 * i);
+      this.winTop.set(this.FALLBACK.top + 24 * i);
+    }
     // Pan rewrites g.canvas's transform attribute silently; observing it (with
     // zoom also rewriting the same attribute) covers all map movement.
     const canvas = select('svg#map').select<SVGGElement>('g.canvas').node();
@@ -203,7 +243,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
 
   /** Recompute anchor → window placement → leader line. One pass. */
   private reposition(): void {
-    if (this.pinned()) {
+    if (this.dragPinned()) {
       // Pinned by drag: keep the user's spot, just never let it escape the
       // viewport (the browser window may have shrunk underneath it).
       const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
@@ -212,7 +252,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
       this.winLeft.set(Math.min(Math.max(this.winLeft(), 0), Math.max(0, vw - this.winWidth())));
       this.winTop.set(Math.min(Math.max(this.winTop(), minTop), Math.max(minTop, vh - this.winHeight())));
     } else {
-      const frame = this.svc.currentFrame();
+      const frame = this.activeFrame();
       if (!frame) return;
       const anchor = this.linkCenterScreen(frame.link_id);
       if (anchor) {
@@ -234,7 +274,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
    * placed OR pinned. The window end attaches to the edge facing the anchor.
    */
   private updateLeader(): void {
-    const frame = this.svc.currentFrame();
+    const frame = this.activeFrame();
     if (!frame) return;
     const anchor = this.linkCenterScreen(frame.link_id);
     if (!anchor) {
@@ -337,7 +377,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     const onUp = (): void => {
       this.teardownDrag();
       this.dragging.set(false);
-      if (moved) this.pinned.set(true);
+      if (moved) this.dragPinned.set(true);
       this.updateLeader();
     };
 
@@ -357,8 +397,27 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
 
   /** Snap back to auto-anchor mode — the window re-places beside its link. */
   reanchor(): void {
-    this.pinned.set(false);
+    this.dragPinned.set(false);
     this.requestReposition();
+  }
+
+  // ---- pinned-snapshot actions ----
+
+  /** Live window's 📌 — freeze the cursor's frame into a comparison window. */
+  pinCurrent(): void {
+    this.svc.pinCurrent();
+  }
+
+  /** Pinned window's ✕ — drop the snapshot. */
+  unpinCurrent(): void {
+    const p = this.pinned();
+    if (p) this.svc.unpin(p.id);
+  }
+
+  /** Pinned window's failed decode — try again. */
+  retryCurrentPin(): void {
+    const p = this.pinned();
+    if (p) this.svc.retryPin(p.id);
   }
 
   // ---- template helpers ----
