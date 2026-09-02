@@ -20,6 +20,17 @@
   color: var(--mat-sys-on-surface-variant);
 }
 
+// Cross-window diff counter (pinned comparison) — tertiary, matching the
+// changed-leaf highlight below.
+.gns3-replay__tree-diff-count {
+  font-size: 10px;
+  color: var(--mat-sys-on-tertiary-container);
+  background: var(--mat-sys-tertiary-container);
+  border-radius: 8px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
 .gns3-replay__tree-tool {
   display: flex;
   align-items: center;
@@ -80,6 +91,26 @@
     // The guide rails pass through the highlight without disappearing.
     .gns3-replay__tree-guide {
       border-left-color: color-mix(in srgb, var(--mat-sys-on-primary-container) 25%, transparent);
+    }
+  }
+
+  // Cross-window diff: a leaf whose value differs across the pinned frames.
+  // Kept compatible with selection (selection wins on the pair via cascade
+  // order — both are single-class variants).
+  &--changed {
+    background: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+
+    .gns3-replay__tree-chevron {
+      color: var(--mat-sys-on-tertiary-container);
+    }
+  }
+
+  // A collapsed row with a changed leaf somewhere inside — subtle flag so the
+  // collapsed protocol list still shows WHERE to expand.
+  &--changed-subtree {
+    .gns3-replay__tree-chevron {
+      color: var(--mat-sys-tertiary);
     }
   }
 }

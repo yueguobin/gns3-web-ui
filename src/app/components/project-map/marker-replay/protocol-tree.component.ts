@@ -5,6 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ProtocolTreeNode } from '@models/marker-replay';
 import { FlatRow, collectKeys, flattenTree, rowText, rowTooltip } from './protocol-tree';
+import { ancestorPaths } from './replay-tree-diff';
 
 /**
  * Wireshark-style packet-detail tree, rendered FLAT (one component, one
@@ -34,12 +35,23 @@ import { FlatRow, collectKeys, flattenTree, rowText, rowTooltip } from './protoc
 })
 export class ProtocolTreeComponent {
   readonly tree = input.required<ProtocolTreeNode[]>();
+  /**
+   * Cross-window comparison diff (pinned windows with ≥2 decoded frames):
+   * paths of leaves that differ between them, plus (derived) their ancestors
+   * so collapsed protocol rows still flag "something inside changed". Null on
+   * the live window — there is nothing to compare it against.
+   */
+  readonly changedPaths = input<ReadonlySet<string> | null>(null);
 
   readonly expanded = signal<ReadonlySet<string>>(new Set());
   readonly selectedKey = signal<string | null>(null);
 
   readonly rows = computed(() => flattenTree(this.tree(), this.expanded()));
   readonly hasExpandable = computed(() => collectKeys(this.tree()).length > 0);
+  readonly diffAncestors = computed(() => {
+    const changed = this.changedPaths();
+    return changed ? ancestorPaths(changed) : new Set<string>();
+  });
 
   readonly rowText = rowText;
   readonly rowTooltip = rowTooltip;

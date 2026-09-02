@@ -91,8 +91,7 @@
   white-space: nowrap;
 }
 
-// Appears once the window has been dragged (pinned) — snaps it back to
-// auto-placement beside its link.
+// Compact header action (re-anchor / pin-to-compare / close) — 20px hit area.
 .gns3-replay__window-reanchor {
   display: flex;
   align-items: center;
@@ -109,6 +108,14 @@
 
   &:hover {
     background: var(--mat-sys-surface-container-high);
+  }
+
+  // The live window's 📌 while this exact frame is already pinned.
+  &--disabled,
+  &:disabled {
+    color: var(--mat-sys-outline);
+    cursor: default;
+    background: transparent;
   }
 
   mat-icon {

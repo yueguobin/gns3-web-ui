@@ -83,6 +83,31 @@ describe('protocol-tree pure helpers', () => {
     expect(rowText({ ...ttl, showname: undefined })).toBe('ip.ttl: 64');
     expect(rowText({ ...ttl, showname: undefined, show: undefined })).toBe('ip.ttl');
   });
+
+  it('rows carry a semantic name-path (the diff keyspace), occurrence-disambiguated', () => {
+    const rows = flattenTree(tree, new Set(['/0', '/0/1']));
+    expect(rows.map((r) => r.path)).toEqual(['ip', 'ip/ip.ttl', 'ip/ip.flags', 'ip/ip.flags/ip.flags.rb']);
+
+    // A repeated sibling name gets [k] suffixes so paths never collide — even
+    // when a hidden field sits between them (hidden nodes stay uncounted).
+    const repeats: ProtocolTreeNode[] = [
+      {
+        element: 'proto',
+        name: 'tcp',
+        showname: 'TCP',
+        children: [
+          { ...ttl, name: 'tcp.option' },
+          { ...ttl, name: 'tcp.pad', hide: 'yes' },
+          { ...ttl, name: 'tcp.option', showname: 'Second option' },
+        ],
+      },
+    ];
+    expect(flattenTree(repeats, new Set(['/0'])).map((r) => r.path)).toEqual([
+      'tcp',
+      'tcp/tcp.option[0]',
+      'tcp/tcp.option[1]',
+    ]);
+  });
 });
 
 describe('ProtocolTreeComponent', () => {
@@ -188,5 +213,38 @@ describe('ProtocolTreeComponent', () => {
     const leaf = rows()[1] as HTMLElement;
     expect(leaf.querySelector('.gns3-replay__tree-chevron')).toBeNull();
     expect(leaf.querySelector('.gns3-replay__tree-leaf')).toBeTruthy();
+  });
+
+  describe('cross-window diff highlight', () => {
+    it('a changed leaf lights up and its collapsed ancestor is flagged', () => {
+      fixture.componentRef.setInput('changedPaths', new Set(['ip/ip.ttl']));
+      fixture.detectChanges();
+
+      // Collapsed: the ip proto row carries the subtle "changed inside" flag.
+      expect(rows()[0].classList).toContain('gns3-replay__tree-row--changed-subtree');
+      expect(rows()[0].classList).not.toContain('gns3-replay__tree-row--changed');
+
+      (rows()[0] as HTMLElement).click(); // expand
+      fixture.detectChanges();
+      const leaf = rows()[1];
+      expect(leaf.classList).toContain('gns3-replay__tree-row--changed');
+      expect(leaf.classList).not.toContain('gns3-replay__tree-row--changed-subtree');
+
+      // The toolbar shows the differing-field count.
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('1 differ');
+    });
+
+    it('unchanged paths render without diff classes; null clears everything', () => {
+      fixture.componentRef.setInput('changedPaths', new Set(['eth/eth.src']));
+      fixture.detectChanges();
+      (rows()[0] as HTMLElement).click();
+      fixture.detectChanges();
+      expect(rows()[0].classList).not.toContain('gns3-replay__tree-row--changed-subtree');
+      expect(rows()[1].classList).not.toContain('gns3-replay__tree-row--changed');
+
+      fixture.componentRef.setInput('changedPaths', null);
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('differ');
+    });
   });
 });

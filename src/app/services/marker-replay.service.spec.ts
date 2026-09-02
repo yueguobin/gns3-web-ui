@@ -217,7 +217,10 @@ describe('MarkerReplayService state machine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHttp = { get: vi.fn() };
-    mockToaster = { error: vi.fn() } as unknown as { error: ReturnType<typeof vi.fn> } & ToasterService;
+    mockToaster = { error: vi.fn(), warning: vi.fn() } as unknown as {
+      error: ReturnType<typeof vi.fn>;
+      warning: ReturnType<typeof vi.fn>;
+    } & ToasterService;
     service = new MarkerReplayService(mockHttp, mockToaster);
   });
 
@@ -533,6 +536,92 @@ describe('MarkerReplayService state machine', () => {
       await vi.advanceTimersByTimeAsync(200);
       expect(service.currentBucketIndex()).toBe(1);
       expect(service.currentFrame()?.ts).toBe(G1.ts);
+    });
+  });
+
+  describe('pinned comparison windows', () => {
+    it('pins the current frame and resolves its own detail state', async () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      await vi.advanceTimersByTimeAsync(200); // first-frame decode lands + cached
+
+      service.pinCurrent();
+      const pin = service.pinnedDetails()[0];
+      expect(pin.frame.ts).toBe(F0.ts);
+      // Cached decode (the debounced pipeline fetched it already) → ok
+      // synchronously, with NO extra HTTP call.
+      expect(pin.state.status).toBe('ok');
+      expect(detailUrls()).toHaveLength(1);
+
+      service.unpin(pin.id);
+      expect(service.pinnedDetails()).toHaveLength(0);
+    });
+
+    it('re-pinning the same frame (tuple identity) is a no-op', () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      service.pinCurrent();
+      service.pinCurrent();
+      expect(service.pinnedDetails()).toHaveLength(1);
+    });
+
+    it('pins decode straight away when the frame was not cached yet', async () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      service.setCurrentIndex(2); // F2's decode still debounced/pending
+      service.pinCurrent();
+      // Immediate fetch path (no debounce) — one request, loading → ok.
+      expect(detailUrls()).toHaveLength(1);
+      expect(service.pinnedDetails()[0].state.status).toBe('ok');
+    });
+
+    it('caps pins at 8, dropping the oldest with a warning toast', () => {
+      const many = Array.from({ length: 9 }, (_, i) => frame(`${1000 + i}.000000`, 'l1', i + 1));
+      mockRoutes({ range: () => of(rangeOf(many)) });
+      service.start(ctrl, PROJECT_ID, TAG);
+      for (let i = 0; i < many.length; i++) {
+        service.setCurrentIndex(i);
+        service.pinCurrent();
+      }
+      expect(service.pinnedDetails()).toHaveLength(8);
+      expect(service.pinnedDetails()[0].frame.ts).toBe(many[1].ts); // first pin dropped
+      expect(mockToaster.warning).toHaveBeenCalled();
+    });
+
+    it('a pinned snapshot survives detail-cache eviction by unrelated decodes', async () => {
+      mockRoutes({});
+      service.start(ctrl, PROJECT_ID, TAG);
+      await vi.advanceTimersByTimeAsync(200);
+      service.pinCurrent();
+      const pinned = service.pinnedDetails()[0];
+
+      // Scroll through other frames — their decodes fill/evict the LRU cache.
+      service.setCurrentIndex(1);
+      service.setCurrentIndex(2);
+      await vi.advanceTimersByTimeAsync(200);
+
+      expect(service.pinnedDetails()[0]).toBe(pinned); // same entry object…
+      expect(service.pinnedDetails()[0].state.status).toBe('ok'); // …tree intact
+    });
+
+    it('retryPin re-fires a failed decode', async () => {
+      let calls = 0;
+      mockRoutes({
+        detail: () => {
+          calls++;
+          // Fetch #1 = the debounced timeline decode, #2 = the pin itself;
+          // both fail → the pin lands in error, then the retry succeeds.
+          return calls <= 2 ? throwError(() => serverError(501, 'no tshark')) : of(detailOf(F0));
+        },
+      });
+      service.start(ctrl, PROJECT_ID, TAG);
+      await vi.advanceTimersByTimeAsync(200); // fetch #1 fails (not cached)
+      service.pinCurrent(); // fetch #2 fails
+      const pin = service.pinnedDetails()[0];
+      expect(pin.state.status).toBe('error');
+
+      service.retryPin(pin.id); // fetch #3 succeeds
+      expect(service.pinnedDetails()[0].state.status).toBe('ok');
     });
   });
 

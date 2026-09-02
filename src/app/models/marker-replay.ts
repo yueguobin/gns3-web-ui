@@ -115,3 +115,15 @@ export type DetailState =
 
 /** Which list the timeline tape is currently navigating. */
 export type TimelineMode = 'frames' | 'buckets';
+
+/**
+ * A frame frozen into its own comparison window (Wireshark's "open packet in
+ * a new window"): the entry carries its OWN detail lifecycle so the snapshot
+ * survives both cursor moves and detail-cache (LRU) eviction. Pinned per
+ * session, capped — the service drops the oldest past the cap.
+ */
+export interface PinnedDetail {
+  id: number;
+  frame: ReplayFrame;
+  state: DetailState;
+}

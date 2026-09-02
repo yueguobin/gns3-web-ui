@@ -284,7 +284,7 @@ describe('ReplayDetailWindowComponent', () => {
 
       await dragBy(120, 40);
 
-      expect(component.pinned()).toBe(true);
+      expect(component.dragPinned()).toBe(true);
       expect(component.winLeft()).toBe(left + 120);
       expect(component.winTop()).toBe(top + 40);
       expect(component.leader()).not.toBeNull();
@@ -295,7 +295,7 @@ describe('ReplayDetailWindowComponent', () => {
     it('a header click without movement does not pin', async () => {
       await load();
       await dragBy(0, 0);
-      expect(component.pinned()).toBe(false);
+      expect(component.dragPinned()).toBe(false);
     });
 
     it('map zoom does not move a pinned window (it would re-place an unpinned one)', async () => {
@@ -306,7 +306,7 @@ describe('ReplayDetailWindowComponent', () => {
       TestBed.inject(MapScaleService).scaleChangeEmitter.emit();
       await flushFrames();
 
-      expect(component.pinned()).toBe(true);
+      expect(component.dragPinned()).toBe(true);
       expect(component.winLeft()).toBe(left);
       expect(component.leader()).not.toBeNull();
     });
@@ -316,17 +316,129 @@ describe('ReplayDetailWindowComponent', () => {
       await dragBy(120, 40);
       const pinnedLeft = component.winLeft();
 
+      // Two header buttons share the base class — the 📌 pin comes first in
+      // DOM order; the re-anchor one is selected explicitly.
       const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-        '.gns3-replay__window-reanchor'
+        '.gns3-replay__window-reanchor:not(.gns3-replay__window-pin):not(.gns3-replay__window-close)'
       );
       expect(btn).toBeTruthy();
       btn!.click();
       await flushFrames();
 
-      expect(component.pinned()).toBe(false);
+      expect(component.dragPinned()).toBe(false);
       // placeWindow for this fixture flips left of the anchor (560) at 440px wide.
       expect(component.winLeft()).not.toBe(pinnedLeft);
       expect(component.winLeft()).toBe(560 - 28 - component.winWidth());
+    });
+  });
+
+  describe('pinned comparison window', () => {
+    it('the live window pins the current frame via the 📌 button', async () => {
+      await load();
+      await flushFrames(); // first-frame decode lands in the cache
+      const pin = vi.spyOn(svc, 'pinCurrent');
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.gns3-replay__window-pin')!.click();
+      expect(pin).toHaveBeenCalled();
+      expect(svc.pinnedDetails()).toHaveLength(1);
+      expect(svc.pinnedDetails()[0].frame.ts).toBe(frames[0].ts);
+      expect(svc.pinnedDetails()[0].state.status).toBe('ok'); // cache reuse
+    });
+
+    it('renders its frozen frame + own state with a close button, and ignores the cursor', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+      await flushFrames();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.gns3-replay__window-close')).toBeTruthy();
+      expect(el.querySelector('.gns3-replay__window-pin')).toBeNull();
+      expect(el.querySelector('.gns3-replay__window-frame')?.textContent).toContain('#1');
+      expect(el.querySelector('.gns3-replay__window-icon')?.textContent).toContain('push_pin');
+
+      // The cursor moves to l2's frame — the pinned window must NOT follow
+      // (neither content nor re-anchoring: l2 has no link group on the map).
+      const left = component.winLeft();
+      svc.setCurrentIndex(1);
+      fixture.detectChanges();
+      await flushFrames();
+      expect(el.querySelector('.gns3-replay__window-frame')?.textContent).toContain('#1');
+      expect(component.winLeft()).toBe(left);
+    });
+
+    it('the close button unpins the snapshot', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.gns3-replay__window-close')!.click();
+      expect(svc.pinnedDetails()).toHaveLength(0);
+    });
+
+    it('highlights changed leaves and their collapsed ancestors from changedPaths', async () => {
+      await load();
+      const pin = { id: 1, frame: frames[0], state: { status: 'ok', detail } as const };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.componentRef.setInput('changedPaths', new Set(['ip/ip.ttl']));
+      fixture.detectChanges();
+      await flushFrames();
+
+      const el: HTMLElement = fixture.nativeElement;
+      // Collapsed: the ip protocol row flags "something inside changed"…
+      const ipRow = el.querySelector<HTMLElement>('.gns3-replay__tree-row')!;
+      expect(ipRow.classList.contains('gns3-replay__tree-row--changed-subtree')).toBe(true);
+
+      // …expanded: the changed leaf itself lights up.
+      ipRow.click();
+      fixture.detectChanges();
+      const leaf = el.querySelectorAll('.gns3-replay__tree-row')[1];
+      expect(leaf.classList.contains('gns3-replay__tree-row--changed')).toBe(true);
+    });
+
+    it("a pinned window's failed decode retries through the pin, not the live pipeline", async () => {
+      await load();
+      const pin = {
+        id: 1,
+        frame: frames[0],
+        state: { status: 'error', kind: 'unavailable', message: 'no tshark', frame: frames[0] } as const,
+      };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+
+      const retry = vi.spyOn(svc, 'retryPin');
+      const liveRetry = vi.spyOn(svc, 'retryDetail');
+      const btn = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+        '.gns3-replay__detail-error button'
+      )!;
+      expect(btn.textContent).toContain('Retry');
+      btn.click();
+      expect(retry).toHaveBeenCalledWith(1);
+      expect(liveRetry).not.toHaveBeenCalled();
+    });
+
+    it("a pinned window's stale frame (404) offers Close instead of a timeline reload", async () => {
+      await load();
+      const pin = {
+        id: 1,
+        frame: frames[0],
+        state: { status: 'error', kind: 'missing', message: 'stale', frame: frames[0] } as const,
+      };
+      svc.pinnedDetails.set([pin]);
+      fixture.componentRef.setInput('pinned', pin);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const btn = el.querySelector<HTMLButtonElement>('.gns3-replay__detail-error button')!;
+      expect(btn.textContent).toContain('Close');
+      btn.click();
+      expect(svc.pinnedDetails()).toHaveLength(0);
     });
   });
 });

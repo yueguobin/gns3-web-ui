@@ -1,5 +1,12 @@
 <div class="gns3-replay__tree-toolbar">
   <span class="gns3-replay__tree-summary">protocol tree</span>
+  @if (changedPaths(); as cp) {
+    @if (cp.size) {
+      <span class="gns3-replay__tree-diff-count" matTooltip="Fields differing across the pinned frames">
+        {{ cp.size }} differ
+      </span>
+    }
+  }
   @if (hasExpandable()) {
     <button class="gns3-replay__tree-tool" matTooltip="Expand all" (click)="expandAll()">
       <mat-icon>unfold_more</mat-icon>
@@ -16,6 +23,8 @@
       class="gns3-replay__tree-row"
       [class.gns3-replay__tree-row--proto]="row.node.element === 'proto'"
       [class.gns3-replay__tree-row--selected]="selectedKey() === row.key"
+      [class.gns3-replay__tree-row--changed]="changedPaths()?.has(row.path) ?? false"
+      [class.gns3-replay__tree-row--changed-subtree]="diffAncestors().has(row.path)"
       (click)="toggle(row)"
       [title]="rowTooltip(row.node)"
     >

@@ -9,6 +9,7 @@ import {
   effect,
   inject,
   input,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,8 +20,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Controller } from '@models/controller';
 import { Project } from '@models/project';
 import { MarkerReplayService } from '@services/marker-replay.service';
+import { ProtocolTreeNode } from '@models/marker-replay';
 import { ReplayTimelineComponent } from './replay-timeline.component';
 import { ReplayDetailWindowComponent } from './replay-detail-window.component';
+import { diffTrees } from './replay-tree-diff';
 
 /**
  * Tag-aggregated replay browser, docked on the right edge of the project map.
@@ -54,6 +57,35 @@ export class MarkerReplayOverlayComponent implements OnInit, OnDestroy {
   @Output() windowFocused = new EventEmitter<void>();
 
   readonly svc = inject(MarkerReplayService);
+
+  /**
+   * Click-to-front stacking for the window fleet (live + pinned), one counter:
+   * every mousedown bumps the window's boost above its siblings. Equal boosts
+   * fall back to DOM order (later = above), which puts fresh pins on top.
+   */
+  private zSeq = 0;
+  readonly zAssign = signal<ReadonlyMap<string, number>>(new Map());
+
+  focusWindow(id: string): void {
+    const next = new Map(this.zAssign());
+    next.set(id, ++this.zSeq);
+    this.zAssign.set(next);
+    // Also raise the whole overlay vs. other top-level windows (marker-manager).
+    this.onWindowFocus();
+  }
+
+  /**
+   * Cross-window diff over the pinned snapshots' decoded trees, computed ONCE
+   * here and fed to every pinned window. With fewer than two decoded pins
+   * there is nothing to compare — empty set.
+   */
+  readonly pinDiff = computed(() => {
+    const trees = this.svc
+      .pinnedDetails()
+      .map((p) => (p.state.status === 'ok' ? p.state.detail.tree : null))
+      .filter((t): t is ProtocolTreeNode[] => t !== null);
+    return trees.length >= 2 ? diffTrees(trees) : new Set<string>();
+  });
 
   /** Header position label: "frame 12 / 3481" or "second 4 / 91 · 9000 frames". */
   readonly positionLabel = computed(() => {
