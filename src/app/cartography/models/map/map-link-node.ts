@@ -8,6 +8,7 @@ export class MapLinkNode implements Indexed {
   adapterNumber: number;
   portNumber: number;
   label: MapLabel;
+  interfaceStatus?: 'started' | 'stopped';
   // Runtime-only render offsets used to dynamically swap Bezier label sides.
   bezierRenderOffsetX?: number;
   bezierRenderOffsetY?: number;

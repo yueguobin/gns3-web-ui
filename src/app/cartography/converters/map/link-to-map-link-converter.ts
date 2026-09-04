@@ -34,9 +34,12 @@ export class LinkToMapLinkConverter implements Converter<Link, MapLink> {
     }
 
     mapLink.linkType = link.link_type;
-    mapLink.nodes = link.nodes.map((linkNode) =>
-      this.linkNodeToMapLinkNode.convert(linkNode, { link_id: link.link_id })
-    );
+    mapLink.nodes = link.nodes.map((linkNode, index) => {
+      const mapLinkNode = this.linkNodeToMapLinkNode.convert(linkNode, { link_id: link.link_id });
+      const interfaceStatus = link.interface_statuses?.[index];
+      if (interfaceStatus) mapLinkNode.interfaceStatus = interfaceStatus;
+      return mapLinkNode;
+    });
     mapLink.projectId = link.project_id;
     mapLink.suspend = link.suspend;
     mapLink.show_filters_icon = link.show_filters_icon;

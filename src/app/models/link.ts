@@ -18,6 +18,7 @@ export class Link {
   show_filters_icon: boolean; // Control visibility of filter icons on the link (from server)
   wireshark: boolean; // true for Web Wireshark, false for traditional Wireshark
   markers?: MarkerMap; // Traffic-insight markers (non-empty ⇒ show the markers icon)
+  interface_statuses?: Array<'started' | 'stopped' | undefined>; // runtime only; excluded from update payloads
 
   distance: number; // this is not from controller
   length: number; // this is not from controller

@@ -759,6 +759,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       }),
       mergeMap(() => this.projectService.links(this.controller, project.project_id)),
       tap((links: Link[]) => {
+        this.projectWebServiceHandler.applyInterfaceStatuses(links);
         this.linksDataSource.set(links);
         this.markerRegistryService.rebuildAll(links);
       }),
@@ -1945,6 +1946,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     this.drawingsDataSource.clear();
     this.nodesDataSource.clear();
     this.linksDataSource.clear();
+    if (this.project.project_id) this.projectWebServiceHandler.clearInterfaceStatuses(this.project.project_id);
 
     // Marker services are app-lifetime singletons that outlive this component:
     // clear the legend registry (stale pills until the next project's links
