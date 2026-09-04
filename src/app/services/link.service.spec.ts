@@ -420,6 +420,19 @@ describe('LinkService', () => {
       expect(payload).toEqual({});
     });
 
+    it('should exclude runtime interface statuses from the payload', () => {
+      const mockLink = {
+        link_id: 'link-status',
+        project_id: 'project-status',
+        interface_statuses: ['stopped', 'started'],
+      } as Link;
+      mockHttpController.put.mockReturnValue(of(mockLink));
+
+      service.updateLink(mockController, mockLink);
+
+      expect(mockHttpController.put.mock.calls[0][2]).toEqual({});
+    });
+
     it('should call correct endpoint', () => {
       const mockLink: Link = {
         link_id: 'link-update',

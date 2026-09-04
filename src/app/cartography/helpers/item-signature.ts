@@ -84,10 +84,10 @@ export function nodeSignatures(
 // ── Link ────────────────────────────────────────────────────────
 
 export function linkSignatures(
-  l: { link_id: string; nodes: unknown; capturing: unknown; suspend: unknown; show_filters_icon: unknown; wireshark: unknown; link_type: unknown; filters?: unknown; link_style?: unknown }
+  l: { link_id: string; nodes: unknown; capturing: unknown; suspend: unknown; show_filters_icon: unknown; wireshark: unknown; link_type: unknown; filters?: unknown; link_style?: unknown; interface_statuses?: unknown }
 ): ItemSignatures<LinkSigGroup> {
   const nodes = JSON.stringify(l.nodes);
-  const visual = `${l.capturing}|${l.suspend}|${l.show_filters_icon}|${l.wireshark}|${l.link_type}|${JSON.stringify(l.filters)}|${JSON.stringify(l.link_style)}`;
+  const visual = `${l.capturing}|${l.suspend}|${l.show_filters_icon}|${l.wireshark}|${l.link_type}|${JSON.stringify(l.filters)}|${JSON.stringify(l.link_style)}|${JSON.stringify(l.interface_statuses)}`;
   return {
     all: `${l.link_id}|${nodes}|${visual}`,
     groups: { nodes, visual },

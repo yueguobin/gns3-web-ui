@@ -42,6 +42,7 @@ describe('ProjectWebServiceHandler', () => {
       add: vi.fn(),
       remove: vi.fn(),
       get: vi.fn(),
+      getItems: vi.fn().mockReturnValue([]),
     };
 
     mockDrawingsDataSource = {
@@ -104,6 +105,159 @@ describe('ProjectWebServiceHandler', () => {
   });
 
   describe('handleMessage - node actions', () => {
+    it('should apply a Docker interface status to the matching link endpoint', () => {
+      const link = {
+        link_id: 'link-1',
+        project_id: 'project-1',
+        nodes: [
+          { node_id: 'node-1', adapter_number: 0, port_number: 0 },
+          { node_id: 'node-2', adapter_number: 0, port_number: 0 },
+        ],
+      } as Link;
+      mockLinksDataSource.getItems.mockReturnValue([link]);
+      const event = {
+        project_id: 'project-1',
+        node_id: 'node-1',
+        adapter_number: 0,
+        port_number: 0,
+        status: 'started' as const,
+      };
+
+      handler.handleMessage({ action: 'node.interface_status', event });
+
+      expect(link.interface_statuses).toEqual(['started']);
+      expect(mockLinksDataSource.update).toHaveBeenCalledWith(link);
+    });
+
+    it('should apply a cached interface status when its link is created later', () => {
+      const event = {
+        project_id: 'project-1',
+        node_id: 'node-1',
+        adapter_number: 0,
+        port_number: 0,
+        status: 'down' as const,
+      };
+      handler.handleMessage({ action: 'node.interface_status', event });
+      const link = {
+        link_id: 'link-1',
+        project_id: 'project-1',
+        nodes: [{ node_id: 'node-1', adapter_number: 0, port_number: 0 }],
+      } as Link;
+
+      handler.handleMessage({ action: 'link.created', event: link });
+
+      expect(link.interface_statuses).toEqual(['stopped']);
+      expect(mockLinksDataSource.add).toHaveBeenCalledWith(link);
+    });
+
+    it('should not redraw a link for an unchanged interface status resync', () => {
+      const link = {
+        link_id: 'link-1',
+        project_id: 'project-1',
+        nodes: [{ node_id: 'node-1', adapter_number: 0, port_number: 0 }],
+      } as Link;
+      mockLinksDataSource.getItems.mockReturnValue([link]);
+      const message: WebServiceMessage = {
+        action: 'node.interface_status',
+        event: {
+          project_id: 'project-1',
+          node_id: 'node-1',
+          adapter_number: 0,
+          port_number: 0,
+          status: 'down',
+        },
+      };
+
+      handler.handleMessage(message);
+      handler.handleMessage(message);
+
+      expect(mockLinksDataSource.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reapply cached interface statuses after a topology refresh', () => {
+      const event = {
+        project_id: 'project-1',
+        node_id: 'node-1',
+        adapter_number: 0,
+        port_number: 0,
+        status: 'down' as const,
+      };
+      handler.handleMessage({ action: 'node.interface_status', event });
+      const refreshedLink = {
+        link_id: 'link-1',
+        project_id: 'project-1',
+        nodes: [{ node_id: 'node-1', adapter_number: 0, port_number: 0 }],
+      } as Link;
+
+      handler.applyInterfaceStatuses([refreshedLink]);
+
+      expect(refreshedLink.interface_statuses).toEqual(['stopped']);
+    });
+
+    it('should clear cached interface statuses for only the requested project', () => {
+      handler.handleMessage({
+        action: 'node.interface_status',
+        event: {
+          project_id: 'project-1',
+          node_id: 'node-1',
+          adapter_number: 0,
+          port_number: 0,
+          status: 'down',
+        },
+      });
+      handler.handleMessage({
+        action: 'node.interface_status',
+        event: {
+          project_id: 'project-2',
+          node_id: 'node-2',
+          adapter_number: 0,
+          port_number: 0,
+          status: 'up',
+        },
+      });
+
+      handler.clearInterfaceStatuses('project-1');
+      const projectOneLink = {
+        project_id: 'project-1',
+        nodes: [{ node_id: 'node-1', adapter_number: 0, port_number: 0 }],
+      } as Link;
+      const projectTwoLink = {
+        project_id: 'project-2',
+        nodes: [{ node_id: 'node-2', adapter_number: 0, port_number: 0 }],
+      } as Link;
+      handler.applyInterfaceStatuses([projectOneLink, projectTwoLink]);
+
+      expect(projectOneLink.interface_statuses).toBeUndefined();
+      expect(projectTwoLink.interface_statuses).toEqual(['started']);
+    });
+
+    it('should apply started, stopped, and started transitions to a running interface', () => {
+      const link = {
+        link_id: 'link-1',
+        project_id: 'project-1',
+        nodes: [{ node_id: 'node-1', adapter_number: 0, port_number: 0 }],
+      } as Link;
+      mockLinksDataSource.getItems.mockReturnValue([link]);
+      const event = {
+        project_id: 'project-1',
+        node_id: 'node-1',
+        adapter_number: 0,
+        port_number: 0,
+        status: 'started' as 'started' | 'stopped',
+      };
+
+      handler.handleMessage({ action: 'node.interface_status', event });
+      expect(link.interface_statuses).toEqual(['started']);
+      event.status = 'stopped';
+      handler.handleMessage({ action: 'node.interface_status', event });
+      expect(link.interface_statuses).toEqual(['stopped']);
+      event.status = 'started';
+      handler.handleMessage({ action: 'node.interface_status', event });
+
+      expect(link.interface_statuses).toEqual(['started']);
+      expect(mockLinksDataSource.update).toHaveBeenCalledTimes(3);
+    });
+
     it('should call nodesDataSource.update and emit for node.updated', () => {
       const message: WebServiceMessage = {
         action: 'node.updated',

@@ -50,12 +50,20 @@ export class InterfaceStatusWidget implements Widget {
             : InterfaceStatusWidget.LABEL_DISTANCE;
           const start_point: SVGPoint = pathNode.getPointAtLength(labelDistance);
           const end_point: SVGPoint = pathNode.getPointAtLength(totalLength - labelDistance);
-          const sourcePort = l.nodes?.find((node) => node.nodeId === l.source.id)?.label?.text || '';
-          const destinationPort = l.nodes?.find((node) => node.nodeId === l.target.id)?.label?.text || '';
+          // GraphDataManager resolves source/target from nodes[0]/nodes[1].
+          // Preserve that ordering so self-links can report each adapter independently.
+          const sourceEndpoint = l.nodes?.[0];
+          const destinationEndpoint = l.nodes?.[1];
+          const sourcePort = sourceEndpoint?.label?.text || '';
+          const destinationPort = destinationEndpoint?.label?.text || '';
+          const sourceStatus =
+            l.source.status === 'started' ? sourceEndpoint?.interfaceStatus || l.source.status : l.source.status;
+          const destinationStatus =
+            l.target.status === 'started' ? destinationEndpoint?.interfaceStatus || l.target.status : l.target.status;
 
           statuses = [
-            new LinkStatus(start_point.x, start_point.y, l.suspend ? 'suspended' : l.source.status, sourcePort),
-            new LinkStatus(end_point.x, end_point.y, l.suspend ? 'suspended' : l.target.status, destinationPort),
+            new LinkStatus(start_point.x, start_point.y, l.suspend ? 'suspended' : sourceStatus, sourcePort),
+            new LinkStatus(end_point.x, end_point.y, l.suspend ? 'suspended' : destinationStatus, destinationPort),
           ];
         }
       }

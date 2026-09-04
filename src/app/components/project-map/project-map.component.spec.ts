@@ -360,6 +360,8 @@ describe('ProjectMapComponent', () => {
       errorNotificationEmitter: of({ type: 'error', message: 'Test error' }),
       warningNotificationEmitter: of({ type: 'warning', message: 'Test warning' }),
       handleMessage: vi.fn(),
+      applyInterfaceStatuses: vi.fn(),
+      clearInterfaceStatuses: vi.fn(),
     };
 
     mockMapChangeDetectorRef = {
