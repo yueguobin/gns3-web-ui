@@ -9,6 +9,7 @@ describe('LoginGuard', () => {
   let guard: LoginGuard;
   let mockControllerService: any;
   let mockLoginService: any;
+  let mockUserPreferences: any;
   let mockRouter: any;
 
   const createMockController = (overrides: Partial<Controller> = {}): Controller => {
@@ -40,6 +41,10 @@ describe('LoginGuard', () => {
       getLoggedUser: vi.fn(),
     };
 
+    mockUserPreferences = {
+      sync: vi.fn(),
+    };
+
     mockRouter = {
       navigate: vi.fn(),
     };
@@ -54,7 +59,7 @@ describe('LoginGuard', () => {
       url: '/test-url',
     } as RouterStateSnapshot;
 
-    guard = new LoginGuard(mockControllerService, mockLoginService, mockRouter);
+    guard = new LoginGuard(mockControllerService, mockLoginService, mockUserPreferences, mockRouter);
   });
 
   it('should be created', () => {
@@ -73,6 +78,8 @@ describe('LoginGuard', () => {
       const result = await guard.canActivate(mockRouteSnapshot, mockStateSnapshot);
 
       expect(result).toBe(true);
+      // Authenticated session: preferences sync kicks off against this controller
+      expect(mockUserPreferences.sync).toHaveBeenCalledWith(mockController);
       expect(mockLoginService.controller_id).toBe('1');
       expect(mockControllerService.get).toHaveBeenCalledWith(1);
     });

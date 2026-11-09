@@ -44,12 +44,17 @@ export class NotificationCenterService {
   }
 
   setToastsEnabled(enabled: boolean): void {
+    // Assume the session fallback until the write is confirmed: the
+    // preferences facade treats storage failures as best-effort (it swallows
+    // them), so persistence is verified by reading the value back.
+    this.toastPreferenceFallback = enabled;
     try {
       this.userPreferences.setItem(TOAST_PREFERENCE_STORAGE_KEY, String(enabled));
-      this.toastPreferenceFallback = undefined;
+      if (localStorage.getItem(TOAST_PREFERENCE_STORAGE_KEY) === String(enabled)) {
+        this.toastPreferenceFallback = undefined;
+      }
     } catch {
       // Match notification history: keep working when browser storage is unavailable.
-      this.toastPreferenceFallback = enabled;
     }
   }
 
