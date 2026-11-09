@@ -76,7 +76,7 @@ export class PrivilegeGuard implements CanActivate {
     if (state.url.split('?')[0] === denyTarget) {
       await this.router.navigate(['/controller', numericControllerId, 'projects']);
     } else {
-      await this.router.navigate([denyTarget]);
+      await this.router.navigate(['/controller', numericControllerId, 'systemstatus']);
     }
     return false;
   }
