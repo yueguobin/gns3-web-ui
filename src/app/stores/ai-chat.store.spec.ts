@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TestBed } from '@angular/core/testing';
 import { AiChatStore } from './ai-chat.store';
+import { UserPreferencesService } from '@services/user-preferences.service';
 import { ChatSession, ChatMessage, ToolCall, ChatPanelState, MessageRole } from '@models/ai-chat.interface';
 
 describe('AiChatStore', () => {
@@ -63,14 +65,18 @@ describe('AiChatStore', () => {
   })();
 
   beforeEach(() => {
-    // Mock localStorage
+    // Mock localStorage — must be stubbed before TestBed.inject: the store's
+    // UserPreferencesService dependency reads its sync baseline from
+    // localStorage at construction time.
     vi.stubGlobal('localStorage', localStorageMock);
     localStorageMock.clear();
-    store = new AiChatStore();
+    TestBed.configureTestingModule({});
+    store = TestBed.inject(AiChatStore);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    TestBed.resetTestingModule();
   });
 
   /* ==================== Project & Session State ==================== */
@@ -515,6 +521,17 @@ describe('AiChatStore', () => {
       expect(state.width).toBe(1000);
     });
 
+    it('should persist panel state through the preferences facade', () => {
+      const prefs = TestBed.inject(UserPreferencesService);
+      const setItemSpy = vi.spyOn(prefs, 'setItem');
+
+      store.updatePanelSize(1024, 768);
+
+      expect(setItemSpy).toHaveBeenCalledWith('ai-chat-panel-state', expect.stringContaining('"width":1024'));
+      // The write still lands in localStorage — it is the working copy.
+      expect(localStorageMock.getItem('ai-chat-panel-state')).toContain('"height":768');
+    });
+
     it('should load panel state from localStorage', () => {
       const savedState: ChatPanelState = {
         isOpen: true,
@@ -527,7 +544,9 @@ describe('AiChatStore', () => {
 
       localStorageMock.setItem('ai-chat-panel-state', JSON.stringify(savedState));
 
-      const newStore = new AiChatStore();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({});
+      const newStore = TestBed.inject(AiChatStore);
       const state = newStore.getPanelStateValue();
 
       // isOpen should be reset to false on load
@@ -659,7 +678,9 @@ describe('AiChatStore', () => {
     });
 
     it('should handle multiple rapid state updates', () => {
-      const rapidStore = new AiChatStore(); // Isolated instance
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({});
+      const rapidStore = TestBed.inject(AiChatStore); // Isolated instance
       for (let i = 0; i < 100; i++) {
         rapidStore.setStreamingState(i % 2 === 0);
       }
