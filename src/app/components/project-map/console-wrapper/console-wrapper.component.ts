@@ -16,7 +16,6 @@ import {
   ElementRef,
   Renderer2,
   signal,
-  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, UntypedFormControl } from '@angular/forms';
@@ -36,13 +35,7 @@ import { NodeConsoleService } from '@services/nodeConsole.service';
 import { ThemeService } from '@services/theme.service';
 import { WindowBoundaryService, WindowStyle } from '@services/window-boundary.service';
 import { WindowManagementService } from '@services/window-management.service';
-import {
-  XtermService,
-  ConsoleAppearanceSettings,
-  DEFAULT_FONT_SIZE,
-  MIN_FONT_SIZE,
-  MAX_FONT_SIZE,
-} from '@services/xterm.service';
+import { TerminalSettingsPanelComponent } from '../../terminal-settings-panel/terminal-settings-panel.component';
 import { ConsoleDevicesPanelComponent } from './console-devices-panel.component';
 import { WebConsoleComponent } from '../web-console/web-console.component';
 import { LogConsoleComponent } from '../log-console/log-console.component';
@@ -60,6 +53,7 @@ import { LogConsoleComponent } from '../log-console/log-console.component';
     MatTooltipModule,
     ResizableDirective,
     ResizeHandleDirective,
+    TerminalSettingsPanelComponent,
     ConsoleDevicesPanelComponent,
     WebConsoleComponent,
     LogConsoleComponent,
@@ -115,31 +109,11 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   private windowManagement = inject(WindowManagementService);
   private cdr = inject(ChangeDetectorRef);
   private renderer = inject(Renderer2);
-  private xtermService = inject(XtermService);
 
   // Settings panel state
   private showSettingsPanelSignal = signal(false);
-  private settingsSignal = signal<ConsoleAppearanceSettings>(this.xtermService.settings);
-
-  readonly terminalFonts = this.xtermService.getInstalledFonts();
-  readonly defaultFontSize = DEFAULT_FONT_SIZE;
-  readonly minFontSize = MIN_FONT_SIZE;
-  readonly maxFontSize = MAX_FONT_SIZE;
 
   public readonly showSettingsPanel = this.showSettingsPanelSignal.asReadonly();
-  public readonly currentSettings = this.settingsSignal.asReadonly();
-
-  readonly effectiveBgHex = computed(() => {
-    const bg = this.settingsSignal().backgroundColor;
-    if (bg) return bg;
-    return this.xtermService.getEffectiveBackgroundHex();
-  });
-
-  readonly effectiveFgHex = computed(() => {
-    const fg = this.settingsSignal().foregroundColor;
-    if (fg) return fg;
-    return this.xtermService.getEffectiveForegroundHex();
-  });
 
   // Drag state (RxJS managed)
   private dragStartX = 0;
@@ -820,42 +794,6 @@ export class ConsoleWrapperComponent implements OnInit, AfterViewInit, OnDestroy
   closeSettingsPanel(): void {
     this.showSettingsPanelSignal.set(false);
     this.cdr.markForCheck();
-  }
-
-  private applySettings(patch: Partial<ConsoleAppearanceSettings>): void {
-    this.xtermService.updateSettings(patch);
-    this.settingsSignal.set(this.xtermService.settings);
-    this.cdr.markForCheck();
-  }
-
-  onBgColorChange(event: Event): void {
-    this.applySettings({ backgroundColor: (event.target as HTMLInputElement).value });
-  }
-
-  onFgColorChange(event: Event): void {
-    this.applySettings({ foregroundColor: (event.target as HTMLInputElement).value });
-  }
-
-  resetBgColor(): void {
-    this.applySettings({ backgroundColor: null });
-  }
-
-  resetFgColor(): void {
-    this.applySettings({ foregroundColor: null });
-  }
-
-  changeFontSize(delta: number): void {
-    this.applySettings({
-      fontSize: Math.max(this.minFontSize, Math.min(this.maxFontSize, this.currentSettings().fontSize + delta)),
-    });
-  }
-
-  resetFontSize(): void {
-    this.applySettings({ fontSize: DEFAULT_FONT_SIZE });
-  }
-
-  onFontFamilyChange(value: string): void {
-    this.applySettings({ fontFamily: value || null });
   }
 
   // ────────────────────────────────────────────────────────────────────────────
