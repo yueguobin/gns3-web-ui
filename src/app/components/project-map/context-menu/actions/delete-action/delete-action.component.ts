@@ -10,7 +10,6 @@ import { Link } from '@models/link';
 import { Controller } from '@models/controller';
 import { DrawingService } from '@services/drawing.service';
 import { LinkService } from '@services/link.service';
-import { LinkTypeCache } from '@services/link-type-cache';
 import { NodeService } from '@services/node.service';
 import { ToasterService } from '@services/toaster.service';
 import { createActionCompletion } from '@utils/action-completion.util';
@@ -124,7 +123,6 @@ export class DeleteActionComponent {
         // Removal driven by the `link.deleted` WS notification (see nodes above).
         this.linkService.deleteLink(this.controller(), link).subscribe({
           next: () => {
-            LinkTypeCache.remove(link.project_id, link.link_id);
             deletedCounts.links++;
             completion.succeed();
           },
