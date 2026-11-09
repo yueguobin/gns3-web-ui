@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { UserPreferencesService } from '@services/user-preferences.service';
 import {
   ChatSession,
   ChatMessage,
@@ -17,6 +18,7 @@ import {
   providedIn: 'root',
 })
 export class AiChatStore {
+  private userPreferences = inject(UserPreferencesService);
   // Current project ID
   private currentProjectId$ = new BehaviorSubject<string | null>(null);
 
@@ -493,7 +495,7 @@ export class AiChatStore {
    */
   private savePanelState(state: ChatPanelState): void {
     try {
-      localStorage.setItem('ai-chat-panel-state', JSON.stringify(state));
+      this.userPreferences.setItem('ai-chat-panel-state', JSON.stringify(state));
     } catch (e) {
       console.error('Failed to save panel state:', e);
     }
@@ -504,7 +506,7 @@ export class AiChatStore {
    */
   private loadPanelState(): void {
     try {
-      const saved = localStorage.getItem('ai-chat-panel-state');
+      const saved = this.userPreferences.getItem('ai-chat-panel-state');
       if (saved) {
         const state: ChatPanelState = JSON.parse(saved);
         // Reset isOpen to false on page load since the panel is not actually visible
