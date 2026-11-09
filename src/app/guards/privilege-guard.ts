@@ -16,7 +16,10 @@ import { PermissionService } from '@services/permission.service';
  * `data.privilegeMatch: 'any'` (default 'all') the route is accessible
  * when the user holds at least one of them. A denied user is redirected
  * to the system status page, mirroring the previous administrator
- * guard behaviour. LoginGuard must run first so the request is
+ * guard behaviour — unless the denied route is the system status page
+ * itself, which is privilege-gated too and would deny the redirect
+ * forever; those users land on the projects page instead, which every
+ * logged-in user can open. LoginGuard must run first so the request is
  * authenticated.
  *
  * `data.privilegesAny` adds an optional "at least one of" group on top of
@@ -33,7 +36,7 @@ import { PermissionService } from '@services/permission.service';
 export class PrivilegeGuard implements CanActivate {
   constructor(private permissionService: PermissionService, private router: Router) {}
 
-  async canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Promise<boolean> {
+  async canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<boolean> {
     const controllerId = this.findControllerId(route);
     const numericControllerId = Number.parseInt(controllerId ?? '', 10);
 
@@ -63,7 +66,18 @@ export class PrivilegeGuard implements CanActivate {
       // Privilege fetch failed: deny access, the page stays unreachable.
     }
 
-    await this.router.navigate(['/controller', numericControllerId, 'systemstatus']);
+    // Default deny target: the system status page. Never redirect there when
+    // that is the very page that denied the navigation — it is privilege-
+    // gated as well, so the redirect would re-run this guard, deny again and
+    // loop forever without any route activating (a regular user logging in
+    // lands on the system status page by default). Send those users to the
+    // projects page instead.
+    const denyTarget = `/controller/${numericControllerId}/systemstatus`;
+    if (state.url.split('?')[0] === denyTarget) {
+      await this.router.navigate(['/controller', numericControllerId, 'projects']);
+    } else {
+      await this.router.navigate([denyTarget]);
+    }
     return false;
   }
 
