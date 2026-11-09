@@ -98,6 +98,7 @@ docs/
 | [Symbols Guide](./features/symbols/symbols-guide.md) | Node symbols support (SVG/PNG/JPG/GIF) |
 | [WebSocket Connection Management](./features/websocket/connection-management.md) | Simple controller connection management service |
 | [Web Wireshark Overview](./features/web-wireshark/overview.md) | ⭐ Browser-based packet capture and analysis |
+| [User Preferences Sync](./features/user-preferences-sync.md) | ⭐ Cross-browser preference mirroring to the controller's per-user document |
 | [Web Wireshark Business Flow](./features/web-wireshark/business-flow.md) | Detailed business flows and architecture |
 | [Web Wireshark Architecture](./features/web-wireshark/diagrams/architecture-overview.md) | System architecture diagrams |
 

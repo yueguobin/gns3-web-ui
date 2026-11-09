@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { UserPreferencesService } from './user-preferences.service';
 
 export type NotificationKind = 'success' | 'info' | 'warning' | 'error';
 
@@ -22,6 +23,8 @@ export class NotificationCenterService {
   private readonly notificationState = signal<AppNotification[]>(this.restore());
   private readonly panelOpenState = signal(false);
 
+  constructor(private userPreferences: UserPreferencesService) {}
+
   readonly notifications = this.notificationState.asReadonly();
   readonly panelOpen = this.panelOpenState.asReadonly();
   readonly unreadCount = computed(() => this.notificationState().filter((item) => !item.read).length);
@@ -42,7 +45,7 @@ export class NotificationCenterService {
 
   setToastsEnabled(enabled: boolean): void {
     try {
-      localStorage.setItem(TOAST_PREFERENCE_STORAGE_KEY, String(enabled));
+      this.userPreferences.setItem(TOAST_PREFERENCE_STORAGE_KEY, String(enabled));
       this.toastPreferenceFallback = undefined;
     } catch {
       // Match notification history: keep working when browser storage is unavailable.

@@ -75,6 +75,7 @@ import { MarkerFlashService } from '@services/marker-flash.service';
 import { MarkerRegistryService } from '@services/marker-registry.service';
 import { MapScaleService } from '@services/mapScale.service';
 import { MapSettingsService } from '@services/mapsettings.service';
+import { UserPreferencesService } from '@services/user-preferences.service';
 import { NodeService } from '@services/node.service';
 import { NodeConsoleService } from '@services/nodeConsole.service';
 import { NotificationService } from '@services/notification.service';
@@ -343,6 +344,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   private mapDrawingsDataSource = inject(MapDrawingsDataSource);
   private mapSymbolsDataSource = inject(MapSymbolsDataSource);
   private mapSettingsService = inject(MapSettingsService);
+  private userPreferences = inject(UserPreferencesService);
   private ethernetLinkWidget = inject(EthernetLinkWidget);
   private serialLinkWidget = inject(SerialLinkWidget);
   private notificationService = inject(NotificationService);
@@ -1765,9 +1767,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     this.mapSettingsService.toggleLayers(visible);
 
     if (visible) {
-      localStorage.setItem('layersVisibility', 'true');
+      this.userPreferences.setItem('layersVisibility', 'true');
     } else {
-      localStorage.removeItem('layersVisibility');
+      this.userPreferences.removeItem('layersVisibility');
     }
 
     this.mapChild().applyMapSettingsChanges();
@@ -1796,9 +1798,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     if (projectId != null) {
       const lockKey = `itemLockStatusVisibility_${projectId}`;
       if (visible) {
-        localStorage.setItem(lockKey, 'true');
+        this.userPreferences.setItem(lockKey, 'true');
       } else {
-        localStorage.removeItem(lockKey);
+        this.userPreferences.removeItem(lockKey);
       }
     }
     this.mapChild()?.applyMapSettingsChanges();
@@ -1810,9 +1812,9 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     this.gridVisibility = visible;
 
     if (visible) {
-      localStorage.setItem('gridVisibility', 'true');
+      this.userPreferences.setItem('gridVisibility', 'true');
     } else {
-      localStorage.removeItem('gridVisibility');
+      this.userPreferences.removeItem('gridVisibility');
     }
 
     this.mapChild().gridVisibility.set(visible ? 1 : 0);

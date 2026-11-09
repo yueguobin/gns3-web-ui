@@ -39,6 +39,7 @@ import { CommonModule } from '@angular/common';
 import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
 import { NotificationCenterService } from '@services/notification-center.service';
 import { PermissionService } from '@services/permission.service';
+import { UserPreferencesService } from '@services/user-preferences.service';
 import { HasPrivilegeDirective } from '@directives/has-privilege.directive';
 
 @Component({
@@ -89,6 +90,7 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
   readonly notificationCenter = inject(NotificationCenterService);
   private readonly permissionService = inject(PermissionService);
+  private readonly userPreferences = inject(UserPreferencesService);
 
   /**
    * The Templates and Image manager pages are management surfaces: every
@@ -243,6 +245,10 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
 
       // Privileges are per-user: never serve them from cache after logout
       this.permissionService.invalidate();
+
+      // Server-synced preferences are per-user too: the next login must
+      // re-fetch and re-merge the document for the (possibly different) user.
+      this.userPreferences.invalidate();
 
       controller.authToken = null;
       this.controllerService.update(controller).then((val) => {

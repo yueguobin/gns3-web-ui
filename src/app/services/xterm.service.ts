@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { Subject } from 'rxjs';
 import { ThemeService } from '@services/theme.service';
+import { UserPreferencesService } from './user-preferences.service';
 
 export interface ConsoleAppearanceSettings {
   fontSize: number;
@@ -49,8 +50,19 @@ export class XtermService {
     backgroundColor: null,
   };
 
-  constructor(private themeService: ThemeService) {
+  constructor(
+    private themeService: ThemeService,
+    private userPreferences: UserPreferencesService,
+  ) {
     this.loadSettings();
+
+    // Re-read and broadcast when a server-side preferences merge updates the
+    // stored appearance (open terminals pick the new settings up via
+    // settingsChanged$).
+    this.userPreferences.onExternalUpdate(() => {
+      this.loadSettings();
+      this._settingsChanged.next({ ...this._settings });
+    });
   }
 
   get settings(): ConsoleAppearanceSettings {
@@ -72,7 +84,7 @@ export class XtermService {
   updateSettings(partial: Partial<ConsoleAppearanceSettings>): void {
     this._settings = this._sanitizeSettings({ ...this._settings, ...partial });
     try {
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(this._settings));
+      this.userPreferences.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(this._settings));
     } catch (e) {
       // Ignore storage errors
     }
