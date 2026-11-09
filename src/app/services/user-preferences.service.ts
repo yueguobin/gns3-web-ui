@@ -8,8 +8,8 @@ import { ToasterService } from './toaster.service';
  * document (`GET/PUT /v3/access/users/me/preferences`).
  *
  * The allowlist is the security and size boundary of the mirror: anything
- * not listed here (session tokens, controller registry, per-project caches,
- * window geometry) stays local-only even when written through the facade.
+ * not listed here (session tokens, controller registry, per-project caches)
+ * stays local-only even when written through the facade.
  */
 export const SYNCED_PREFERENCE_KEYS: readonly string[] = [
   // Theme
@@ -26,6 +26,16 @@ export const SYNCED_PREFERENCE_KEYS: readonly string[] = [
   'consoleContextMenu',
   'layersVisibility',
   'gridVisibility',
+  // Floating widget geometry (restored viewport-clamped, so values from a
+  // larger screen degrade safely on a smaller one)
+  'topPosition',
+  'leftPosition',
+  'rightPosition',
+  'widthOfWidget',
+  'heightOfWidget',
+  // AI chat panel (JSON blob: geometry + flags; volatile flags are reset on
+  // load anyway, so only the geometry effectively follows the user)
+  'ai-chat-panel-state',
   // Project-workspace defaults
   'defaultSceneWidth',
   'defaultSceneHeight',

@@ -33,6 +33,7 @@ import { NotificationService } from '@services/notification.service';
 import { ToasterService } from '@services/toaster.service';
 import { NodeConsoleService } from '@services/nodeConsole.service';
 import { MapSettingsService } from '@services/mapsettings.service';
+import { UserPreferencesService } from '@services/user-preferences.service';
 import { MarkerLegendComponent } from '../project-map/marker-legend/marker-legend.component';
 
 @Component({
@@ -67,6 +68,7 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
   private toasterService = inject(ToasterService);
   private nodeConsoleService = inject(NodeConsoleService);
   private mapSettingsService = inject(MapSettingsService);
+  private userPreferences = inject(UserPreferencesService);
   private cd = inject(ChangeDetectorRef);
   private document = inject(DOCUMENT);
 
@@ -169,11 +171,11 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const leftPosition = localStorage.getItem('leftPosition');
-    const rightPosition = localStorage.getItem('rightPosition');
-    const topPosition = localStorage.getItem('topPosition');
-    const widthOfWidget = localStorage.getItem('widthOfWidget');
-    const heightOfWidget = localStorage.getItem('heightOfWidget');
+    const leftPosition = this.userPreferences.getItem('leftPosition');
+    const rightPosition = this.userPreferences.getItem('rightPosition');
+    const topPosition = this.userPreferences.getItem('topPosition');
+    const widthOfWidget = this.userPreferences.getItem('widthOfWidget');
+    const heightOfWidget = this.userPreferences.getItem('heightOfWidget');
 
     if (!topPosition) {
       const compactDensity = this.document.documentElement.dataset['density'] === 'compact';
@@ -237,11 +239,11 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
         height: `${height}px`,
       };
 
-      localStorage.setItem('leftPosition', left.toString());
-      localStorage.removeItem('rightPosition');
-      localStorage.setItem('topPosition', top.toString());
-      localStorage.setItem('widthOfWidget', width.toString());
-      localStorage.setItem('heightOfWidget', height.toString());
+      this.userPreferences.setItem('leftPosition', left.toString());
+      this.userPreferences.removeItem('rightPosition');
+      this.userPreferences.setItem('topPosition', top.toString());
+      this.userPreferences.setItem('widthOfWidget', width.toString());
+      this.userPreferences.setItem('heightOfWidget', height.toString());
     } else {
       const right = this.clamp(Number(this.style['right'].split('px')[0]) - x, 0, viewportWidth - width);
       this.style = {
@@ -252,11 +254,11 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
         height: `${height}px`,
       };
 
-      localStorage.setItem('rightPosition', right.toString());
-      localStorage.removeItem('leftPosition');
-      localStorage.setItem('topPosition', top.toString());
-      localStorage.setItem('widthOfWidget', width.toString());
-      localStorage.setItem('heightOfWidget', height.toString());
+      this.userPreferences.setItem('rightPosition', right.toString());
+      this.userPreferences.removeItem('leftPosition');
+      this.userPreferences.setItem('topPosition', top.toString());
+      this.userPreferences.setItem('widthOfWidget', width.toString());
+      this.userPreferences.setItem('heightOfWidget', height.toString());
     }
   }
 
@@ -284,11 +286,11 @@ export class TopologySummaryComponent implements OnInit, OnDestroy {
       height: `${event.rectangle.height}px`,
     };
 
-    localStorage.setItem('leftPosition', event.rectangle.left.toString());
-    localStorage.removeItem('rightPosition');
-    localStorage.setItem('topPosition', event.rectangle.top.toString());
-    localStorage.setItem('widthOfWidget', event.rectangle.width.toString());
-    localStorage.setItem('heightOfWidget', event.rectangle.height.toString());
+    this.userPreferences.setItem('leftPosition', event.rectangle.left.toString());
+    this.userPreferences.removeItem('rightPosition');
+    this.userPreferences.setItem('topPosition', event.rectangle.top.toString());
+    this.userPreferences.setItem('widthOfWidget', event.rectangle.width.toString());
+    this.userPreferences.setItem('heightOfWidget', event.rectangle.height.toString());
   }
 
   onTabSelectionChange(index: number) {
