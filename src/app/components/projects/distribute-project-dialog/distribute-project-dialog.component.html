@@ -109,26 +109,6 @@
   <mat-checkbox [checked]="resetMacAddresses()" (change)="resetMacAddresses.set($event.checked)" [disabled]="isSubmitting()">
     Reset MAC addresses
   </mat-checkbox>
-
-  @if (results().length > 0) {
-  <div class="distribute-dialog__results">
-    <div class="distribute-dialog__results-title">Distribution results:</div>
-    @for (result of results(); track result.username) {
-    @if (result.project) {
-    <div class="distribute-dialog__result-item distribute-dialog__result-item--ok">
-      {{ result.username }}: {{ result.project.name }}
-    </div>
-    } @else {
-    <div class="distribute-dialog__result-item distribute-dialog__result-item--failed">
-      {{ result.username }}: {{ result.error?.message || 'failed' }}
-    </div>
-    }
-    }
-    <div class="distribute-dialog__results-hint">
-      Retrying distributes again to every selected recipient, including the ones that already succeeded.
-    </div>
-  </div>
-  }
   </form>
 </div>
 

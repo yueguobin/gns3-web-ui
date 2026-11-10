@@ -54,6 +54,10 @@ export const SYNCED_PREFERENCE_KEYS: readonly string[] = [
   'gns3_interface_density',
   'addNodesViewMode',
   'notificationsVisibility',
+  // Active project distributions (JSON refs to server-side background jobs;
+  // minutes-scale lifetime, dropped the moment a job finishes — stale refs
+  // self-heal via 404 on the next restore, so the doc never accumulates them)
+  'gns3-active-distributions',
 ];
 
 interface UserPreferencesDoc {
