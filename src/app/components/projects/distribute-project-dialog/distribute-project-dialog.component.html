@@ -1,0 +1,133 @@
+<h1 mat-dialog-title>Distribute project</h1>
+
+<div mat-dialog-content>
+  <p class="distribute-dialog__hint">
+    Create a copy of "{{ project.name }}" for the selected recipients. Each copy is owned by its recipient, appears in
+    their projects (not yours), and supports start, console and configuration. A "template state" snapshot lets them
+    restore the initial state at any time.
+  </p>
+
+  <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
+    <mat-label>Copy name</mat-label>
+    <input matInput [value]="copyName()" (input)="copyName.set($event.target.value)" type="text" [disabled]="isSubmitting()" />
+    @if (nameGetsSuffix()) {
+    <mat-hint>Each copy is automatically named "{{ copyName() || project.name }}-{{ '{' }}username{{ '}' }}.</mat-hint>
+    }
+  </mat-form-field>
+
+  <div class="distribute-dialog__targets">
+    <mat-button-toggle-group
+      class="distribute-dialog__mode"
+      [value]="targetMode()"
+      (change)="targetMode.set($event.value)"
+      aria-label="Distribution target type"
+      [disabled]="isSubmitting()"
+    >
+      <mat-button-toggle value="user">Single user</mat-button-toggle>
+      <mat-button-toggle value="users">Users</mat-button-toggle>
+      <mat-button-toggle value="group">User group</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    @switch (targetMode()) {
+    @case ('user') {
+    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
+      <mat-label>User</mat-label>
+      <mat-select
+        [value]="selectedUserId()"
+        (selectionChange)="selectedUserId.set($event.value)"
+        [disabled]="isSubmitting()"
+      >
+        @if (isLoadingTargets()) {
+        <mat-option disabled [disabled]="true">Loading users…</mat-option>
+        } @else if (users().length === 0) {
+        <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No users available' }}</mat-option>
+        } @for (user of users(); track user.user_id) {
+        <mat-option [value]="user.user_id">{{ user.username }}{{ user.full_name ? ` (${user.full_name})` : '' }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    }
+    @case ('users') {
+    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
+      <mat-label>Users</mat-label>
+      <mat-select
+        multiple
+        [value]="selectedUserIds()"
+        (selectionChange)="selectedUserIds.set($event.value)"
+        [disabled]="isSubmitting()"
+      >
+        @if (isLoadingTargets()) {
+        <mat-option disabled [disabled]="true">Loading users…</mat-option>
+        } @else if (users().length === 0) {
+        <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No users available' }}</mat-option>
+        } @for (user of users(); track user.user_id) {
+        <mat-option [value]="user.user_id">{{ user.username }}{{ user.full_name ? ` (${user.full_name})` : '' }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    }
+    @case ('group') {
+    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
+      <mat-label>User group</mat-label>
+      <mat-select
+        [value]="selectedGroupId()"
+        (selectionChange)="selectedGroupId.set($event.value)"
+        [disabled]="isSubmitting()"
+      >
+        @if (isLoadingTargets()) {
+        <mat-option disabled [disabled]="true">Loading groups…</mat-option>
+        } @else if (groups().length === 0) {
+        <mat-option disabled [disabled]="true">No groups available</mat-option>
+        } @for (group of groups(); track group.user_group_id) {
+        <mat-option [value]="group.user_group_id">{{ group.name }}</mat-option>
+        }
+      </mat-select>
+      @if (selectedGroup(); as group) {
+      <mat-hint>Distributes to every member of "{{ group.name }}" at the time of distribution.</mat-hint>
+      }
+    </mat-form-field>
+    }
+    }
+
+    <div class="distribute-dialog__option">
+      <mat-checkbox
+        [checked]="resetMacAddresses()"
+        (change)="resetMacAddresses.set($event.checked)"
+        [disabled]="isSubmitting()"
+      >
+        Reset MAC addresses
+      </mat-checkbox>
+    </div>
+  </div>
+
+  @if (results().length > 0) {
+  <div class="distribute-dialog__results">
+    <div class="distribute-dialog__results-title">Distribution results:</div>
+    @for (result of results(); track result.username) {
+    @if (result.project) {
+    <div class="distribute-dialog__result-item distribute-dialog__result-item--ok">
+      {{ result.username }}: {{ result.project.name }}
+    </div>
+    } @else {
+    <div class="distribute-dialog__result-item distribute-dialog__result-item--failed">
+      {{ result.username }}: {{ result.error?.message || 'failed' }}
+    </div>
+    }
+    }
+    <div class="distribute-dialog__results-hint">
+      Retrying distributes again to every selected recipient, including the ones that already succeeded.
+    </div>
+  </div>
+  }
+</div>
+
+<div mat-dialog-actions>
+  <button mat-button (click)="onCloseClick()" color="accent" [disabled]="isSubmitting()">Cancel</button>
+  <button mat-button (click)="onSubmitClick()" mat-raised-button color="primary" [disabled]="!canSubmit()">
+    @if (isSubmitting()) {
+    <span>Distributing…</span>
+    } @else {
+    <span>Distribute</span>
+    }
+  </button>
+</div>
