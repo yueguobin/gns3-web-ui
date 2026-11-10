@@ -25,6 +25,7 @@ import { Project } from '@models/project';
 import { ProjectStatistics } from '@models/project-statistics';
 import { Controller } from '@models/controller';
 import { ProjectService } from '@services/project.service';
+import { PermissionService } from '@services/permission.service';
 import { NotificationService, ProjectNotification } from '@services/notification.service';
 import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
 import { Settings, SettingsService } from '@services/settings.service';
@@ -34,6 +35,7 @@ import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-di
 import { AddBlankProjectDialogComponent } from './add-blank-project-dialog/add-blank-project-dialog.component';
 import { ChooseNameDialogComponent } from './choose-name-dialog/choose-name-dialog.component';
 import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
+import { ShareProjectDialogComponent } from './share-project-dialog/share-project-dialog.component';
 import { ConfirmationDeleteAllProjectsComponent } from './confirmation-delete-all-projects/confirmation-delete-all-projects.component';
 import { EditProjectDialogComponent } from './edit-project-dialog/edit-project-dialog.component';
 import { ImportProjectDialogComponent } from './import-project-dialog/import-project-dialog.component';
@@ -248,6 +250,7 @@ export class ProjectsComponent implements OnInit {
   private recentlyOpenedProjectService = inject(RecentlyOpenedProjectService);
   private themeService = inject(ThemeService);
   private topologyPreviewService = inject(TopologyPreviewService);
+  private permissionService = inject(PermissionService);
 
   ngOnInit() {
     this.controller = this.route.snapshot.data['controller'];
@@ -557,6 +560,26 @@ export class ProjectsComponent implements OnInit {
   distribute(project: Project) {
     const dialogRef = this.dialog.open(DistributeProjectDialogComponent, {
       panelClass: ['base-dialog-panel', 'dialog-small-panel', 'distribute-project-dialog-panel'],
+      autoFocus: false,
+      disableClose: true,
+    });
+    let instance = dialogRef.componentInstance;
+    instance.controller = this.controller;
+    instance.project = project;
+  }
+
+  /**
+   * Share management checks ownership, not a named project privilege (only
+   * the project owner or a superadmin can call the share endpoints), so the
+   * entry point mirrors that exact rule.
+   */
+  canShare(project: Project): boolean {
+    return this.permissionService.isSuperadmin() || project.created_by === this.controller?.username;
+  }
+
+  share(project: Project) {
+    const dialogRef = this.dialog.open(ShareProjectDialogComponent, {
+      panelClass: ['base-dialog-panel', 'dialog-small-panel', 'share-project-dialog-panel'],
       autoFocus: false,
       disableClose: true,
     });
