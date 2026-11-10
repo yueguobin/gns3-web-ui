@@ -10,6 +10,7 @@ describe('LoginGuard', () => {
   let mockControllerService: any;
   let mockLoginService: any;
   let mockUserPreferences: any;
+  let mockProjectDistributions: any;
   let mockRouter: any;
 
   const createMockController = (overrides: Partial<Controller> = {}): Controller => {
@@ -45,6 +46,10 @@ describe('LoginGuard', () => {
       sync: vi.fn(),
     };
 
+    mockProjectDistributions = {
+      restore: vi.fn(),
+    };
+
     mockRouter = {
       navigate: vi.fn(),
     };
@@ -59,7 +64,13 @@ describe('LoginGuard', () => {
       url: '/test-url',
     } as RouterStateSnapshot;
 
-    guard = new LoginGuard(mockControllerService, mockLoginService, mockUserPreferences, mockRouter);
+    guard = new LoginGuard(
+      mockControllerService,
+      mockLoginService,
+      mockUserPreferences,
+      mockProjectDistributions,
+      mockRouter
+    );
   });
 
   it('should be created', () => {
@@ -80,6 +91,8 @@ describe('LoginGuard', () => {
       expect(result).toBe(true);
       // Authenticated session: preferences sync kicks off against this controller
       expect(mockUserPreferences.sync).toHaveBeenCalledWith(mockController);
+      // ...and unfinished distributions are retracked from the stored refs
+      expect(mockProjectDistributions.restore).toHaveBeenCalledWith(mockController);
       expect(mockLoginService.controller_id).toBe('1');
       expect(mockControllerService.get).toHaveBeenCalledWith(1);
     });
