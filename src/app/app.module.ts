@@ -166,6 +166,7 @@ import { WebConsoleComponent } from '@components/project-map/web-console/web-con
 import { AddBlankProjectDialogComponent } from '@components/projects/add-blank-project-dialog/add-blank-project-dialog.component';
 import { ChooseNameDialogComponent } from '@components/projects/choose-name-dialog/choose-name-dialog.component';
 import { DistributeProjectDialogComponent } from '@components/projects/distribute-project-dialog/distribute-project-dialog.component';
+import { ShareProjectDialogComponent } from '@components/projects/share-project-dialog/share-project-dialog.component';
 import { EditProjectDialogComponent } from '@components/projects/edit-project-dialog/edit-project-dialog.component';
 import { ReadmeEditorComponent } from '@components/projects/edit-project-dialog/readme-editor/readme-editor.component';
 import { ImportProjectDialogComponent } from '@components/projects/import-project-dialog/import-project-dialog.component';
@@ -461,6 +462,7 @@ import { GlobalUploadIndicatorComponent } from '@components/global-upload-indica
     TemplateListDialogComponent,
     ChooseNameDialogComponent,
     DistributeProjectDialogComponent,
+    ShareProjectDialogComponent,
     CreateSnapshotDialogComponent,
     ApplianceInfoDialogComponent,
     BundledControllerFinderComponent,

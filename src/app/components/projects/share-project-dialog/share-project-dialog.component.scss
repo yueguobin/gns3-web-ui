@@ -1,0 +1,63 @@
+mat-chip-set {
+  margin-bottom: 8px;
+}
+
+.share-project-dialog__section-title {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.share-project-dialog__hint {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+.share-project-dialog__shares {
+  list-style: none;
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.share-project-dialog__share {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.share-project-dialog__share-icon {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+}
+
+.share-project-dialog__share-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-project-dialog__share-role {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.share-project-dialog__share-remove {
+  --mat-icon-button-state-layer-size: 32px;
+  height: 32px;
+  width: 32px;
+}
+
+.share-project-dialog__divider {
+  margin: 12px 0;
+}

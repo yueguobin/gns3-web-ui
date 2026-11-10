@@ -1,0 +1,160 @@
+<h1 mat-dialog-title>Share project</h1>
+
+<div mat-dialog-content>
+  <div class="share-project-dialog__section-title">Shared with</div>
+  @if (isLoadingShares()) {
+  <div class="share-project-dialog__hint">Loading shares…</div>
+  } @else if (sharesLoadError()) {
+  <div class="share-project-dialog__hint">{{ sharesLoadError() }}</div>
+  } @else if (shares().length === 0) {
+  <div class="share-project-dialog__hint">Not shared with anyone yet.</div>
+  } @else {
+  <ul class="share-project-dialog__shares">
+    @for (share of shares(); track share.ace_id) {
+    <li class="share-project-dialog__share">
+      <mat-icon class="share-project-dialog__share-icon">{{ share.username ? 'person' : 'group' }}</mat-icon>
+      <span
+        class="share-project-dialog__share-name"
+        [matTooltip]="
+          share.username ? '' : 'Group share: members joining the group later gain access immediately.'
+        "
+        [matTooltipDisabled]="!!share.username"
+      >
+        {{ share.username || share.group_name }}
+      </span>
+      <span class="share-project-dialog__share-role">{{ share.role }}</span>
+      <button
+        mat-icon-button
+        type="button"
+        class="share-project-dialog__share-remove"
+        [disabled]="removingAceId() === share.ace_id"
+        (click)="removeShare(share)"
+        matTooltip="Remove share"
+        aria-label="Remove share"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </li>
+    }
+  </ul>
+  }
+
+  <mat-divider class="share-project-dialog__divider" />
+
+  <div class="share-project-dialog__section-title">Add people</div>
+  <form class="gns3-form-stack">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Share with</mat-label>
+    <mat-select [value]="targetMode()" (selectionChange)="targetMode.set($event.value)" [disabled]="isSubmitting()">
+      <mat-option value="user">Single user</mat-option>
+      <mat-option value="users">Multiple users</mat-option>
+      <mat-option value="group">User group</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  @switch (targetMode()) {
+  @case ('user') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>User</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="userAuto"
+      [value]="userFilter()"
+      (input)="onUserFilterInput($event.target.value)"
+      [disabled]="isSubmitting()"
+    />
+    <mat-autocomplete #userAuto="matAutocomplete" [displayWith]="displayUsername" (optionSelected)="selectUser($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading users…</mat-option>
+      } @else if (filteredUsers().length === 0) {
+      <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No matching user' }}</mat-option>
+      } @for (user of filteredUsers(); track user.user_id) {
+      <mat-option [value]="user">{{ user.username }}{{ user.full_name ? ' - ' + user.full_name : '' }}</mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+  }
+  @case ('users') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Users</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="usersAuto"
+      [value]="usersFilter()"
+      (input)="usersFilter.set($event.target.value)"
+      [disabled]="isSubmitting()"
+    />
+    <mat-autocomplete #usersAuto="matAutocomplete" (optionSelected)="addUser($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading users…</mat-option>
+      } @else if (filteredUsersToAdd().length === 0) {
+      <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No matching user' }}</mat-option>
+      } @for (user of filteredUsersToAdd(); track user.user_id) {
+      <mat-option [value]="user">{{ user.username }}{{ user.full_name ? ' - ' + user.full_name : '' }}</mat-option>
+      }
+    </mat-autocomplete>
+    @if (selectedUsers().length === 0) {
+    <mat-hint>Pick users one by one; they appear as chips.</mat-hint>
+    }
+  </mat-form-field>
+  @if (selectedUsers().length > 0) {
+  <mat-chip-set aria-label="Selected users">
+    @for (user of selectedUsers(); track user.user_id) {
+    <mat-chip (removed)="removeUser(user)">
+      {{ user.username }}
+      <button matChipRemove [disabled]="isSubmitting()" aria-label="Remove {{ user.username }}">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </mat-chip>
+    }
+  </mat-chip-set>
+  }
+  }
+  @case ('group') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Group</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="groupAuto"
+      [value]="groupFilter()"
+      (input)="onGroupFilterInput($event.target.value)"
+      [disabled]="isSubmitting()"
+    />
+    <mat-autocomplete #groupAuto="matAutocomplete" [displayWith]="displayGroupName" (optionSelected)="selectGroup($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading groups…</mat-option>
+      } @else if (filteredGroups().length === 0) {
+      <mat-option disabled [disabled]="true">No matching group</mat-option>
+      } @for (group of filteredGroups(); track group.user_group_id) {
+      <mat-option [value]="group">{{ group.name }}</mat-option>
+      }
+    </mat-autocomplete>
+    @if (selectedGroup(); as group) {
+    <mat-hint>Everyone in "{{ group.name }}" gains access — including people joining the group later.</mat-hint>
+    }
+  </mat-form-field>
+  }
+  }
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Role</mat-label>
+    <mat-select [value]="role()" (selectionChange)="role.set($event.value)" [disabled]="isSubmitting()">
+      @for (option of shareRoles; track option.name) {
+      <mat-option [value]="option.name">{{ option.name }}</mat-option>
+      }
+    </mat-select>
+    <mat-hint>{{ roleDescription() }}</mat-hint>
+  </mat-form-field>
+  </form>
+  <div class="share-project-dialog__hint">Everyone works on the same project — no copies are created.</div>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="onCloseClick()" color="accent" [disabled]="isSubmitting()">Cancel</button>
+  <button mat-button (click)="onSubmitClick()" tabindex="2" mat-raised-button color="primary" [disabled]="!canSubmit()">
+    {{ isSubmitting() ? 'Sharing…' : 'Share' }}
+  </button>
+</div>

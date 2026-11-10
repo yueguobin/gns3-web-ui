@@ -362,8 +362,7 @@ mat-cell {
 }
 
 .projects__action-button--details,
-.projects__action-button--duplicate,
-.projects__action-button--distribute {
+.projects__action-button--duplicate {
   --projects-action-color: var(--mat-sys-secondary);
 }
 
@@ -833,7 +832,8 @@ mat-cell {
 }
 
 .projects__details-action-btn--duplicate,
-.projects__details-action-btn--distribute {
+.projects__details-action-btn--distribute,
+.projects__details-action-btn--share {
   --projects-details-action-color: var(--mat-sys-secondary);
 }
 
