@@ -27,6 +27,15 @@ export class Supplier {
   url: string;
 }
 
+/** Per-recipient outcome of a multi-user or group project distribution. */
+export class ProjectDistributionResult {
+  username: string;
+  /** The recipient's copy, or null when distribution to this user failed. */
+  project: Project | null;
+  /** Failure detail, or null on success. */
+  error: { message: string; code: number } | null;
+}
+
 export class ProjectVariable {
   name: string;
   value: string;

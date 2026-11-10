@@ -33,6 +33,7 @@ import { ToasterService } from '@services/toaster.service';
 import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 import { AddBlankProjectDialogComponent } from './add-blank-project-dialog/add-blank-project-dialog.component';
 import { ChooseNameDialogComponent } from './choose-name-dialog/choose-name-dialog.component';
+import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
 import { ConfirmationDeleteAllProjectsComponent } from './confirmation-delete-all-projects/confirmation-delete-all-projects.component';
 import { EditProjectDialogComponent } from './edit-project-dialog/edit-project-dialog.component';
 import { ImportProjectDialogComponent } from './import-project-dialog/import-project-dialog.component';
@@ -551,6 +552,17 @@ export class ProjectsComponent implements OnInit {
         this.loadProjectDescription(project);
       }
     });
+  }
+
+  distribute(project: Project) {
+    const dialogRef = this.dialog.open(DistributeProjectDialogComponent, {
+      panelClass: ['base-dialog-panel', 'dialog-small-panel', 'distribute-project-dialog-panel'],
+      autoFocus: false,
+      disableClose: true,
+    });
+    let instance = dialogRef.componentInstance;
+    instance.controller = this.controller;
+    instance.project = project;
   }
 
   editProject(project: Project) {

@@ -207,6 +207,16 @@
                 >
                   <mat-icon>content_copy</mat-icon>
                 </button>
+                <button
+                  mat-icon-button
+                  class="projects__action-button projects__action-button--distribute"
+                  *appHasPrivilege="['Project.Audit', 'Project.Allocate']"
+                  (click)="distribute(row)"
+                  matTooltip="Distribute project"
+                  aria-label="Distribute project"
+                >
+                  <mat-icon>share</mat-icon>
+                </button>
                 }
                 <button
                   mat-icon-button
@@ -361,6 +371,16 @@
               aria-label="Duplicate project"
             >
               <mat-icon>content_copy</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              class="projects__action-button projects__action-button--distribute"
+              *appHasPrivilege="['Project.Audit', 'Project.Allocate']"
+              (click)="$event.stopPropagation(); distribute(project)"
+              matTooltip="Distribute project"
+              aria-label="Distribute project"
+            >
+              <mat-icon>share</mat-icon>
             </button>
             }
             <button
@@ -581,6 +601,16 @@
             aria-label="Duplicate project"
           >
             <mat-icon>content_copy</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            class="projects__details-action-btn projects__details-action-btn--distribute"
+            *appHasPrivilege="['Project.Audit', 'Project.Allocate']"
+            (click)="distribute(project)"
+            matTooltip="Distribute project"
+            aria-label="Distribute project"
+          >
+            <mat-icon>share</mat-icon>
           </button>
           }
           <button

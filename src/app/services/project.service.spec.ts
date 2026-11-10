@@ -624,8 +624,10 @@ describe('ProjectService', () => {
       const duplicatedProject = { ...mockProject, name: 'Copy of Project' };
       mockHttpController.post.mockReturnValue(of(duplicatedProject));
 
-      const project = await firstValueFrom(service.duplicate(mockController, 'project-123', 'Copy'));
+      const response = await firstValueFrom(service.duplicate(mockController, 'project-123', 'Copy'));
 
+      expect(Array.isArray(response)).toBe(false);
+      const project = response as Project;
       expect(project.name).toBe('Copy of Project');
     });
 
