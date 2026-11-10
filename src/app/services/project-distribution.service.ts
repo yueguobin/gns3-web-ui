@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Subscription, timer } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { Subscription, timer, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Controller } from '@models/controller';
 import { ProjectDistribution } from '@models/project';
 import { ProjectService } from '@services/project.service';
@@ -63,6 +63,8 @@ export class ProjectDistributionService {
     }
     if (job.status !== 'running') {
       // A finished job adopted after the fact: only its outcome is news.
+      // Prune the ref too, or every later login re-toasts the same summary.
+      this.pruneRef(job.distribution_id);
       this.pushSummary(job);
       return;
     }
@@ -104,10 +106,23 @@ export class ProjectDistributionService {
     this.pollers.set(
       id,
       timer(POLL_INTERVAL_MS, POLL_INTERVAL_MS)
-        .pipe(switchMap(() => this.projectService.getDistribution(entry.controller, entry.job.project_id, id)))
-        .subscribe({
-          next: (job) => this.onPolled(id, job),
-          error: (err) => this.onPollError(id, err),
+        .pipe(
+          // Errors are mapped into the tick result: an inner error would
+          // otherwise kill the whole timer chain and freeze the card at
+          // "running" after one transient network hiccup.
+          switchMap(() =>
+            this.projectService.getDistribution(entry.controller, entry.job.project_id, id).pipe(
+              map((job) => ({ job })),
+              catchError((err: unknown) => of({ err }))
+            )
+          )
+        )
+        .subscribe((event) => {
+          if ('job' in event) {
+            this.onPolled(id, event.job);
+          } else {
+            this.onPollError(id, event.err);
+          }
         })
     );
   }
