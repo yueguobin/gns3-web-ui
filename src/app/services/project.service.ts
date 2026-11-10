@@ -137,38 +137,42 @@ export class ProjectService {
     return this.httpController.get(controller, `/projects/${project_id}/stats`);
   }
 
+  duplicate(controller: Controller, project_id: string, project_name: string): Observable<Project> {
+    return this.httpController.post(controller, `/projects/${project_id}/duplicate`, { name: project_name });
+  }
+
   /**
-   * Duplicates a project, optionally distributing the copy to other users.
+   * Distributes a project as a per-recipient copy (classroom use case).
    *
-   * `target_user`, `target_users` and `target_group` are mutually exclusive:
-   * - `target_user`: one recipient, the copy is named `project_name`.
+   * Exactly one of `target_user`, `target_users` and `target_group` must be
+   * given (combined or missing targets are rejected with 422):
+   * - `target_user`: one recipient, the copy is named `name`.
    * - `target_users`: several recipients, each copy is automatically named
-   *   `{project_name}-{username}`; any unknown username fails the whole
-   *   request (404) and an empty list is rejected (422).
+   *   `{name}-{username}`; any unknown username fails the whole request
+   *   (404) and an empty list is rejected (422).
    * - `target_group`: fan-out to the group members at call time (same naming
    *   as `target_users`); unknown group 404, empty group 409.
    * `owner_role` assigns the role of the copy owners (defaults to the
    * built-in "Lab member" role on the server).
    *
-   * The response is a `Project` for a plain copy or a single recipient, and a
-   * `ProjectDistributionResult[]` (one entry per recipient, partial failures
-   * included) for `target_users` / `target_group`.
+   * The response is always an array with one entry per recipient; partial
+   * failures do not affect the other recipients (overall 201).
    */
-  duplicate(
+  distribute(
     controller: Controller,
     project_id: string,
     project_name: string,
-    options?: {
+    targets: {
       target_user?: string;
       target_users?: string[];
       target_group?: string;
       owner_role?: string;
       reset_mac_addresses?: boolean;
     }
-  ): Observable<Project | ProjectDistributionResult[]> {
-    return this.httpController.post(controller, `/projects/${project_id}/duplicate`, {
+  ): Observable<ProjectDistributionResult[]> {
+    return this.httpController.post(controller, `/projects/${project_id}/distribute`, {
       name: project_name,
-      ...(options ?? {}),
+      ...targets,
     });
   }
 

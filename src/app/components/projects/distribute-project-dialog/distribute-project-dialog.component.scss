@@ -1,34 +1,15 @@
 /**
  * GNS3 Distribute Project Dialog Component Styles
  *
- * Layout only; colors come from Material theme variables.
+ * Layout comes from the shared dialog classes (base-dialog-panel +
+ * gns3-form-stack); only component-specific bits live here.
  */
 
+mat-chip-set {
+  margin-bottom: 8px;
+}
+
 .distribute-dialog {
-  &__hint {
-    margin: 0 0 16px;
-    color: var(--mat-sys-on-surface-variant);
-  }
-
-  &__field {
-    width: 100%;
-  }
-
-  &__targets {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  &__mode {
-    align-self: flex-start;
-  }
-
-  &__option {
-    display: flex;
-    align-items: center;
-  }
-
   &__results {
     margin-top: 12px;
     padding: 8px 12px;

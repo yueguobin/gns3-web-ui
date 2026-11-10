@@ -1,104 +1,114 @@
 <h1 mat-dialog-title>Distribute project</h1>
 
 <div mat-dialog-content>
-  <p class="distribute-dialog__hint">
-    Create a copy of "{{ project.name }}" for the selected recipients. Each copy is owned by its recipient, appears in
-    their projects (not yours), and supports start, console and configuration. A "template state" snapshot lets them
-    restore the initial state at any time.
-  </p>
-
-  <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
+  <form class="gns3-form-stack">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
     <mat-label>Copy name</mat-label>
     <input matInput [value]="copyName()" (input)="copyName.set($event.target.value)" type="text" [disabled]="isSubmitting()" />
     @if (nameGetsSuffix()) {
-    <mat-hint>Each copy is automatically named "{{ copyName() || project.name }}-{{ '{' }}username{{ '}' }}.</mat-hint>
+    <mat-hint>Each copy is named "{{ copyName() || project.name }}-{{ '{' }}username{{ '}' }}"</mat-hint>
     }
   </mat-form-field>
 
-  <div class="distribute-dialog__targets">
-    <mat-button-toggle-group
-      class="distribute-dialog__mode"
-      [value]="targetMode()"
-      (change)="targetMode.set($event.value)"
-      aria-label="Distribution target type"
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Distribute to</mat-label>
+    <mat-select [value]="targetMode()" (selectionChange)="targetMode.set($event.value)" [disabled]="isSubmitting()">
+      <mat-option value="user">Single user</mat-option>
+      <mat-option value="users">Multiple users</mat-option>
+      <mat-option value="group">User group</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  @switch (targetMode()) {
+  @case ('user') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>User</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="userAuto"
+      [value]="userFilter()"
+      (input)="onUserFilterInput($event.target.value)"
       [disabled]="isSubmitting()"
-    >
-      <mat-button-toggle value="user">Single user</mat-button-toggle>
-      <mat-button-toggle value="users">Users</mat-button-toggle>
-      <mat-button-toggle value="group">User group</mat-button-toggle>
-    </mat-button-toggle-group>
-
-    @switch (targetMode()) {
-    @case ('user') {
-    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
-      <mat-label>User</mat-label>
-      <mat-select
-        [value]="selectedUserId()"
-        (selectionChange)="selectedUserId.set($event.value)"
-        [disabled]="isSubmitting()"
-      >
-        @if (isLoadingTargets()) {
-        <mat-option disabled [disabled]="true">Loading users…</mat-option>
-        } @else if (users().length === 0) {
-        <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No users available' }}</mat-option>
-        } @for (user of users(); track user.user_id) {
-        <mat-option [value]="user.user_id">{{ user.username }}{{ user.full_name ? ` (${user.full_name})` : '' }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    }
-    @case ('users') {
-    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
-      <mat-label>Users</mat-label>
-      <mat-select
-        multiple
-        [value]="selectedUserIds()"
-        (selectionChange)="selectedUserIds.set($event.value)"
-        [disabled]="isSubmitting()"
-      >
-        @if (isLoadingTargets()) {
-        <mat-option disabled [disabled]="true">Loading users…</mat-option>
-        } @else if (users().length === 0) {
-        <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No users available' }}</mat-option>
-        } @for (user of users(); track user.user_id) {
-        <mat-option [value]="user.user_id">{{ user.username }}{{ user.full_name ? ` (${user.full_name})` : '' }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-    }
-    @case ('group') {
-    <mat-form-field class="distribute-dialog__field" subscriptSizing="dynamic">
-      <mat-label>User group</mat-label>
-      <mat-select
-        [value]="selectedGroupId()"
-        (selectionChange)="selectedGroupId.set($event.value)"
-        [disabled]="isSubmitting()"
-      >
-        @if (isLoadingTargets()) {
-        <mat-option disabled [disabled]="true">Loading groups…</mat-option>
-        } @else if (groups().length === 0) {
-        <mat-option disabled [disabled]="true">No groups available</mat-option>
-        } @for (group of groups(); track group.user_group_id) {
-        <mat-option [value]="group.user_group_id">{{ group.name }}</mat-option>
-        }
-      </mat-select>
-      @if (selectedGroup(); as group) {
-      <mat-hint>Distributes to every member of "{{ group.name }}" at the time of distribution.</mat-hint>
+    />
+    <mat-autocomplete #userAuto="matAutocomplete" [displayWith]="displayUsername" (optionSelected)="selectUser($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading users…</mat-option>
+      } @else if (filteredUsers().length === 0) {
+      <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No matching user' }}</mat-option>
+      } @for (user of filteredUsers(); track user.user_id) {
+      <mat-option [value]="user">{{ user.username }}{{ user.full_name ? ' - ' + user.full_name : '' }}</mat-option>
       }
-    </mat-form-field>
+    </mat-autocomplete>
+  </mat-form-field>
+  }
+  @case ('users') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Users</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="usersAuto"
+      [value]="usersFilter()"
+      (input)="usersFilter.set($event.target.value)"
+      [disabled]="isSubmitting()"
+    />
+    <mat-autocomplete #usersAuto="matAutocomplete" (optionSelected)="addUser($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading users…</mat-option>
+      } @else if (filteredUsersToAdd().length === 0) {
+      <mat-option disabled [disabled]="true">{{ targetsLoadError() || 'No matching user' }}</mat-option>
+      } @for (user of filteredUsersToAdd(); track user.user_id) {
+      <mat-option [value]="user">{{ user.username }}{{ user.full_name ? ' - ' + user.full_name : '' }}</mat-option>
+      }
+    </mat-autocomplete>
+    @if (selectedUsers().length === 0) {
+    <mat-hint>Pick users one by one; they appear as chips.</mat-hint>
     }
+  </mat-form-field>
+  @if (selectedUsers().length > 0) {
+  <mat-chip-set aria-label="Selected users">
+    @for (user of selectedUsers(); track user.user_id) {
+    <mat-chip (removed)="removeUser(user)">
+      {{ user.username }}
+      <button matChipRemove [disabled]="isSubmitting()" aria-label="Remove {{ user.username }}">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </mat-chip>
     }
+  </mat-chip-set>
+  }
+  }
+  @case ('group') {
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Group</mat-label>
+    <input
+      type="text"
+      matInput
+      [matAutocomplete]="groupAuto"
+      [value]="groupFilter()"
+      (input)="onGroupFilterInput($event.target.value)"
+      [disabled]="isSubmitting()"
+    />
+    <mat-autocomplete #groupAuto="matAutocomplete" [displayWith]="displayGroupName" (optionSelected)="selectGroup($event.option.value)">
+      @if (isLoadingTargets()) {
+      <mat-option disabled [disabled]="true">Loading groups…</mat-option>
+      } @else if (filteredGroups().length === 0) {
+      <mat-option disabled [disabled]="true">No matching group</mat-option>
+      } @for (group of filteredGroups(); track group.user_group_id) {
+      <mat-option [value]="group">{{ group.name }}</mat-option>
+      }
+    </mat-autocomplete>
+    @if (selectedGroup(); as group) {
+    <mat-hint>Distributes to every member of "{{ group.name }}" at the time of distribution.</mat-hint>
+    }
+  </mat-form-field>
+  }
+  }
 
-    <div class="distribute-dialog__option">
-      <mat-checkbox
-        [checked]="resetMacAddresses()"
-        (change)="resetMacAddresses.set($event.checked)"
-        [disabled]="isSubmitting()"
-      >
-        Reset MAC addresses
-      </mat-checkbox>
-    </div>
-  </div>
+  <mat-checkbox [checked]="resetMacAddresses()" (change)="resetMacAddresses.set($event.checked)" [disabled]="isSubmitting()">
+    Reset MAC addresses
+  </mat-checkbox>
 
   @if (results().length > 0) {
   <div class="distribute-dialog__results">
@@ -119,15 +129,12 @@
     </div>
   </div>
   }
+  </form>
 </div>
 
-<div mat-dialog-actions>
+<div mat-dialog-actions align="end">
   <button mat-button (click)="onCloseClick()" color="accent" [disabled]="isSubmitting()">Cancel</button>
-  <button mat-button (click)="onSubmitClick()" mat-raised-button color="primary" [disabled]="!canSubmit()">
-    @if (isSubmitting()) {
-    <span>Distributing…</span>
-    } @else {
-    <span>Distribute</span>
-    }
+  <button mat-button (click)="onSubmitClick()" tabindex="2" mat-raised-button color="primary" [disabled]="!canSubmit()">
+    {{ isSubmitting() ? 'Distributing…' : 'Distribute' }}
   </button>
 </div>
