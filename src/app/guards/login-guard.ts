@@ -4,6 +4,7 @@ import { LoginService } from '@services/login.service';
 import { Controller } from '@models/controller';
 import { ControllerService } from '@services/controller.service';
 import { UserPreferencesService } from '@services/user-preferences.service';
+import { ProjectDistributionService } from '@services/project-distribution.service';
 
 @Injectable()
 export class LoginGuard implements CanActivate {
@@ -11,6 +12,7 @@ export class LoginGuard implements CanActivate {
     private controllerService: ControllerService,
     private loginService: LoginService,
     private userPreferences: UserPreferencesService,
+    private projectDistributions: ProjectDistributionService,
     private router: Router
   ) {}
 
@@ -33,6 +35,9 @@ export class LoginGuard implements CanActivate {
         // Session is authenticated: fetch and merge the user's server-side
         // preferences (no-op against controllers without the endpoint).
         this.userPreferences.sync(controller);
+        // Resume tracking project distributions still running server-side
+        // (references stored in the synced preferences).
+        this.projectDistributions.restore(controller);
         return true;
       }
       this.router.navigate(['/controller', controller.id, 'login'], { queryParams: { returnUrl: state.url } });

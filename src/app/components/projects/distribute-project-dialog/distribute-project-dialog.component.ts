@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,11 +11,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Project, ProjectDistributionResult } from '@models/project';
+import { Project } from '@models/project';
 import { Controller } from '@models/controller';
 import { User } from '@models/users/user';
 import { Group } from '@models/groups/group';
 import { ProjectService } from '@services/project.service';
+import { ProjectDistributionService } from '@services/project-distribution.service';
 import { UserService } from '@services/user.service';
 import { GroupService } from '@services/group.service';
 import { ToasterService } from '@services/toaster.service';
@@ -31,6 +33,7 @@ type TargetMode = 'user' | 'users' | 'group';
     CommonModule,
     MatDialogModule,
     MatButtonModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -42,6 +45,7 @@ type TargetMode = 'user' | 'users' | 'group';
 export class DistributeProjectDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<DistributeProjectDialogComponent>);
   private readonly projectService = inject(ProjectService);
+  private readonly distributionService = inject(ProjectDistributionService);
   private readonly userService = inject(UserService);
   private readonly groupService = inject(GroupService);
   private readonly toasterService = inject(ToasterService);
@@ -58,8 +62,6 @@ export class DistributeProjectDialogComponent implements OnInit {
   readonly isLoadingTargets = signal(true);
   readonly targetsLoadError = signal('');
   readonly isSubmitting = signal(false);
-  /** Per-recipient outcomes of the last multi-user / group submission. */
-  readonly results = signal<ProjectDistributionResult[]>([]);
 
   // Autocomplete filter text (free-typed, only picks from the panel count).
   readonly userFilter = signal('');
@@ -117,6 +119,17 @@ export class DistributeProjectDialogComponent implements OnInit {
       this.isLoadingTargets.set(false);
       this.cd.markForCheck();
     });
+
+    // Best effort: resume tracking distributions of this project that are
+    // still running server-side (e.g. started before a page refresh).
+    this.projectService.listDistributions(this.controller, this.project.project_id).subscribe({
+      next: (jobs) => {
+        for (const job of jobs.filter((candidate) => candidate.status === 'running')) {
+          this.distributionService.track(this.controller, job);
+        }
+      },
+      error: () => undefined,
+    });
   }
 
   displayUsername = (user: User | null): string => user?.username ?? '';
@@ -157,7 +170,6 @@ export class DistributeProjectDialogComponent implements OnInit {
     this.groupFilter.set(group.name);
   }
 
-
   onCloseClick(): void {
     this.dialogRef.close();
   }
@@ -167,77 +179,29 @@ export class DistributeProjectDialogComponent implements OnInit {
       return;
     }
     this.isSubmitting.set(true);
-    this.results.set([]);
     this.cd.markForCheck();
 
     const name = this.copyName().trim();
     const reset = this.resetMacAddresses();
-    switch (this.targetMode()) {
-      case 'user':
-        this.projectService
-          .distribute(this.controller, this.project.project_id, name, {
-            target_user: this.selectedUser()?.username,
-            reset_mac_addresses: reset,
-          })
-          .subscribe(this.distributeObserver());
-        break;
-      case 'users':
-        this.projectService
-          .distribute(this.controller, this.project.project_id, name, {
-            target_users: this.selectedUsers().map((user) => user.username),
-            reset_mac_addresses: reset,
-          })
-          .subscribe(this.distributeObserver());
-        break;
-      case 'group':
-        this.projectService
-          .distribute(this.controller, this.project.project_id, name, {
-            target_group: this.selectedGroup()?.name,
-            reset_mac_addresses: reset,
-          })
-          .subscribe(this.distributeObserver());
-        break;
-    }
-  }
+    const targets =
+      this.targetMode() === 'user'
+        ? { target_user: this.selectedUser()?.username, reset_mac_addresses: reset }
+        : this.targetMode() === 'users'
+          ? { target_users: this.selectedUsers().map((user) => user.username), reset_mac_addresses: reset }
+          : { target_group: this.selectedGroup()?.name, reset_mac_addresses: reset };
 
-  private distributeObserver() {
-    return {
-      next: (results: ProjectDistributionResult[]) => this.handleResults(results),
+    this.projectService.distribute(this.controller, this.project.project_id, name, targets).subscribe({
+      next: (job) => {
+        // Copies are created in the background; the corner card follows the progress.
+        this.distributionService.track(this.controller, job);
+        this.dialogRef.close();
+      },
       error: (err: unknown) => {
         this.isSubmitting.set(false);
         this.cd.markForCheck();
         this.toasterService.error(err instanceof Error ? err.message : 'Failed to distribute project');
       },
-    };
-  }
-
-  private handleResults(results: ProjectDistributionResult[]): void {
-    this.isSubmitting.set(false);
-    this.cd.markForCheck();
-
-    const failed = results.filter((result) => !result.project);
-    if (failed.length > 0) {
-      this.results.set(results);
-      this.cd.markForCheck();
-      return;
-    }
-
-    const name = this.copyName().trim();
-    const suffixHint =
-      this.targetMode() === 'group'
-        ? ' Members joining the group later will not receive a copy — distribute again for them.'
-        : '';
-    if (results.length === 1) {
-      const username = results[0].username;
-      this.toasterService.success(
-        `Distributed "${name}" to ${username}. The copy belongs to ${username} and will not appear in your projects.${suffixHint}`
-      );
-    } else {
-      this.toasterService.success(
-        `Distributed "${name}" to ${results.length} users. Each copy is named "${name}-{username}", belongs to its recipient and will not appear in your projects.${suffixHint}`
-      );
-    }
-    this.dialogRef.close();
+    });
   }
 
   private filterUsers(filter: string): User[] {

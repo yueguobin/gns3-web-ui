@@ -37,6 +37,7 @@ import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
+import { DistributionTasksComponent } from '@components/distribution-tasks/distribution-tasks.component';
 import { NotificationCenterService } from '@services/notification-center.service';
 import { PermissionService } from '@services/permission.service';
 import { UserPreferencesService } from '@services/user-preferences.service';
@@ -58,6 +59,7 @@ import { HasPrivilegeDirective } from '@directives/has-privilege.directive';
     MatListModule,
     ProgressComponent,
     NotificationCenterComponent,
+    DistributionTasksComponent,
     HasPrivilegeDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

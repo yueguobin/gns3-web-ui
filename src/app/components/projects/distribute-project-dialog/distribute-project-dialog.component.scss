@@ -8,32 +8,3 @@
 mat-chip-set {
   margin-bottom: 8px;
 }
-
-.distribute-dialog {
-  &__results {
-    margin-top: 12px;
-    padding: 8px 12px;
-    border-radius: 4px;
-    background-color: var(--mat-sys-surface-container-high);
-  }
-
-  &__results-title {
-    font-weight: 500;
-    color: var(--mat-sys-on-surface);
-  }
-
-  &__result-item {
-    &--ok {
-      color: var(--mat-sys-primary);
-    }
-
-    &--failed {
-      color: var(--mat-sys-error);
-    }
-  }
-
-  &__results-hint {
-    margin-top: 4px;
-    color: var(--mat-sys-on-surface-variant);
-  }
-}

@@ -130,6 +130,7 @@ import { MarkerReplayOverlayComponent } from './marker-replay/marker-replay-over
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
 import { createActionCompletion } from '@utils/action-completion.util';
 import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
+import { DistributionTasksComponent } from '@components/distribution-tasks/distribution-tasks.component';
 import { NotificationCenterService } from '@services/notification-center.service';
 import { describeTopologyItems } from '@utils/topology-delete-summary.util';
 import type { TopologyItemCounts } from '@utils/topology-delete-summary.util';
@@ -173,6 +174,7 @@ import { HasProjectPrivilegeDirective } from '@directives/has-project-privilege.
     MarkerManagerComponent,
     MarkerReplayOverlayComponent,
     NotificationCenterComponent,
+    DistributionTasksComponent,
     HasProjectPrivilegeDirective,
   ],
 })

@@ -4,7 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { Drawing } from '../cartography/models/drawing';
 import { Node } from '../cartography/models/node';
 import { Link } from '@models/link';
-import { Project, ProjectDistributionResult } from '@models/project';
+import { Project, ProjectDistribution, ProjectShare } from '@models/project';
 import { Gns3ProjectFile } from '@models/gns3-file';
 import { Controller } from '@models/controller';
 import { HttpController } from './http-controller.service';
@@ -155,8 +155,9 @@ export class ProjectService {
    * `owner_role` assigns the role of the copy owners (defaults to the
    * built-in "Lab member" role on the server).
    *
-   * The response is always an array with one entry per recipient; partial
-   * failures do not affect the other recipients (overall 201).
+   * Returns 202 with the distribution job: copies are created in the
+   * background. Follow the progress with `getDistribution` until the job
+   * status leaves "running".
    */
   distribute(
     controller: Controller,
@@ -169,11 +170,55 @@ export class ProjectService {
       owner_role?: string;
       reset_mac_addresses?: boolean;
     }
-  ): Observable<ProjectDistributionResult[]> {
+  ): Observable<ProjectDistribution> {
     return this.httpController.post(controller, `/projects/${project_id}/distribute`, {
       name: project_name,
       ...targets,
     });
+  }
+
+  /** Returns the current state of one distribution job (404 once the server forgets it). */
+  getDistribution(controller: Controller, project_id: string, distribution_id: string): Observable<ProjectDistribution> {
+    return this.httpController.get(controller, `/projects/${project_id}/distributions/${distribution_id}`);
+  }
+
+  /** Returns the caller's recent distribution jobs of a project (newest first). */
+  listDistributions(controller: Controller, project_id: string): Observable<ProjectDistribution[]> {
+    return this.httpController.get(controller, `/projects/${project_id}/distributions`);
+  }
+
+  /**
+   * Shares a project: the recipients gain access to the same project (no
+   * copies, instant).
+   *
+   * Exactly one of `target_user`, `target_users` and `target_group` must be
+   * given (422 otherwise; same target grammar as `distribute`, but a group
+   * share is one live ACE — members joining the group later gain access
+   * immediately). `role` defaults server-side to the built-in "Lab member"
+   * role; sharing again with the same target updates its role. Returns 201
+   * with the created/updated shares.
+   */
+  share(
+    controller: Controller,
+    project_id: string,
+    targets: {
+      target_user?: string;
+      target_users?: string[];
+      target_group?: string;
+      role?: string;
+    }
+  ): Observable<ProjectShare[]> {
+    return this.httpController.post(controller, `/projects/${project_id}/share`, targets);
+  }
+
+  /** Returns the shares of a project (its owner's own ACE is not included). */
+  listShares(controller: Controller, project_id: string): Observable<ProjectShare[]> {
+    return this.httpController.get(controller, `/projects/${project_id}/shares`);
+  }
+
+  /** Removes one share (204). */
+  removeShare(controller: Controller, project_id: string, ace_id: string): Observable<void> {
+    return this.httpController.delete(controller, `/projects/${project_id}/shares/${ace_id}`);
   }
 
   isReadOnly(project: Project) {
