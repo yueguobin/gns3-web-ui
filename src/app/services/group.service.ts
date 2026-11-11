@@ -52,8 +52,8 @@ export class GroupService {
     return this.httpController.delete(controller, `/access/groups/${group.user_group_id}/members/${user.user_id}`);
   }
 
-  update(controller: Controller, group: Group) {
-    return this.httpController.put(controller, `/access/groups/${group.user_group_id}`, { name: group.name });
+  update(controller: Controller, group: Group, payload: Partial<Group>) {
+    return this.httpController.put(controller, `/access/groups/${group.user_group_id}`, payload);
   }
 
   getGroupRole(controller: Controller, groupId: string) {

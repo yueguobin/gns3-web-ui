@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Controller } from '@models/controller';
 import { HttpController } from './http-controller.service';
 import { User } from '@models/users/user';
+import { UserQuotaUsage } from '@models/users/user-quota-usage';
 import { Group } from '@models/groups/group';
 import { Image } from '@models/images';
 
@@ -13,6 +14,10 @@ export class UserService {
 
   getInformationAboutLoggedUser(controller: Controller) {
     return this.httpController.get<User>(controller, '/access/users/me');
+  }
+
+  getQuotas(controller: Controller) {
+    return this.httpController.get<UserQuotaUsage>(controller, '/access/users/me/quotas');
   }
 
   get(controller: Controller, user_id: string) {

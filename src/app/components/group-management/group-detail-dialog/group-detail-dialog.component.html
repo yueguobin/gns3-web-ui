@@ -15,6 +15,44 @@
               <input matInput type="text" formControlName="groupname" />
             </mat-form-field>
 
+            <div class="group-detail-dialog__quota-row">
+              <mat-form-field appearance="outline" class="group-detail-dialog__field">
+                <mat-label>Default max nodes</mat-label>
+                <mat-select formControlName="default_max_nodes_mode">
+                  <mat-option [value]="quotaModeUnlimited">Unlimited</mat-option>
+                  <mat-option [value]="quotaModeCustom">Custom limit</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (form.default_max_nodes_mode?.value === quotaModeCustom) {
+              <mat-form-field appearance="outline" class="group-detail-dialog__field">
+                <mat-label>Node limit</mat-label>
+                <input matInput type="number" formControlName="default_max_nodes_value" min="0" step="1" />
+                @if (form.default_max_nodes_value?.touched && form.default_max_nodes_value?.errors) {
+                <mat-error>Enter a number of 0 or more</mat-error>
+                }
+              </mat-form-field>
+              }
+            </div>
+
+            <div class="group-detail-dialog__quota-row">
+              <mat-form-field appearance="outline" class="group-detail-dialog__field">
+                <mat-label>Default max running nodes</mat-label>
+                <mat-select formControlName="default_max_running_nodes_mode">
+                  <mat-option [value]="quotaModeUnlimited">Unlimited</mat-option>
+                  <mat-option [value]="quotaModeCustom">Custom limit</mat-option>
+                </mat-select>
+              </mat-form-field>
+              @if (form.default_max_running_nodes_mode?.value === quotaModeCustom) {
+              <mat-form-field appearance="outline" class="group-detail-dialog__field">
+                <mat-label>Running node limit</mat-label>
+                <input matInput type="number" formControlName="default_max_running_nodes_value" min="0" step="1" />
+                @if (form.default_max_running_nodes_value?.touched && form.default_max_running_nodes_value?.errors) {
+                <mat-error>Enter a number of 0 or more</mat-error>
+                }
+              </mat-form-field>
+              }
+            </div>
+
             <div class="group-detail-dialog__checkbox">
               <mat-checkbox [checked]="group.is_builtin" disabled>Is built-in</mat-checkbox>
             </div>
@@ -22,12 +60,13 @@
         </mat-card-content>
         <mat-card-actions>
           <!-- Group writes (PUT /access/groups/{id}) = Group.Modify; the dialog
-               itself stays readable with Group.Audit. -->
+               itself stays readable with Group.Audit. Built-in groups accept
+              quota-only updates (the name field is locked above). -->
           <button
             mat-raised-button
             color="primary"
             (click)="onUpdate()"
-            [disabled]="!editGroupForm.valid || group.is_builtin"
+            [disabled]="!editGroupForm.valid"
             *appHasPrivilege="'Group.Modify'"
           >
             Update Group
