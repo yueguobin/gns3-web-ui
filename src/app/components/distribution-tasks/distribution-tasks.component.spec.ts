@@ -28,7 +28,12 @@ describe('DistributionTasksComponent', () => {
       ...overrides,
     } as ProjectDistribution);
 
-  const track = (job: ProjectDistribution, expired = false): TrackedDistribution => ({ controller, job, expired });
+  const track = (job: ProjectDistribution, expired = false): TrackedDistribution => ({
+    controller,
+    job,
+    expired,
+    cancelPending: false,
+  });
 
   beforeAll(() => {
     vi.useFakeTimers();

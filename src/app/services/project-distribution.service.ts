@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Subscription, timer, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { Controller } from '@models/controller';
-import { ProjectDistribution } from '@models/project';
+import { ProjectDistribution, isTerminalDistributionStatus } from '@models/project';
 import { ProjectService } from '@services/project.service';
 import { UserPreferencesService } from '@services/user-preferences.service';
 import { NotificationCenterService } from '@services/notification-center.service';
@@ -25,6 +25,8 @@ export interface TrackedDistribution {
   job: ProjectDistribution;
   /** The server no longer remembers the job (restart or retention cleanup). */
   expired: boolean;
+  /** A cancellation request is in flight (guards the Cancel button). */
+  cancelPending: boolean;
 }
 
 /** Persisted pointer to a running job, so another browser can resume tracking it. */
@@ -39,8 +41,10 @@ interface StoredDistributionRef {
 /**
  * Tracks server-side project distribution jobs and polls their progress.
  *
- * Dismissing a card only stops the tracking: the server job runs to
- * completion on its own (there is no abort endpoint).
+ * Dismissing a card only stops the tracking: the server job keeps running
+ * on its own. `cancel` requests cancellation of a running job; cancellation
+ * is cooperative, so "cancelling" is a live state and keeps polling until
+ * the job reports "cancelled".
  */
 @Injectable({ providedIn: 'root' })
 export class ProjectDistributionService {
@@ -61,14 +65,14 @@ export class ProjectDistributionService {
     if (this.trackedState().some((entry) => entry.job.distribution_id === job.distribution_id)) {
       return;
     }
-    if (job.status !== 'running') {
+    if (isTerminalDistributionStatus(job.status)) {
       // A finished job adopted after the fact: only its outcome is news.
       // Prune the ref too, or every later login re-toasts the same summary.
       this.pruneRef(job.distribution_id);
       this.pushSummary(job);
       return;
     }
-    const entry: TrackedDistribution = { controller, job, expired: false };
+    const entry: TrackedDistribution = { controller, job, expired: false, cancelPending: false };
     this.trackedState.update((entries) => [...entries, entry]);
     this.writeRef(entry);
     this.startPolling(entry);
@@ -98,6 +102,40 @@ export class ProjectDistributionService {
     this.stopPolling(distribution_id);
     this.trackedState.update((entries) => entries.filter((entry) => entry.job.distribution_id !== distribution_id));
     this.pruneRef(distribution_id);
+  }
+
+  /**
+   * Requests cancellation of a running job. The in-flight copy completes
+   * before the job stops, so the card moves to "cancelling" and keeps
+   * polling; copies already made are kept by their recipients.
+   */
+  cancel(distribution_id: string): void {
+    const entry = this.trackedState().find((candidate) => candidate.job.distribution_id === distribution_id);
+    if (!entry || entry.expired || entry.job.status !== 'running' || entry.cancelPending) {
+      return;
+    }
+    this.setCancelPending(distribution_id, true);
+    this.projectService.cancelDistribution(entry.controller, entry.job.project_id, distribution_id).subscribe({
+      next: (job) => {
+        this.setCancelPending(distribution_id, false);
+        this.onPolled(distribution_id, job);
+      },
+      error: (err: unknown) => {
+        this.setCancelPending(distribution_id, false);
+        const status = (err as { originalError?: { status?: number } })?.originalError?.status;
+        if (status === 409) {
+          // The job finished between the last poll and the click: adopt its real state.
+          this.projectService
+            .getDistribution(entry.controller, entry.job.project_id, distribution_id)
+            .subscribe({ next: (job) => this.onPolled(distribution_id, job), error: () => undefined });
+          return;
+        }
+        this.notifications.add(
+          'error',
+          `Could not cancel the distribution of "${entry.job.name}": ${err instanceof Error ? err.message : 'unknown error'}`
+        );
+      },
+    });
   }
 
   private startPolling(entry: TrackedDistribution): void {
@@ -136,11 +174,17 @@ export class ProjectDistributionService {
     this.trackedState.update((entries) =>
       entries.map((entry) => (entry.job.distribution_id === distribution_id ? { ...entry, job } : entry))
     );
-    if (job.status !== 'running') {
+    if (isTerminalDistributionStatus(job.status)) {
       this.stopPolling(distribution_id);
       this.pruneRef(distribution_id);
       this.pushSummary(job);
     }
+  }
+
+  private setCancelPending(distribution_id: string, pending: boolean): void {
+    this.trackedState.update((entries) =>
+      entries.map((entry) => (entry.job.distribution_id === distribution_id ? { ...entry, cancelPending: pending } : entry))
+    );
   }
 
   private onPollError(distribution_id: string, err: unknown): void {
@@ -161,6 +205,13 @@ export class ProjectDistributionService {
   private pushSummary(job: ProjectDistribution): void {
     if (job.status === 'failed') {
       this.notifications.add('error', `Distribution of "${job.name}" failed: ${job.error?.message ?? 'unknown error'}`);
+      return;
+    }
+    if (job.status === 'cancelled') {
+      this.notifications.add(
+        'warning',
+        `Cancelled the distribution of "${job.name}" after ${job.results.length} of ${job.total} recipients. Copies already made are kept.`
+      );
       return;
     }
     const failed = job.results.filter((result) => !result.project);

@@ -11,7 +11,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Project } from '@models/project';
+import { Project, isTerminalDistributionStatus } from '@models/project';
 import { Controller } from '@models/controller';
 import { User } from '@models/users/user';
 import { Group } from '@models/groups/group';
@@ -121,10 +121,11 @@ export class DistributeProjectDialogComponent implements OnInit {
     });
 
     // Best effort: resume tracking distributions of this project that are
-    // still running server-side (e.g. started before a page refresh).
+    // still live server-side (e.g. started before a page refresh); jobs in
+    // "cancelling" are live too — the in-flight copy is still finishing.
     this.projectService.listDistributions(this.controller, this.project.project_id).subscribe({
       next: (jobs) => {
-        for (const job of jobs.filter((candidate) => candidate.status === 'running')) {
+        for (const job of jobs.filter((candidate) => !isTerminalDistributionStatus(candidate.status))) {
           this.distributionService.track(this.controller, job);
         }
       },
