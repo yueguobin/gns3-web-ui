@@ -323,6 +323,55 @@ describe('ProjectsComponent', () => {
 
       expect(component.selection.isEmpty()).toBe(true);
     });
+
+    it('should re-anchor selections to the refreshed row objects of the same project', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+      component.selection.select(mockProjects[0]);
+      fixture.detectChanges();
+
+      // Refreshes and WS notifications swap every row to a new object; the
+      // selection must follow the project id, not the stale object identity.
+      const refreshed = mockProjects.map((project) => ({ ...project }));
+      component['_projects'].set(refreshed);
+      fixture.detectChanges();
+
+      expect(component.selection.isSelected(refreshed[0])).toBe(true);
+      expect(component.selection.selected.length).toBe(1);
+      expect(component.selection.selected[0]).toBe(refreshed[0]);
+    });
+
+    it('should drop selections whose project disappeared from the list', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+      component.selection.select(mockProjects[0]);
+      fixture.detectChanges();
+
+      // proj1 was deleted elsewhere before the list updated.
+      component['_projects'].set([mockProjects[1]]);
+      fixture.detectChanges();
+
+      expect(component.selection.isEmpty()).toBe(true);
+    });
+
+    it('should list only live selections in the bulk-delete confirmation', () => {
+      fixture.detectChanges();
+      component['_projects'].set(mockProjects);
+      component.selection.select(mockProjects[0]);
+      fixture.detectChanges();
+
+      // Every row is a new object and proj1 is gone by the time the user
+      // picks another project and hits delete.
+      const distributed = { project_id: 'proj3', name: 'Project C', status: 'closed', created_by: 'Bob' } as Project;
+      component['_projects'].set([{ ...mockProjects[1] }, distributed]);
+      component.selection.select(distributed);
+      fixture.detectChanges();
+
+      component.deleteAllFiles();
+
+      const confirmation = mockDialog.open.mock.calls[0][1].data;
+      expect(confirmation.details).toEqual(['Project C']);
+    });
   });
 
   describe('Topology preview', () => {
