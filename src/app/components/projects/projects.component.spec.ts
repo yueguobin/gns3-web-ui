@@ -155,6 +155,7 @@ describe('ProjectsComponent', () => {
             has: (privilege: string) => true,
             hasAny: (privileges: string[]) => true,
             privileges: () => new Set<string>(['Project.Allocate', 'Project.Audit', 'Project.Modify']),
+            isSuperadmin: () => false,
             loaded: () => true,
           },
         },
