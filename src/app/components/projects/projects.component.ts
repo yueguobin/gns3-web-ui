@@ -91,7 +91,14 @@ export class ProjectsComponent implements OnInit {
   displayedColumns = ['select', 'name', 'created_by', 'status', 'actions', 'delete'];
   public readonly version = version;
   public readonly currentYear = new Date().getFullYear();
-  selection = new SelectionModel<Project>(true, []);
+  /**
+   * Compare selections by project id, not object identity: refreshes and WS
+   * notifications swap the list to new Project objects, and identity
+   * comparison would leave the checkboxes out of sync with
+   * `selection.selected` (stale entries invisible on screen but still fed
+   * to bulk actions like delete).
+   */
+  selection = new SelectionModel<Project>(true, [], true, (a, b) => a.project_id === b.project_id);
 
   readonly sort = viewChild<MatSort>(MatSort);
   readonly paginator = viewChild<MatPaginator>(MatPaginator);
@@ -200,6 +207,26 @@ export class ProjectsComponent implements OnInit {
     this.filterStatus();
     this.filterCreatedBy();
     this.selection.clear();
+  });
+
+  /**
+   * Keep the selection anchored to live rows: projects can vanish while
+   * selected (deleted elsewhere) and every list update swaps in new objects.
+   * Selected entries are re-anchored to their current object and entries
+   * whose project no longer exists are dropped, so bulk actions never
+   * operate on stale or on-screen-invisible selections.
+   */
+  private _syncSelectionWithProjects = effect(() => {
+    const liveById = new Map(this._projects().map((project) => [project.project_id, project]));
+    for (const selected of [...this.selection.selected]) {
+      const current = liveById.get(selected.project_id);
+      if (!current) {
+        this.selection.deselect(selected);
+      } else if (current !== selected) {
+        this.selection.deselect(selected);
+        this.selection.select(current);
+      }
+    }
   });
 
   /**
