@@ -137,6 +137,29 @@ export class ProjectsComponent implements OnInit {
   // ── Status filter ─────────────────────────────────────────────
   readonly filterStatus = signal<string>('all');
 
+  // ── Created-by filter ─────────────────────────────────────────
+  readonly filterCreatedBy = signal<string>('all');
+  /**
+   * Username this Web UI authenticates with on the active controller
+   * (empty when the controller record carries no credentials — the
+   * "My projects" option is simply omitted then).
+   */
+  readonly currentUsername = signal<string>('');
+  /**
+   * Distinct project creators on the active controller, sorted. The
+   * current user is excluded: they are offered as "My projects" above
+   * this list instead of appearing twice.
+   */
+  readonly creators = computed<string[]>(() => {
+    const me = this.currentUsername();
+    const names = new Set<string>();
+    for (const project of this._projects()) {
+      const creator = project.created_by?.trim();
+      if (creator && creator !== me) names.add(creator);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  });
+
   // ── Pagination ───────────────────────────────────────────────
   readonly pageSizeOptions = [5, 10, 25, 50, 100];
 
@@ -159,6 +182,7 @@ export class ProjectsComponent implements OnInit {
   private _resetPageOnFilter = effect(() => {
     this.searchText();
     this.filterStatus();
+    this.filterCreatedBy();
     this.sortActive();
     this._sortDirection();
     // Keep the grid-view pagination signal in sync and reset the
@@ -174,7 +198,19 @@ export class ProjectsComponent implements OnInit {
   private _clearSelectionOnFilter = effect(() => {
     this.searchText();
     this.filterStatus();
+    this.filterCreatedBy();
     this.selection.clear();
+  });
+
+  /**
+   * Snap the creator filter back to "All" when the selected creator no
+   * longer has any visible project (all deleted / notifications removed
+   * them), so the dropdown never points at a vanished option.
+   */
+  private _resetVanishedCreator = effect(() => {
+    const selected = this.filterCreatedBy();
+    if (selected === 'all' || selected === this.currentUsername()) return;
+    if (!this.creators().includes(selected)) this.filterCreatedBy.set('all');
   });
 
   // ── Derived: sorted + filtered display data ───────────────────
@@ -193,6 +229,13 @@ export class ProjectsComponent implements OnInit {
     // Filter by status
     if (statusFilter !== 'all') {
       projects = projects.filter((p) => p.status === statusFilter);
+    }
+
+    // Filter by creator ("all" or a username, "My projects" passes the
+    // logged-in username here)
+    const creatorFilter = this.filterCreatedBy();
+    if (creatorFilter !== 'all') {
+      projects = projects.filter((p) => p.created_by === creatorFilter);
     }
 
     // Sort
@@ -255,6 +298,7 @@ export class ProjectsComponent implements OnInit {
   ngOnInit() {
     this.controller = this.route.snapshot.data['controller'];
     if (!this.controller) this.router.navigate(['/controllers']);
+    this.currentUsername.set(this.controller.username ?? '');
     this.recentlyOpenedProjectService.setcontrollerIdProjectList(this.controller.id.toString());
 
     // Handle error queryParam from redirect after project not found (404)
