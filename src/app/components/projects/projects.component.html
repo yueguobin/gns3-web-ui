@@ -57,6 +57,20 @@
           </mat-select>
         </mat-form-field>
 
+        <!-- Created By Filter -->
+        <mat-form-field appearance="fill" class="projects__filter" subscriptSizing="dynamic">
+          <mat-label>Created by</mat-label>
+          <mat-select [value]="filterCreatedBy()" (valueChange)="filterCreatedBy.set($event)">
+            <mat-option value="all">All</mat-option>
+            @if (currentUsername()) {
+            <mat-option [value]="currentUsername()">My projects ({{ currentUsername() }})</mat-option>
+            }
+            @for (creator of creators(); track creator) {
+            <mat-option [value]="creator">{{ creator }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
         <!-- Sort By -->
         <mat-form-field appearance="fill" class="projects__sort-by" subscriptSizing="dynamic">
           <mat-label>Sort by</mat-label>
