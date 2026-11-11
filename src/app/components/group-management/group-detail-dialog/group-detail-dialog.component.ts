@@ -69,6 +69,13 @@ export interface GroupDetailDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GroupDetailDialogComponent implements OnInit {
+  // Quota modes exposed for the template's mat-option values. Groups have no
+  // inherit semantics: null (and -1) both mean unlimited.
+  readonly quotaModeUnlimited = 'unlimited';
+  readonly quotaModeCustom = 'custom';
+
+  private static readonly QUOTA_FIELDS = ['default_max_nodes', 'default_max_running_nodes'] as const;
+
   private dialogRef = inject(MatDialogRef<GroupDetailDialogComponent>);
   private dialog = inject(MatDialog);
   private groupService = inject(GroupService);
@@ -101,9 +108,49 @@ export class GroupDetailDialogComponent implements OnInit {
   ngOnInit(): void {
     this.editGroupForm = new UntypedFormGroup({
       groupname: new UntypedFormControl(this.group.name, [Validators.required]),
+      default_max_nodes_mode: new UntypedFormControl(this.quotaMode(this.group.default_max_nodes)),
+      default_max_nodes_value: new UntypedFormControl(this.quotaSeed(this.group.default_max_nodes)),
+      default_max_running_nodes_mode: new UntypedFormControl(this.quotaMode(this.group.default_max_running_nodes)),
+      default_max_running_nodes_value: new UntypedFormControl(this.quotaSeed(this.group.default_max_running_nodes)),
     });
+    for (const field of GroupDetailDialogComponent.QUOTA_FIELDS) {
+      this.syncQuotaValidators(field);
+      this.editGroupForm.get(`${field}_mode`)?.valueChanges.subscribe(() => this.syncQuotaValidators(field));
+    }
+    // Built-in groups cannot be renamed server-side; lock the field instead
+    // of leaving it editable with a dead save.
+    if (this.group.is_builtin) {
+      this.editGroupForm.get('groupname')?.disable();
+    }
     this.loadMembers();
     this.loadAces();
+  }
+
+  get form() {
+    return this.editGroupForm.controls;
+  }
+
+  // Maps the stored default to the select mode: null and -1 = unlimited,
+  // a number = custom limit.
+  private quotaMode(value: number | null | undefined): string {
+    return value !== null && value !== undefined && value >= 0 ? this.quotaModeCustom : this.quotaModeUnlimited;
+  }
+
+  // The limit input is only seeded with a meaningful number (custom limits).
+  private quotaSeed(value: number | null | undefined): number | null {
+    return value !== null && value !== undefined && value >= 0 ? value : null;
+  }
+
+  // The limit input is validated only while the "Custom limit" mode is
+  // selected; hidden modes must not make the whole form invalid.
+  private syncQuotaValidators(field: 'default_max_nodes' | 'default_max_running_nodes'): void {
+    const mode = this.editGroupForm.get(`${field}_mode`);
+    const value = this.editGroupForm.get(`${field}_value`);
+    if (!mode || !value) {
+      return;
+    }
+    value.setValidators(mode.value === this.quotaModeCustom ? [Validators.required, Validators.min(0)] : null);
+    value.updateValueAndValidity();
   }
 
   loadMembers(): void {
@@ -166,10 +213,24 @@ export class GroupDetailDialogComponent implements OnInit {
   onUpdate(): void {
     if (!this.editGroupForm.valid) return;
 
-    const updatedGroup = { ...this.group, name: this.editGroupForm.get('groupname').value };
-    this.groupService.update(this.controller, updatedGroup).subscribe({
+    // Sparse payload, serialized from the form (idempotent when untouched:
+    // unlimited maps back to null, a custom limit to its own number).
+    const payload: Partial<Group> = {
+      default_max_nodes: this.quotaLimit('default_max_nodes'),
+      default_max_running_nodes: this.quotaLimit('default_max_running_nodes'),
+    };
+    // Built-in groups reject any payload touching "name" server-side, so a
+    // quota update must omit the key entirely.
+    if (!this.group.is_builtin) {
+      payload.name = this.editGroupForm.get('groupname')?.value;
+    }
+    this.groupService.update(this.controller, this.group, payload).subscribe({
       next: () => {
-        this.group.name = updatedGroup.name;
+        if (payload.name !== undefined) {
+          this.group.name = payload.name;
+        }
+        this.group.default_max_nodes = payload.default_max_nodes ?? null;
+        this.group.default_max_running_nodes = payload.default_max_running_nodes ?? null;
         this.toastService.success('Group updated successfully');
       },
       error: (err) => {
@@ -182,6 +243,17 @@ export class GroupDetailDialogComponent implements OnInit {
 
   onClose(): void {
     this.dialogRef.close();
+  }
+
+  // Serializes a quota mode into the API value: unlimited -> null, custom ->
+  // the typed limit (0 or more).
+  private quotaLimit(field: 'default_max_nodes' | 'default_max_running_nodes'): number | null {
+    const mode = this.editGroupForm.get(`${field}_mode`);
+    const value = this.editGroupForm.get(`${field}_value`);
+    if (mode?.value !== this.quotaModeCustom) {
+      return null;
+    }
+    return value?.value ?? null;
   }
 
   openAddUserDialog(): void {
