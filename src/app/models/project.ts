@@ -36,8 +36,17 @@ export class ProjectDistributionResult {
   error: { message: string } | null;
 }
 
-/** Status of a distribution job (mirrors the server-side enum). */
-export type ProjectDistributionStatus = 'running' | 'completed' | 'failed';
+/**
+ * Status of a distribution job (mirrors the server-side enum).
+ * `cancelling` is cooperative and can last minutes on large labs: the copy
+ * in flight always completes before the job stops.
+ */
+export type ProjectDistributionStatus = 'running' | 'cancelling' | 'cancelled' | 'completed' | 'failed';
+
+/** Terminal job states: polling stops and the summary notification fires. */
+export function isTerminalDistributionStatus(status: ProjectDistributionStatus): boolean {
+  return status === 'completed' || status === 'failed' || status === 'cancelled';
+}
 
 export class ProjectDistribution {
   distribution_id: string;

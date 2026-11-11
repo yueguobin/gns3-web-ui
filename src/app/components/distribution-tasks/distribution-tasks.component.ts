@@ -80,6 +80,10 @@ export class DistributionTasksComponent implements OnDestroy {
     this.distributionService.dismiss(distribution_id);
   }
 
+  cancel(distribution_id: string): void {
+    this.distributionService.cancel(distribution_id);
+  }
+
   isExpanded(distribution_id: string): boolean {
     return this.expandedIds().has(distribution_id);
   }
@@ -90,16 +94,28 @@ export class DistributionTasksComponent implements OnDestroy {
     }
     switch (entry.job.status) {
       case 'running':
+      case 'cancelling':
         return 'autorenew';
       case 'failed':
         return 'error';
       case 'completed':
         return entry.job.results.some((result) => !result.project) ? 'warning' : 'check_circle';
+      case 'cancelled':
+        return 'cancel';
     }
   }
 
   isRunning(entry: TrackedDistribution): boolean {
     return !entry.expired && entry.job.status === 'running';
+  }
+
+  isCancelling(entry: TrackedDistribution): boolean {
+    return !entry.expired && entry.job.status === 'cancelling';
+  }
+
+  /** The job is still working (an in-flight copy counts as work). */
+  isActive(entry: TrackedDistribution): boolean {
+    return this.isRunning(entry) || this.isCancelling(entry);
   }
 
   progress(job: ProjectDistribution): number {

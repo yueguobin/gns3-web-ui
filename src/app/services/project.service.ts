@@ -182,6 +182,19 @@ export class ProjectService {
     return this.httpController.get(controller, `/projects/${project_id}/distributions/${distribution_id}`);
   }
 
+  /**
+   * Cancels a running distribution job. Cancellation is cooperative: the
+   * copy in flight completes, the job stops before the next recipient
+   * starts, and copies already made are kept.
+   *
+   * Returns 200 with the job (status "cancelling"; idempotent when already
+   * cancelling). 409 once the job reached a terminal state, 403 when the
+   * job was started by another user (or privileges are missing).
+   */
+  cancelDistribution(controller: Controller, project_id: string, distribution_id: string): Observable<ProjectDistribution> {
+    return this.httpController.delete(controller, `/projects/${project_id}/distributions/${distribution_id}`);
+  }
+
   /** Returns the caller's recent distribution jobs of a project (newest first). */
   listDistributions(controller: Controller, project_id: string): Observable<ProjectDistribution[]> {
     return this.httpController.get(controller, `/projects/${project_id}/distributions`);
