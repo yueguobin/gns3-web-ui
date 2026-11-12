@@ -394,7 +394,9 @@ mat-cell {
 }
 
 .projects__action-button--details,
-.projects__action-button--duplicate {
+.projects__action-button--duplicate,
+.projects__action-button--distribute,
+.projects__action-button--share {
   --projects-action-color: var(--mat-sys-secondary);
 }
 

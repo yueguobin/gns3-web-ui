@@ -416,6 +416,27 @@
             >
               <mat-icon>content_copy</mat-icon>
             </button>
+            <button
+              mat-icon-button
+              class="projects__action-button projects__action-button--distribute"
+              *appHasPrivilege="['Project.Audit', 'Project.Allocate']"
+              (click)="$event.stopPropagation(); distribute(project)"
+              matTooltip="Distribute project"
+              aria-label="Distribute project"
+            >
+              <mat-icon>people</mat-icon>
+            </button>
+            }
+            @if (canShare(project)) {
+            <button
+              mat-icon-button
+              class="projects__action-button projects__action-button--share"
+              (click)="$event.stopPropagation(); share(project)"
+              matTooltip="Share project"
+              aria-label="Share project"
+            >
+              <mat-icon>share</mat-icon>
+            </button>
             }
             <button
               mat-icon-button
@@ -427,6 +448,23 @@
             >
               <mat-icon>file_download</mat-icon>
             </button>
+            @if (project.status === 'closed') {
+            <button
+              mat-icon-button
+              class="projects__action-button projects__action-button--delete"
+              *appHasPrivilege="'Project.Allocate'"
+              (click)="$event.stopPropagation(); delete(project)"
+              matTooltip="Delete project"
+              aria-label="Delete project"
+              [disabled]="isProjectLoading(project.project_id)"
+            >
+              @if (isProjectLoading(project.project_id)) {
+              <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+              } @else {
+              <mat-icon>delete</mat-icon>
+              }
+            </button>
+            }
           </div>
         </div>
         } @empty {
