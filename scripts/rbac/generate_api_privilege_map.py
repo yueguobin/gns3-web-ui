@@ -66,6 +66,13 @@ ROUTER_PREFIXES = {
     "api_keys": "",
 }
 
+# Secondary routers declared inside a route module (not the module's `router`)
+# and mounted in controller/__init__.py with their own prefix. Keep in sync
+# with that file when secondary routers are added or re-mounted.
+SECONDARY_ROUTER_PREFIXES = {
+    "distributions_router": "/distributions",
+}
+
 # Routers mounted with dependencies=[Depends(get_current_active_user)]:
 # their endpoints are never public; a missing privilege means "login only".
 AUTH_ONLY_ROUTERS = {"privileges", "computes", "llm_model_configs", "copilot", "chat", "api_keys"}
@@ -189,7 +196,7 @@ def module_router_prefix(tree: ast.Module) -> str:
 def parse_routes(module: str, source: Path) -> list[Endpoint]:
     tree = ast.parse(source.read_text(encoding="utf-8"))
     # FastAPI applies the include_router prefix, then the router's own prefix.
-    prefix = ROUTER_PREFIXES.get(module, "") + module_router_prefix(tree)
+    module_prefix = ROUTER_PREFIXES.get(module, "") + module_router_prefix(tree)
     endpoints: list[Endpoint] = []
 
     for node in ast.walk(tree):
@@ -201,6 +208,14 @@ def parse_routes(module: str, source: Path) -> list[Endpoint]:
             func = decorator.func
             if not (isinstance(func, ast.Attribute) and func.attr in ROUTE_METHODS):
                 continue
+
+            # A module may declare secondary routers (e.g. distributions_router)
+            # mounted with their own prefix in controller/__init__.py.
+            router_name = func.value.id if isinstance(func.value, ast.Name) else "router"
+            if router_name == "router":
+                prefix = module_prefix
+            else:
+                prefix = SECONDARY_ROUTER_PREFIXES.get(router_name, "")
 
             route_path = ""
             if decorator.args and isinstance(decorator.args[0], ast.Constant) and isinstance(decorator.args[0].value, str):

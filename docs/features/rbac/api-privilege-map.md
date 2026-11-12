@@ -14,8 +14,8 @@ All paths are relative to the controller API root (`/v3`).
 
 ## Summary
 
-- Controller endpoints: **234** (WebSocket: 6)
-- With a privilege declaration: **193**
+- Controller endpoints: **236** (WebSocket: 6)
+- With a privilege declaration: **195**
 - Login only (authenticated, no privilege): **34**
 - No privilege gate declared: **7** (may still be protected outside the decorator)
 - Distinct privilege names: **51**
@@ -144,6 +144,8 @@ All paths are relative to the controller API root (`/v3`).
 
 | Method | Path | Privilege | Web UI page | Web UI action | Service |
 |--------|------|-----------|-------------|---------------|---------|
+| GET | `/distributions` | Project.Audit | — | — | — |
+| DELETE | `/distributions/{distribution_id}` | Project.Audit | — | — | — |
 | GET | `/projects` | — (login only) | Projects page | Load the project list (the server filters by ACE/resource pool) | `src/app/services/project.service.ts:list` |
 | POST | `/projects` | Project.Allocate | Projects page | New project (button = Project.Allocate) | `src/app/services/project.service.ts:add` |
 | POST | `/projects/load` | Server.Modify | Projects page | Reload the projects on the controller<br>only supported by the local service | — |
@@ -153,7 +155,7 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/projects/{project_id}/close` | Project.Allocate | Project view toolbar | Close project (menu = Project.Allocate) | `src/app/services/project.service.ts:close` |
 | POST | `/projects/{project_id}/distribute` | Project.Audit | Projects page → Distribute Project dialog | Distribute copies to users or a group (= Project.Audit)<br>payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job | `src/app/services/project.service.ts:distribute` |
 | GET | `/projects/{project_id}/distributions` | Project.Audit | Project view → Distribution tasks panel | Load the caller's recent distribution jobs | `src/app/services/project.service.ts:listDistributions` |
-| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Cancel a running distribution job (cooperative: the copy in flight completes) | `src/app/services/project.service.ts:cancelDistribution` |
+| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Cancel a running distribution job (cooperative: the copy in flight completes) | `src/app/services/project.service.ts:cancelDistribution`<br>`src/app/services/project.service.ts:deleteDistribution` |
 | GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Poll a running distribution job until it leaves the running state | `src/app/services/project.service.ts:getDistribution` |
 | POST | `/projects/{project_id}/duplicate` | Project.Audit | Projects page | Duplicate project (button = Project.Audit) | `src/app/services/project.service.ts:duplicate` |
 | GET | `/projects/{project_id}/export` | Project.Audit | Projects page / Project view menu | Export project (button = Project.Audit) | `src/app/services/project.service.ts:export` |
