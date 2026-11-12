@@ -90,6 +90,36 @@ UI_MAP: dict[str, dict[str, str]] = {
         "page": "Project view menu / canvas context menu",
         "action": "Unlock all (= Project.Modify)",
     },
+    "POST /projects/{}/distribute": {
+        "page": "Projects page → Distribute Project dialog",
+        "action": "Distribute copies to users or a group (= Project.Audit)",
+        "note": "payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job",
+    },
+    "GET /projects/{}/distributions": {
+        "page": "Project view → Distribution tasks panel",
+        "action": "Load the caller's recent distribution jobs",
+    },
+    "GET /projects/{}/distributions/{}": {
+        "page": "Project view → Distribution tasks panel",
+        "action": "Poll a running distribution job until it leaves the running state",
+    },
+    "DELETE /projects/{}/distributions/{}": {
+        "page": "Project view → Distribution tasks panel",
+        "action": "Cancel a running distribution job (cooperative: the copy in flight completes)",
+    },
+    "POST /projects/{}/share": {
+        "page": "Projects page → Share Project dialog",
+        "action": "Share the project with users or a group (instant, no copies)",
+        "note": "re-sharing with the same target updates its role; role defaults to the built-in Lab member role",
+    },
+    "GET /projects/{}/shares": {
+        "page": "Projects page → Share Project dialog",
+        "action": "Load the current shares (the owner's own ACE is not included)",
+    },
+    "DELETE /projects/{}/shares/{}": {
+        "page": "Projects page → Share Project dialog",
+        "action": "Remove one share (revoke access)",
+    },
     "GET /projects/{}/stats": {"page": "Project view", "action": "Project statistics (node/link counts)"},
     "GET /projects/{}/notifications": {"page": "Project view", "action": "Project notifications / events"},
     "WEBSOCKET /projects/{}/notifications/ws": {
