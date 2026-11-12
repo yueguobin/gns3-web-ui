@@ -59,6 +59,7 @@ export class DistributeProjectDialogComponent implements OnInit {
   readonly users = signal<User[]>([]);
   readonly groups = signal<Group[]>([]);
   readonly resetMacAddresses = signal(true);
+  readonly lockTopology = signal(true);
   readonly isLoadingTargets = signal(true);
   readonly targetsLoadError = signal('');
   readonly isSubmitting = signal(false);
@@ -184,12 +185,17 @@ export class DistributeProjectDialogComponent implements OnInit {
 
     const name = this.copyName().trim();
     const reset = this.resetMacAddresses();
+    const lock = this.lockTopology();
     const targets =
       this.targetMode() === 'user'
-        ? { target_user: this.selectedUser()?.username, reset_mac_addresses: reset }
+        ? { target_user: this.selectedUser()?.username, reset_mac_addresses: reset, lock_topology: lock }
         : this.targetMode() === 'users'
-          ? { target_users: this.selectedUsers().map((user) => user.username), reset_mac_addresses: reset }
-          : { target_group: this.selectedGroup()?.name, reset_mac_addresses: reset };
+          ? {
+              target_users: this.selectedUsers().map((user) => user.username),
+              reset_mac_addresses: reset,
+              lock_topology: lock,
+            }
+          : { target_group: this.selectedGroup()?.name, reset_mac_addresses: reset, lock_topology: lock };
 
     this.projectService.distribute(this.controller, this.project.project_id, name, targets).subscribe({
       next: (job) => {

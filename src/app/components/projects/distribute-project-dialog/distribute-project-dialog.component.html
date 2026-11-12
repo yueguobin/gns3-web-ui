@@ -109,6 +109,10 @@
   <mat-checkbox [checked]="resetMacAddresses()" (change)="resetMacAddresses.set($event.checked)" [disabled]="isSubmitting()">
     Reset MAC addresses
   </mat-checkbox>
+
+  <mat-checkbox [checked]="lockTopology()" (change)="lockTopology.set($event.checked)" [disabled]="isSubmitting()">
+    Lock topology in copies
+  </mat-checkbox>
   </form>
 </div>
 
