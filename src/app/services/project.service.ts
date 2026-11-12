@@ -206,6 +206,16 @@ export class ProjectService {
   }
 
   /**
+   * Returns the caller's distribution records across every project in one
+   * request (every record for a superadmin). Absent on older servers (404):
+   * treat that as "no history" rather than falling back to per-project
+   * checks.
+   */
+  listAllDistributions(controller: Controller): Observable<ProjectDistribution[]> {
+    return this.httpController.get(controller, `/distributions`);
+  }
+
+  /**
    * Deletes a terminal distribution record (204 → null). A still-running job
    * is cancelled instead and its updated state is returned (200 → job), so
    * branch on the emitted value.

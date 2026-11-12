@@ -796,6 +796,35 @@ describe('ProjectService', () => {
     });
   });
 
+  describe('listAllDistributions', () => {
+    it('should call httpController.get with the cross-project endpoint', () => {
+      mockHttpController.get.mockReturnValue(of([]));
+
+      service.listAllDistributions(mockController);
+
+      expect(mockHttpController.get).toHaveBeenCalledWith(mockController, '/distributions');
+    });
+
+    it('should return Observable that emits the records across projects', async () => {
+      const records = [
+        { distribution_id: 'dist-1', project_id: 'project-123' },
+        { distribution_id: 'dist-2', project_id: 'project-456' },
+      ] as any[];
+      mockHttpController.get.mockReturnValue(of(records));
+
+      const result = await firstValueFrom(service.listAllDistributions(mockController));
+
+      expect(result).toHaveLength(2);
+      expect(result.map((record) => record.project_id)).toEqual(['project-123', 'project-456']);
+    });
+
+    it('should handle error when the endpoint is missing on older servers', async () => {
+      mockHttpController.get.mockReturnValue(throwError(() => new Error('Not Found')));
+
+      await expect(firstValueFrom(service.listAllDistributions(mockController))).rejects.toThrow('Not Found');
+    });
+  });
+
   describe('URL Construction', () => {
     it.each([
       { projectId: 'proj-alpha', expectedPath: '/projects/proj-alpha' },

@@ -97,6 +97,8 @@ describe('ProjectsComponent', () => {
       close: vi.fn().mockReturnValue(of({})),
       getStatistics: vi.fn().mockReturnValue(of({ nodes: 2, links: 1, drawings: 0, snapshots: 0 })),
       getReadmeFile: vi.fn().mockReturnValue(of('A useful project description.')),
+      listAllDistributions: vi.fn().mockReturnValue(of([])),
+      listDistributions: vi.fn(),
     };
 
     mockSettingsService = {
@@ -528,6 +530,44 @@ describe('ProjectsComponent', () => {
 
       const card = fixture.nativeElement.querySelector('.projects__card');
       expect(cardActionButton(card, 'Share project')).toBeNull();
+    });
+  });
+
+  describe('Distribution history badge', () => {
+    it('should badge projects from one cross-project fetch instead of per-project checks', () => {
+      mockProjectService.listAllDistributions.mockReturnValue(
+        of([{ distribution_id: 'dist-1', project_id: 'proj1' } as any])
+      );
+
+      fixture.detectChanges();
+
+      expect(mockProjectService.listAllDistributions).toHaveBeenCalledWith(mockController);
+      expect(mockProjectService.listDistributions).not.toHaveBeenCalled();
+      expect(component.isDistributed(mockProjects[0])).toBe(true);
+      expect(component.isDistributed(mockProjects[1])).toBe(false);
+    });
+
+    it('should keep the previous badges when the distributions endpoint fails', () => {
+      mockProjectService.listAllDistributions.mockReturnValueOnce(
+        of([{ distribution_id: 'dist-1', project_id: 'proj1' } as any])
+      );
+      fixture.detectChanges();
+
+      mockProjectService.listAllDistributions.mockReturnValueOnce(throwError(() => new Error('Server error')));
+      component['refresh']();
+      fixture.detectChanges();
+
+      expect(component.isDistributed(mockProjects[0])).toBe(true);
+      expect(mockToasterService.error).not.toHaveBeenCalled();
+    });
+
+    it('should re-fetch the distribution history after the history dialog closes', () => {
+      fixture.detectChanges();
+      mockProjectService.listAllDistributions.mockClear();
+
+      component.openDistributionHistory(new Event('click'), mockProjects[0]);
+
+      expect(mockProjectService.listAllDistributions).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -166,22 +166,17 @@ export class ProjectsComponent implements OnInit {
 
   // ── Distribution history badge ───────────────────────────────
   /**
-   * Project ids with at least one persisted distribution record. The list
-   * response carries no distribution field, so the badge is fed by
-   * per-project existence checks against the distributions endpoint — one
-   * light GET per owned project on the visible page, cached until the next
-   * refresh. Errors count as "no history": a failing endpoint must not
-   * retrigger the check on every change detection.
+   * Project ids with at least one persisted distribution record, fed by the
+   * cross-project `/distributions` endpoint in a single request (it returns
+   * only records the caller started themselves — every record for a
+   * superadmin — so no per-project filtering is needed here). Errors keep
+   * the previous set until the next refresh.
    */
   private readonly _distributedProjects = signal<ReadonlySet<string>>(new Set());
-  /** Plain cache of already-checked ids (positives and negatives alike). */
-  private readonly _distributionChecked = new Set<string>();
 
   private _checkDistributedProjects = effect(() => {
-    const me = this.currentUsername();
     // Distributions tracked in this session (corner widget) flip the badge
-    // on immediately: the negative cache below would otherwise hide the
-    // badge until the next manual refresh.
+    // on immediately: the global fetch below only lands on the next refresh.
     const tracked = this.distributionService.tracked();
     if (tracked.length > 0) {
       this._distributedProjects.update((ids) => {
@@ -194,39 +189,27 @@ export class ProjectsComponent implements OnInit {
         return next;
       });
     }
-    for (const project of this.paginatedProjects()) {
-      if (this._distributionChecked.has(project.project_id)) continue;
-      // The endpoint returns the caller's own jobs (every job for a
-      // superadmin), so the badge is only meaningful on projects the user
-      // distributes themselves.
-      if (!me || (project.created_by !== me && !this.permissionService.isSuperadmin())) continue;
-      this.checkDistributed(project);
-    }
   });
 
   /**
-   * Runs (or re-runs) the distribution existence check of one project and
-   * adds or removes its badge accordingly. Called by the effect above and
-   * whenever the distribution dialog of the project closes: deleting the
-   * last record in the dialog must drop the badge without a page refresh
-   * (the dialog lives inside this page instance, so no route change would
-   * re-run the check on its own).
+   * Re-fetches the distribution history across all projects in one request.
+   * Called on every list refresh and whenever a distribution dialog closes:
+   * deleting the last record in the dialog must drop the badge without a
+   * page refresh (the dialog lives inside this page instance, so no route
+   * change would re-run the fetch on its own).
    */
-  private checkDistributed(project: Project): void {
-    this._distributionChecked.add(project.project_id);
-    this.projectService.listDistributions(this.controller, project.project_id).subscribe({
-      next: (jobs) => {
-        this._distributedProjects.update((ids) => {
-          const next = new Set(ids);
-          if (jobs.length > 0) {
-            next.add(project.project_id);
-          } else {
-            next.delete(project.project_id);
-          }
-          return next;
-        });
+  private refreshDistributedProjects(): void {
+    this.projectService.listAllDistributions(this.controller).subscribe({
+      next: (records) => {
+        const ids = new Set(records.map((record) => record.project_id));
+        // Session-tracked jobs stay badged even before their record lands
+        // in the fetched list.
+        for (const entry of this.distributionService.tracked()) {
+          ids.add(entry.job.project_id);
+        }
+        this._distributedProjects.set(ids);
       },
-      error: () => {}, // cached as "no history" until the next refresh
+      error: () => {}, // keep the previous set until the next refresh
     });
   }
 
@@ -249,7 +232,7 @@ export class ProjectsComponent implements OnInit {
         data: { controller: this.controller, project } satisfies DistributionHistoryDialogData,
       })
       .afterClosed()
-      .subscribe(() => this.checkDistributed(project));
+      .subscribe(() => this.refreshDistributedProjects());
   }
 
   /**
@@ -604,9 +587,8 @@ export class ProjectsComponent implements OnInit {
         this._projects.set(projects);
         // Share counts came in fresh; drop the hover cache with them.
         this._shareRecipients.set(new Map());
-        // Same for the distribution existence checks.
-        this._distributedProjects.set(new Set());
-        this._distributionChecked.clear();
+        // Same for the distribution badges.
+        this.refreshDistributedProjects();
       },
       error: (err) => {
         const message = err.error?.message || err.message || 'Failed to list projects';
