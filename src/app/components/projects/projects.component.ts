@@ -125,6 +125,40 @@ export class ProjectsComponent implements OnInit {
   // only one <app-d3-map> exists at a time (its state managers are singletons).
   readonly previewEnlarged = signal(false);
 
+  // ── Share badge recipients (hover tooltip) ────────────────────
+  /**
+   * Recipient names per project id, fetched lazily on the first share-badge
+   * hover. Cleared on every list refresh: the share dialog (the only writer)
+   * triggers a refresh on close, so the cache never outlives its data.
+   * An empty array marks "fetch failed" — the tooltip then keeps the plain
+   * count text instead of retrying on every hover.
+   */
+  private readonly _shareRecipients = signal<ReadonlyMap<string, readonly string[]>>(new Map());
+
+  /** Tooltip text of a share badge: recipient names once loaded, count otherwise. */
+  shareTooltip(project: Project): string {
+    const names = this._shareRecipients().get(project.project_id);
+    if (names && names.length > 0) {
+      return `Shared with:\n${names.join('\n')}`;
+    }
+    const label = project.share_count === 1 ? 'user or group' : 'users or groups';
+    return `Shared with ${project.share_count} ${label}`;
+  }
+
+  /** Fetch the recipient names the first time a share badge is hovered. */
+  loadShareRecipients(project: Project): void {
+    if (!project.share_count || this._shareRecipients().has(project.project_id)) return;
+    this.projectService.listShares(this.controller, project.project_id).subscribe({
+      next: (shares) => {
+        const names = shares.map((share) => share.username ?? share.group_name ?? '').filter(Boolean);
+        this._shareRecipients.update((map) => new Map(map).set(project.project_id, names));
+      },
+      error: () => {
+        this._shareRecipients.update((map) => new Map(map).set(project.project_id, []));
+      },
+    });
+  }
+
   /**
    * Nodes/Links/Drawings counts shown in the details panel. For closed
    * projects getStatistics reports zeros — count them from the .gns3 file
@@ -146,6 +180,16 @@ export class ProjectsComponent implements OnInit {
 
   // ── Created-by filter ─────────────────────────────────────────
   readonly filterCreatedBy = signal<string>('all');
+
+  // ── Sharing filter ────────────────────────────────────────────
+  /**
+   * "shared" shows the projects the current user manages shares for (their
+   * own, or every project for a superadmin) with at least one share.
+   * "not-shared" shows the rest: projects without shares and projects whose
+   * share count is unknown (the server only sends it to the owner, so
+   * projects shared *with* the current user land here too).
+   */
+  readonly filterSharing = signal<'all' | 'shared' | 'not-shared'>('all');
   /**
    * Username this Web UI authenticates with on the active controller
    * (empty when the controller record carries no credentials — the
@@ -190,6 +234,7 @@ export class ProjectsComponent implements OnInit {
     this.searchText();
     this.filterStatus();
     this.filterCreatedBy();
+    this.filterSharing();
     this.sortActive();
     this._sortDirection();
     // Keep the grid-view pagination signal in sync and reset the
@@ -206,6 +251,7 @@ export class ProjectsComponent implements OnInit {
     this.searchText();
     this.filterStatus();
     this.filterCreatedBy();
+    this.filterSharing();
     this.selection.clear();
   });
 
@@ -263,6 +309,14 @@ export class ProjectsComponent implements OnInit {
     const creatorFilter = this.filterCreatedBy();
     if (creatorFilter !== 'all') {
       projects = projects.filter((p) => p.created_by === creatorFilter);
+    }
+
+    // Filter by sharing (only projects with a known share count can be
+    // "shared"; an absent count means the current user is not the owner)
+    const sharingFilter = this.filterSharing();
+    if (sharingFilter !== 'all') {
+      const isShared = (p: Project) => !!p.share_count;
+      projects = projects.filter(sharingFilter === 'shared' ? isShared : (p) => !isShared(p));
     }
 
     // Sort
@@ -454,6 +508,8 @@ export class ProjectsComponent implements OnInit {
     this.projectService.list(this.controller).subscribe({
       next: (projects: Project[]) => {
         this._projects.set(projects);
+        // Share counts came in fresh; drop the hover cache with them.
+        this._shareRecipients.set(new Map());
       },
       error: (err) => {
         const message = err.error?.message || err.message || 'Failed to list projects';
@@ -484,7 +540,11 @@ export class ProjectsComponent implements OnInit {
         case 'project.opened':
         case 'project.closed':
         case 'project.updated':
-          if (index >= 0) list[index] = notification.event;
+          // The notification payload carries no share_count (shares are a
+          // separate sub-resource and the WS event is only the project's own
+          // asdict) and share endpoints emit no project notification at all —
+          // keep the count from the list response instead of dropping it.
+          if (index >= 0) list[index] = { ...notification.event, share_count: list[index].share_count };
           break;
         case 'project.deleted':
           if (index >= 0) list.splice(index, 1);
@@ -657,6 +717,20 @@ export class ProjectsComponent implements OnInit {
     let instance = dialogRef.componentInstance;
     instance.controller = this.controller;
     instance.project = project;
+    // Share changes emit no project notification, so the list (and its share
+    // badges) only learns about them through a refresh.
+    dialogRef.afterClosed().subscribe(() => this.refresh());
+  }
+
+  /**
+   * Open the share dialog from a share badge. The grid-view badge lives
+   * inside the card's router-link anchor, so the default navigation has to
+   * be suppressed alongside the event bubbling.
+   */
+  openShares(event: Event, project: Project) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.share(project);
   }
 
   editProject(project: Project) {
