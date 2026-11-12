@@ -12,7 +12,7 @@
       placeholder="Please enter name"
       [disabled]="isCheckingName() || isSaving()"
     />
-    @if (isCheckingName() || isSaving()) {
+    @if (isCheckingName()) {
     <mat-spinner matSuffix diameter="20"></mat-spinner>
     }
     @if (hasInvalidCharacters()) {
@@ -35,7 +35,7 @@
     @if (isCheckingName()) {
     <span>Checking...</span>
     } @else if (isSaving()) {
-    <mat-spinner diameter="18"></mat-spinner>
+    <mat-spinner class="saving-btn-spinner" diameter="18"></mat-spinner>
     <span>Saving...</span>
     } @else {
     <span>Save project</span>

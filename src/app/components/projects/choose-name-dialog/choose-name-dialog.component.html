@@ -10,9 +10,6 @@
       type="text"
       [disabled]="isSaving()"
     />
-    @if (isSaving()) {
-    <mat-spinner matSuffix diameter="20"></mat-spinner>
-    }
   </mat-form-field>
 </div>
 
@@ -27,7 +24,7 @@
     [disabled]="isSaving()"
   >
     @if (isSaving()) {
-    <mat-spinner diameter="18"></mat-spinner>
+    <mat-spinner class="saving-btn-spinner" diameter="18"></mat-spinner>
     <span>Saving...</span>
     } @else {
     <span>Save project</span>
