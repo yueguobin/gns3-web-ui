@@ -10,6 +10,9 @@ import { MarkdownModule } from 'ngx-markdown';
 import { ProjectsComponent } from './projects.component';
 import { TopologyPreviewComponent } from './topology-preview/topology-preview.component';
 import { TopologyPreviewDialogComponent } from './topology-preview/topology-preview-dialog.component';
+import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
+import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
+import { ShareProjectDialogComponent } from './share-project-dialog/share-project-dialog.component';
 import { ProjectService } from '@services/project.service';
 import { SettingsService, Settings } from '@services/settings.service';
 import { ProgressService } from '../../common/progress/progress.service';
@@ -472,6 +475,59 @@ describe('ProjectsComponent', () => {
       // also holds the share badge.
       const status = projectName.nextElementSibling.querySelector('.projects__card-status');
       expect(status).not.toBeNull();
+    });
+  });
+
+  describe('Grid view card actions', () => {
+    const cardActionButton = (card: Element, label: string): HTMLButtonElement | null =>
+      card.querySelector(`button[aria-label="${label}"]`);
+
+    it('shows distribute, share and delete on a closed project card and opens their dialogs', () => {
+      fixture.detectChanges();
+      // Neither mock controller username nor superadmin matches, so the share
+      // button only appears once ownership is granted.
+      vi.spyOn(TestBed.inject(PermissionService), 'isSuperadmin').mockReturnValue(true);
+      component.toggleView('grid');
+      fixture.detectChanges();
+
+      // First card is the closed project (proj1).
+      const card = fixture.nativeElement.querySelector('.projects__card');
+      const distributeBtn = cardActionButton(card, 'Distribute project');
+      const shareBtn = cardActionButton(card, 'Share project');
+      const deleteBtn = cardActionButton(card, 'Delete project');
+      expect(distributeBtn).not.toBeNull();
+      expect(shareBtn).not.toBeNull();
+      expect(deleteBtn).not.toBeNull();
+
+      distributeBtn!.click();
+      expect(mockDialog.open).toHaveBeenCalledWith(DistributeProjectDialogComponent, expect.anything());
+
+      shareBtn!.click();
+      expect(mockDialog.open).toHaveBeenCalledWith(ShareProjectDialogComponent, expect.anything());
+
+      deleteBtn!.click();
+      expect(mockDialog.open).toHaveBeenCalledWith(ConfirmationDialogComponent, expect.anything());
+    });
+
+    it('hides distribute and delete on an opened project card', () => {
+      fixture.detectChanges();
+      component.toggleView('grid');
+      fixture.detectChanges();
+
+      // Second card is the opened project (proj2).
+      const cards = fixture.nativeElement.querySelectorAll('.projects__card');
+      expect(cards.length).toBe(2);
+      expect(cardActionButton(cards[1], 'Distribute project')).toBeNull();
+      expect(cardActionButton(cards[1], 'Delete project')).toBeNull();
+    });
+
+    it('hides the share action when the user cannot share the project', () => {
+      fixture.detectChanges();
+      component.toggleView('grid');
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.projects__card');
+      expect(cardActionButton(card, 'Share project')).toBeNull();
     });
   });
 
