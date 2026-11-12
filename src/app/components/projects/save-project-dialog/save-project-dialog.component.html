@@ -10,9 +10,9 @@
       type="text"
       [ngClass]="{ 'is-invalid': hasInvalidCharacters() || nameExistsError() }"
       placeholder="Please enter name"
-      [disabled]="isCheckingName()"
+      [disabled]="isCheckingName() || isSaving()"
     />
-    @if (isCheckingName()) {
+    @if (isCheckingName() || isSaving()) {
     <mat-spinner matSuffix diameter="20"></mat-spinner>
     }
     @if (hasInvalidCharacters()) {
@@ -23,17 +23,20 @@
   </mat-form-field>
 </div>
 <div mat-dialog-actions>
-  <button mat-button (click)="onNoClick()" color="accent" [disabled]="isCheckingName()">Cancel</button>
+  <button mat-button (click)="onNoClick()" color="accent" [disabled]="isCheckingName() || isSaving()">Cancel</button>
   <button
     mat-button
     (click)="onAddClick()"
     tabindex="2"
     mat-raised-button
     color="primary"
-    [disabled]="!isNameValid() || isCheckingName()"
+    [disabled]="!isNameValid() || isCheckingName() || isSaving()"
   >
     @if (isCheckingName()) {
     <span>Checking...</span>
+    } @else if (isSaving()) {
+    <mat-spinner diameter="18"></mat-spinner>
+    <span>Saving...</span>
     } @else {
     <span>Save project</span>
     }
