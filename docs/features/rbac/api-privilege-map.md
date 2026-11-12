@@ -14,12 +14,12 @@ All paths are relative to the controller API root (`/v3`).
 
 ## Summary
 
-- Controller endpoints: **223** (WebSocket: 6)
-- With a privilege declaration: **186**
-- Login only (authenticated, no privilege): **30**
+- Controller endpoints: **234** (WebSocket: 6)
+- With a privilege declaration: **193**
+- Login only (authenticated, no privilege): **34**
 - No privilege gate declared: **7** (may still be protected outside the decorator)
-- Distinct privilege names: **49**
-- Endpoints called by a Web UI service: **168**
+- Distinct privilege names: **51**
+- Endpoints called by a Web UI service: **176**
 - Endpoints with a curated Web UI page/action: **206**
 
 ## Endpoints by module
@@ -56,7 +56,11 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/access/users/logout` | — (login only) | App shell | Sign out | — |
 | GET | `/access/users/me` | — (login only) | App shell | Load the signed-in user | `src/app/services/login.service.ts:getLoggedUser`<br>`src/app/services/user.service.ts:getInformationAboutLoggedUser` |
 | PUT | `/access/users/me` | — (login only) | Profile / Change password dialog | Edit own profile or password (self-service, no admin privilege) | `src/app/services/user.service.ts:update` |
+| DELETE | `/access/users/me/preferences` | — (login only) | — | — | — |
+| GET | `/access/users/me/preferences` | — (login only) | — | — | — |
+| PUT | `/access/users/me/preferences` | — (login only) | — | — | — |
 | GET | `/access/users/me/privileges` | — (login only) | App shell | Data source for privilege-based rendering of the sidebar and pages | `src/app/services/permission.service.ts:fetch` |
+| GET | `/access/users/me/quotas` | — (login only) | — | (to be filled) | `src/app/services/user.service.ts:getQuotas` |
 | POST | `/access/users/refresh` | — (no gate declared) | Global | Token refresh (automatic in HttpController) | — |
 | DELETE | `/access/users/{user_id}` | User.Allocate | Management — Users page | Delete / bulk delete (= User.Allocate) | `src/app/services/user.service.ts:delete` |
 | GET | `/access/users/{user_id}` | User.Audit | Management — Users page / user details dialog | Read a user | `src/app/services/user.service.ts:get` |
@@ -147,6 +151,10 @@ All paths are relative to the controller API root (`/v3`).
 | GET | `/projects/{project_id}` | Project.Audit | Project view | Load the project when it is opened | `src/app/services/project.service.ts:get` |
 | PUT | `/projects/{project_id}` | Project.Modify | Project view | Save project settings, Map settings PUT items (= Project.Modify) | `src/app/services/project.service.ts:update` |
 | POST | `/projects/{project_id}/close` | Project.Allocate | Project view toolbar | Close project (menu = Project.Allocate) | `src/app/services/project.service.ts:close` |
+| POST | `/projects/{project_id}/distribute` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:distribute` |
+| GET | `/projects/{project_id}/distributions` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:listDistributions` |
+| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:cancelDistribution` |
+| GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:getDistribution` |
 | POST | `/projects/{project_id}/duplicate` | Project.Audit | Projects page | Duplicate project (button = Project.Audit) | `src/app/services/project.service.ts:duplicate` |
 | GET | `/projects/{project_id}/export` | Project.Audit | Projects page / Project view menu | Export project (button = Project.Audit) | `src/app/services/project.service.ts:export` |
 | GET | `/projects/{project_id}/files/{file_path:path}` | Project.Audit | Project files | Read a project file | — |
@@ -156,11 +164,11 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/projects/{project_id}/lock` | Project.Modify | Project view menu / canvas context menu | Lock all (= Project.Modify) | `src/app/services/drawing.service.ts:lockAllNodes` |
 | GET | `/projects/{project_id}/locked` | Project.Audit | Project view | Read the lock state | — |
 | GET | `/projects/{project_id}/marker-definitions` | Project.Audit | Marker manager — Definitions tab | Load the definitions | `src/app/services/marker.service.ts:listDefinitions` |
-| POST | `/projects/{project_id}/marker-definitions` | Project.Modify | Marker manager — Definitions tab | Create a definition (= Project.Modify) | `src/app/services/marker.service.ts:createDefinition` |
-| DELETE | `/projects/{project_id}/marker-definitions/{def_name}` | Project.Modify | Marker manager — Definitions tab | Delete a definition (= Project.Modify) | `src/app/services/marker.service.ts:deleteDefinition` |
-| PUT | `/projects/{project_id}/marker-definitions/{def_name}` | Project.Modify | Marker manager — Definitions tab | Edit a definition (= Project.Modify) | `src/app/services/marker.service.ts:updateDefinition` |
-| POST | `/projects/{project_id}/marker-definitions/{def_name}/pause` | Project.Modify | Marker manager — Definitions tab | Pause (= Project.Modify) | `src/app/services/marker.service.ts:pauseDefinition` |
-| POST | `/projects/{project_id}/marker-definitions/{def_name}/resume` | Project.Modify | Marker manager — Definitions tab | Resume (= Project.Modify) | `src/app/services/marker.service.ts:resumeDefinition` |
+| POST | `/projects/{project_id}/marker-definitions` | Project.Marker | Marker manager — Definitions tab | Create a definition (= Project.Marker) | `src/app/services/marker.service.ts:createDefinition` |
+| DELETE | `/projects/{project_id}/marker-definitions/{def_name}` | Project.Marker | Marker manager — Definitions tab | Delete a definition (= Project.Marker) | `src/app/services/marker.service.ts:deleteDefinition` |
+| PUT | `/projects/{project_id}/marker-definitions/{def_name}` | Project.Marker | Marker manager — Definitions tab | Edit a definition (= Project.Marker) | `src/app/services/marker.service.ts:updateDefinition` |
+| POST | `/projects/{project_id}/marker-definitions/{def_name}/pause` | Project.Marker | Marker manager — Definitions tab | Pause (= Project.Marker) | `src/app/services/marker.service.ts:pauseDefinition` |
+| POST | `/projects/{project_id}/marker-definitions/{def_name}/resume` | Project.Marker | Marker manager — Definitions tab | Resume (= Project.Marker) | `src/app/services/marker.service.ts:resumeDefinition` |
 | GET | `/projects/{project_id}/markers` | Project.Audit | Marker manager | Load the aggregate markers when the window opens | `src/app/services/marker.service.ts:aggregateList` |
 | GET | `/projects/{project_id}/markers/tags/{tag}/replay/frame/detail` | Project.Audit | Marker replay overlay | Load a single frame's detail | `src/app/services/marker-replay.service.ts:replayFrameDetail` |
 | GET | `/projects/{project_id}/markers/tags/{tag}/replay/frames` | Project.Audit | Marker replay overlay | Load the replay frame list | — |
@@ -170,6 +178,9 @@ All paths are relative to the controller API root (`/v3`).
 | WEBSOCKET | `/projects/{project_id}/notifications/markers/ws` | Project.Audit | Marker manager / project view | Realtime marker notifications (= Project.Audit) | — |
 | WEBSOCKET | `/projects/{project_id}/notifications/ws` | Project.Audit | Project view | Project realtime events (= Project.Audit) | — |
 | POST | `/projects/{project_id}/open` | Project.Allocate | Projects page | Open project (button = Project.Allocate) | `src/app/services/project.service.ts:open` |
+| POST | `/projects/{project_id}/share` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:share` |
+| GET | `/projects/{project_id}/shares` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:listShares` |
+| DELETE | `/projects/{project_id}/shares/{ace_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:removeShare` |
 | GET | `/projects/{project_id}/stats` | Project.Audit | Project view | Project statistics (node/link counts) | `src/app/services/project.service.ts:getStatistics` |
 | POST | `/projects/{project_id}/templates/{template_id}` | Node.Allocate | Add node palette | Create a node from a template (= Node.Allocate) | `src/app/services/node.service.ts:createFromTemplate` |
 | POST | `/projects/{project_id}/unlock` | Project.Modify | Project view menu / canvas context menu | Unlock all (= Project.Modify) | `src/app/services/drawing.service.ts:unLockAllNodes` |
@@ -219,7 +230,7 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/projects/{project_id}/links/batch` | Link.Allocate | Project view (canvas link drawing) | Create several links at once | — |
 | DELETE | `/projects/{project_id}/links/{link_id}` | Link.Allocate | Link context menu / Del key | Delete a link (= Link.Allocate) | `src/app/services/link.service.ts:deleteLink` |
 | GET | `/projects/{project_id}/links/{link_id}` | Link.Audit | Project view / link details | Read a link | `src/app/services/link.service.ts:getLink` |
-| PUT | `/projects/{project_id}/links/{link_id}` | Link.Modify | Link context menu / link filter | Edit the link, its filters or marker enabled state (= Link.Modify) | `src/app/services/link.service.ts:updateLink`<br>`src/app/services/link.service.ts:updateLinkStyle`<br>`src/app/services/link.service.ts:updateNodes` |
+| PUT | `/projects/{project_id}/links/{link_id}` | Link.Modify | Link context menu / link filter | Edit the link or its filters (= Link.Modify) | `src/app/services/link.service.ts:updateLink`<br>`src/app/services/link.service.ts:updateLinkStyle`<br>`src/app/services/link.service.ts:updateNodes` |
 | GET | `/projects/{project_id}/links/{link_id}/available_filters` | Link.Audit | Link context menu (Filter) | Load the available filters (server is authoritative) | `src/app/services/link.service.ts:getAvailableFilters` |
 | GET | `/projects/{project_id}/links/{link_id}/capture/file` | Link.Capture | Packet capture | Download the pcap file (= Link.Capture) | — |
 | POST | `/projects/{project_id}/links/{link_id}/capture/start` | Link.Capture | Link context menu / capture toolbar | Start capture (= Link.Capture) | `src/app/services/link.service.ts:startCaptureOnLink` |
@@ -229,9 +240,9 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/projects/{project_id}/links/{link_id}/capture/wireshark/restart` | Link.Capture | Packet capture | Restart the Wireshark session (= Link.Capture) | — |
 | GET | `/projects/{project_id}/links/{link_id}/iface` | Link.Audit | Link details | Read interface information | — |
 | GET | `/projects/{project_id}/links/{link_id}/markers` | Link.Audit | Marker manager | Read the markers of a single link | `src/app/services/marker.service.ts:list` |
-| POST | `/projects/{project_id}/links/{link_id}/markers` | Link.Modify | Marker manager — Links tab | Add Marker (= Link.Modify) | `src/app/services/marker.service.ts:create` |
-| DELETE | `/projects/{project_id}/links/{link_id}/markers/{marker_name}` | Link.Modify | Marker manager — Links tab | Delete (= Link.Modify) | `src/app/services/marker.service.ts:delete` |
-| PUT | `/projects/{project_id}/links/{link_id}/markers/{marker_name}` | Link.Modify | Marker manager — Links tab | Enable/disable or Edit (= Link.Modify) | `src/app/services/marker.service.ts:update`<br>`src/app/services/marker.service.ts:setEnabled` |
+| POST | `/projects/{project_id}/links/{link_id}/markers` | Link.Marker | Marker manager — Links tab | Add Marker (= Link.Marker) | `src/app/services/marker.service.ts:create` |
+| DELETE | `/projects/{project_id}/links/{link_id}/markers/{marker_name}` | Link.Marker | Marker manager — Links tab | Delete (= Link.Marker) | `src/app/services/marker.service.ts:delete` |
+| PUT | `/projects/{project_id}/links/{link_id}/markers/{marker_name}` | Link.Marker | Marker manager — Links tab | Enable/disable or Edit (= Link.Marker) | `src/app/services/marker.service.ts:update`<br>`src/app/services/marker.service.ts:setEnabled` |
 | POST | `/projects/{project_id}/links/{link_id}/reset` | Link.Modify | Link context menu | Reset (= Link.Modify) | `src/app/services/link.service.ts:resetLink` |
 
 ### Drawings — `drawings.py`

@@ -249,10 +249,10 @@ Entry point: *Marker manager* dialog from the project map (`marker-manager.compo
 
 | UI operation | Entry point | API | Payload field paths | Suggested operation | Notes |
 |---|---|---|---|---|---|
-| Create / edit private marker (per link) | Marker manager → per-link marker form | `POST /projects/{project_id}/links/{link_id}/markers` / `PUT .../markers/{name}` | `bpf` (single expression string), `name?`, `tag?`, `color?`, `highlight_duration?`, `enabled?`, `direction?` (`tx`/`rx`/`both`), `data_link_type?` (uBridge DLT) | `Link.Marker` (or `Marker.Allocate` + `Marker.Modify`) | server implements marker update as delete + re-add |
+| Create / edit private marker (per link) | Marker manager → per-link marker form | `POST /projects/{project_id}/links/{link_id}/markers` / `PUT .../markers/{name}` | `bpf` (single expression string), `name?`, `tag?`, `color?`, `highlight_duration?`, `enabled?`, `direction?` (`tx`/`rx`/`both`), `data_link_type?` (uBridge DLT) | `Link.Marker` | server implements marker update as delete + re-add |
 | Toggle marker on/off (per row) | Marker manager row switch | `PUT /projects/{project_id}/links/{link_id}/markers/{name}` | `enabled` | `Link.Marker` | fast path — signal + pcap stop/start without NIO rebuild |
-| Create / edit marker definition (global, fans out to all capable links) | Marker manager → definitions tab | `POST /projects/{project_id}/marker-definitions` / `PUT .../marker-definitions/{name}` | `name?`, `bpf`, `tag?`, `color?`, `highlight_duration?`, `direction?`, `data_link_type?` | `Project.MarkerDefinitions` | editing syncs every inherited copy; new links inherit automatically |
-| Pause / resume definition | Marker manager definitions tab | `POST /projects/{project_id}/marker-definitions/{name}/pause` (`/resume`) | *(no fields)* | `Project.MarkerDefinitions` (action) | pauses all fanned-out copies |
+| Create / edit marker definition (global, fans out to all capable links) | Marker manager → definitions tab | `POST /projects/{project_id}/marker-definitions` / `PUT .../marker-definitions/{name}` | `name?`, `bpf`, `tag?`, `color?`, `highlight_duration?`, `direction?`, `data_link_type?` | `Project.Marker` | editing syncs every inherited copy; new links inherit automatically |
+| Pause / resume definition | Marker manager definitions tab | `POST /projects/{project_id}/marker-definitions/{name}/pause` (`/resume`) | *(no fields)* | `Project.Marker` | pauses all fanned-out copies |
 
 Marker findings: `bpf` on markers is a **single string** (unlike link filters where `bpf` is a
 multiline string inside the `filters` dict) — two different BPF shapes on link-scoped surfaces.

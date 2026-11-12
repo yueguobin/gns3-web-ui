@@ -34,7 +34,7 @@ describe('MarkerManagerComponent', () => {
 
   beforeEach(async () => {
     // Every privilege the template gates on (the directive reads the signal).
-    const privileges = ['Project.Audit', 'Project.Modify', 'Link.Modify'];
+    const privileges = ['Project.Audit', 'Project.Marker', 'Link.Marker'];
     markerService = {
       listDefinitions: vi.fn(),
       createDefinition: vi.fn(),

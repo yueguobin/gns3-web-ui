@@ -79,7 +79,7 @@ links,links.py,POST,/projects/{project_id}/links,Link.Allocate,create_link,Proje
 links,links.py,POST,/projects/{project_id}/links/batch,Link.Allocate,create_links,Project view (canvas link drawing),Create several links at once,,
 links,links.py,DELETE,/projects/{project_id}/links/{link_id},Link.Allocate,delete_link,Link context menu / Del key,Delete a link (= Link.Allocate),,src/app/services/link.service.ts:deleteLink
 links,links.py,GET,/projects/{project_id}/links/{link_id},Link.Audit,get_link,Project view / link details,Read a link,,src/app/services/link.service.ts:getLink
-links,links.py,PUT,/projects/{project_id}/links/{link_id},Link.Modify,update_link,Link context menu / link filter,"Edit the link, its filters or marker enabled state (= Link.Modify)",,src/app/services/link.service.ts:updateLink | src/app/services/link.service.ts:updateLinkStyle | src/app/services/link.service.ts:updateNodes
+links,links.py,PUT,/projects/{project_id}/links/{link_id},Link.Modify,update_link,Link context menu / link filter,Edit the link or its filters (= Link.Modify),,src/app/services/link.service.ts:updateLink | src/app/services/link.service.ts:updateLinkStyle | src/app/services/link.service.ts:updateNodes
 links,links.py,GET,/projects/{project_id}/links/{link_id}/available_filters,Link.Audit,get_filters,Link context menu (Filter),Load the available filters (server is authoritative),,src/app/services/link.service.ts:getAvailableFilters
 links,links.py,GET,/projects/{project_id}/links/{link_id}/capture/file,Link.Capture,download_capture_file,Packet capture,Download the pcap file (= Link.Capture),,
 links,links.py,POST,/projects/{project_id}/links/{link_id}/capture/start,Link.Capture,start_capture,Link context menu / capture toolbar,Start capture (= Link.Capture),,src/app/services/link.service.ts:startCaptureOnLink
@@ -89,9 +89,9 @@ links,links.py,WEBSOCKET,/projects/{project_id}/links/{link_id}/capture/web-wire
 links,links.py,POST,/projects/{project_id}/links/{link_id}/capture/wireshark/restart,Link.Capture,restart_wireshark,Packet capture,Restart the Wireshark session (= Link.Capture),,
 links,links.py,GET,/projects/{project_id}/links/{link_id}/iface,Link.Audit,get_iface,Link details,Read interface information,,
 links,links.py,GET,/projects/{project_id}/links/{link_id}/markers,Link.Audit,get_markers,Marker manager,Read the markers of a single link,,src/app/services/marker.service.ts:list
-links,links.py,POST,/projects/{project_id}/links/{link_id}/markers,Link.Modify,create_marker,Marker manager — Links tab,Add Marker (= Link.Modify),,src/app/services/marker.service.ts:create
-links,links.py,DELETE,/projects/{project_id}/links/{link_id}/markers/{marker_name},Link.Modify,delete_marker,Marker manager — Links tab,Delete (= Link.Modify),,src/app/services/marker.service.ts:delete
-links,links.py,PUT,/projects/{project_id}/links/{link_id}/markers/{marker_name},Link.Modify,update_marker,Marker manager — Links tab,Enable/disable or Edit (= Link.Modify),,src/app/services/marker.service.ts:update | src/app/services/marker.service.ts:setEnabled
+links,links.py,POST,/projects/{project_id}/links/{link_id}/markers,Link.Marker,create_marker,Marker manager — Links tab,Add Marker (= Link.Marker),,src/app/services/marker.service.ts:create
+links,links.py,DELETE,/projects/{project_id}/links/{link_id}/markers/{marker_name},Link.Marker,delete_marker,Marker manager — Links tab,Delete (= Link.Marker),,src/app/services/marker.service.ts:delete
+links,links.py,PUT,/projects/{project_id}/links/{link_id}/markers/{marker_name},Link.Marker,update_marker,Marker manager — Links tab,Enable/disable or Edit (= Link.Marker),,src/app/services/marker.service.ts:update | src/app/services/marker.service.ts:setEnabled
 links,links.py,POST,/projects/{project_id}/links/{link_id}/reset,Link.Modify,reset_link,Link context menu,Reset (= Link.Modify),,src/app/services/link.service.ts:resetLink
 llm_model_configs,llm_model_configs.py,GET,/access/groups/{group_id}/llm-model-configs,Group.Audit,get_group_llm_model_configs,AI profiles dialog (group),Load the group's configs (entry = Group.Modify),,src/app/services/ai-profiles.service.ts:getGroupConfigs
 llm_model_configs,llm_model_configs.py,POST,/access/groups/{group_id}/llm-model-configs,Group.Modify,create_group_llm_model_config,AI profiles dialog (group),New Configuration (= Group.Modify),,src/app/services/ai-profiles.service.ts:createGroupConfig
@@ -154,6 +154,10 @@ projects,projects.py,DELETE,/projects/{project_id},Project.Allocate,delete_proje
 projects,projects.py,GET,/projects/{project_id},Project.Audit,get_project,Project view,Load the project when it is opened,,src/app/services/project.service.ts:get
 projects,projects.py,PUT,/projects/{project_id},Project.Modify,update_project,Project view,"Save project settings, Map settings PUT items (= Project.Modify)",,src/app/services/project.service.ts:update
 projects,projects.py,POST,/projects/{project_id}/close,Project.Allocate,close_project,Project view toolbar,Close project (menu = Project.Allocate),,src/app/services/project.service.ts:close
+projects,projects.py,POST,/projects/{project_id}/distribute,Project.Audit,distribute_project,,,,src/app/services/project.service.ts:distribute
+projects,projects.py,GET,/projects/{project_id}/distributions,Project.Audit,get_project_distributions,,,,src/app/services/project.service.ts:listDistributions
+projects,projects.py,DELETE,/projects/{project_id}/distributions/{distribution_id},Project.Audit,cancel_project_distribution,,,,src/app/services/project.service.ts:cancelDistribution
+projects,projects.py,GET,/projects/{project_id}/distributions/{distribution_id},Project.Audit,get_project_distribution,,,,src/app/services/project.service.ts:getDistribution
 projects,projects.py,POST,/projects/{project_id}/duplicate,Project.Audit,duplicate_project,Projects page,Duplicate project (button = Project.Audit),,src/app/services/project.service.ts:duplicate
 projects,projects.py,GET,/projects/{project_id}/export,Project.Audit,export_project,Projects page / Project view menu,Export project (button = Project.Audit),,src/app/services/project.service.ts:export
 projects,projects.py,GET,/projects/{project_id}/files/{file_path:path},Project.Audit,get_file,Project files,Read a project file,,
@@ -163,11 +167,11 @@ projects,projects.py,POST,/projects/{project_id}/import,— (login only),import_
 projects,projects.py,POST,/projects/{project_id}/lock,Project.Modify,lock_project,Project view menu / canvas context menu,Lock all (= Project.Modify),,src/app/services/drawing.service.ts:lockAllNodes
 projects,projects.py,GET,/projects/{project_id}/locked,Project.Audit,locked_project,Project view,Read the lock state,,
 projects,projects.py,GET,/projects/{project_id}/marker-definitions,Project.Audit,get_marker_definitions,Marker manager — Definitions tab,Load the definitions,,src/app/services/marker.service.ts:listDefinitions
-projects,projects.py,POST,/projects/{project_id}/marker-definitions,Project.Modify,create_marker_definition,Marker manager — Definitions tab,Create a definition (= Project.Modify),,src/app/services/marker.service.ts:createDefinition
-projects,projects.py,DELETE,/projects/{project_id}/marker-definitions/{def_name},Project.Modify,delete_marker_definition,Marker manager — Definitions tab,Delete a definition (= Project.Modify),,src/app/services/marker.service.ts:deleteDefinition
-projects,projects.py,PUT,/projects/{project_id}/marker-definitions/{def_name},Project.Modify,update_marker_definition,Marker manager — Definitions tab,Edit a definition (= Project.Modify),,src/app/services/marker.service.ts:updateDefinition
-projects,projects.py,POST,/projects/{project_id}/marker-definitions/{def_name}/pause,Project.Modify,pause_marker_definition,Marker manager — Definitions tab,Pause (= Project.Modify),,src/app/services/marker.service.ts:pauseDefinition
-projects,projects.py,POST,/projects/{project_id}/marker-definitions/{def_name}/resume,Project.Modify,resume_marker_definition,Marker manager — Definitions tab,Resume (= Project.Modify),,src/app/services/marker.service.ts:resumeDefinition
+projects,projects.py,POST,/projects/{project_id}/marker-definitions,Project.Marker,create_marker_definition,Marker manager — Definitions tab,Create a definition (= Project.Marker),,src/app/services/marker.service.ts:createDefinition
+projects,projects.py,DELETE,/projects/{project_id}/marker-definitions/{def_name},Project.Marker,delete_marker_definition,Marker manager — Definitions tab,Delete a definition (= Project.Marker),,src/app/services/marker.service.ts:deleteDefinition
+projects,projects.py,PUT,/projects/{project_id}/marker-definitions/{def_name},Project.Marker,update_marker_definition,Marker manager — Definitions tab,Edit a definition (= Project.Marker),,src/app/services/marker.service.ts:updateDefinition
+projects,projects.py,POST,/projects/{project_id}/marker-definitions/{def_name}/pause,Project.Marker,pause_marker_definition,Marker manager — Definitions tab,Pause (= Project.Marker),,src/app/services/marker.service.ts:pauseDefinition
+projects,projects.py,POST,/projects/{project_id}/marker-definitions/{def_name}/resume,Project.Marker,resume_marker_definition,Marker manager — Definitions tab,Resume (= Project.Marker),,src/app/services/marker.service.ts:resumeDefinition
 projects,projects.py,GET,/projects/{project_id}/markers,Project.Audit,get_project_markers,Marker manager,Load the aggregate markers when the window opens,,src/app/services/marker.service.ts:aggregateList
 projects,projects.py,GET,/projects/{project_id}/markers/tags/{tag}/replay/frame/detail,Project.Audit,replay_tag_frame_detail,Marker replay overlay,Load a single frame's detail,,src/app/services/marker-replay.service.ts:replayFrameDetail
 projects,projects.py,GET,/projects/{project_id}/markers/tags/{tag}/replay/frames,Project.Audit,replay_tag_frames,Marker replay overlay,Load the replay frame list,,
@@ -177,6 +181,9 @@ projects,projects.py,GET,/projects/{project_id}/notifications,Project.Audit,proj
 projects,projects.py,WEBSOCKET,/projects/{project_id}/notifications/markers/ws,Project.Audit,project_marker_ws_notifications,Marker manager / project view,Realtime marker notifications (= Project.Audit),,
 projects,projects.py,WEBSOCKET,/projects/{project_id}/notifications/ws,Project.Audit,project_ws_notifications,Project view,Project realtime events (= Project.Audit),,
 projects,projects.py,POST,/projects/{project_id}/open,Project.Allocate,open_project,Projects page,Open project (button = Project.Allocate),,src/app/services/project.service.ts:open
+projects,projects.py,POST,/projects/{project_id}/share,Project.Audit,share_project,,,,src/app/services/project.service.ts:share
+projects,projects.py,GET,/projects/{project_id}/shares,Project.Audit,get_project_shares,,,,src/app/services/project.service.ts:listShares
+projects,projects.py,DELETE,/projects/{project_id}/shares/{ace_id},Project.Audit,delete_project_share,,,,src/app/services/project.service.ts:removeShare
 projects,projects.py,GET,/projects/{project_id}/stats,Project.Audit,get_project_stats,Project view,Project statistics (node/link counts),,src/app/services/project.service.ts:getStatistics
 projects,projects.py,POST,/projects/{project_id}/templates/{template_id},Node.Allocate,create_node_from_template,Add node palette,Create a node from a template (= Node.Allocate),,src/app/services/node.service.ts:createFromTemplate
 projects,projects.py,POST,/projects/{project_id}/unlock,Project.Modify,unlock_project,Project view menu / canvas context menu,Unlock all (= Project.Modify),,src/app/services/drawing.service.ts:unLockAllNodes
@@ -216,7 +223,11 @@ users,users.py,POST,/access/users/login,— (no gate declared),login,Login page,
 users,users.py,POST,/access/users/logout,— (login only),logout,App shell,Sign out,,
 users,users.py,GET,/access/users/me,— (login only),get_logged_in_user,App shell,Load the signed-in user,,src/app/services/login.service.ts:getLoggedUser | src/app/services/user.service.ts:getInformationAboutLoggedUser
 users,users.py,PUT,/access/users/me,— (login only),update_logged_in_user,Profile / Change password dialog,"Edit own profile or password (self-service, no admin privilege)",,src/app/services/user.service.ts:update
+users,users.py,DELETE,/access/users/me/preferences,— (login only),reset_logged_in_user_preferences,,,,
+users,users.py,GET,/access/users/me/preferences,— (login only),get_logged_in_user_preferences,,,,
+users,users.py,PUT,/access/users/me/preferences,— (login only),update_logged_in_user_preferences,,,,
 users,users.py,GET,/access/users/me/privileges,— (login only),get_logged_in_user_privileges,App shell,Data source for privilege-based rendering of the sidebar and pages,,src/app/services/permission.service.ts:fetch
+users,users.py,GET,/access/users/me/quotas,— (login only),get_logged_in_user_quotas,,,,src/app/services/user.service.ts:getQuotas
 users,users.py,POST,/access/users/refresh,— (no gate declared),refresh_access_token,Global,Token refresh (automatic in HttpController),,
 users,users.py,DELETE,/access/users/{user_id},User.Allocate,delete_user,Management — Users page,Delete / bulk delete (= User.Allocate),,src/app/services/user.service.ts:delete
 users,users.py,GET,/access/users/{user_id},User.Audit,get_user,Management — Users page / user details dialog,Read a user,,src/app/services/user.service.ts:get

@@ -623,14 +623,14 @@ export class MarkerManagerComponent implements OnInit, OnDestroy {
   /**
    * Privileges the pause-panel's "Pause all & replay" needs for THIS tag row:
    * pausing an inherited copy writes its project-level definition
-   * (Project.Modify) while pausing a private marker writes the link
-   * (Link.Modify) — collect exactly the kinds the row's still-enabled markers
+   * (Project.Marker) while pausing a private marker writes the link
+   * (Link.Marker) — collect exactly the kinds the row's still-enabled markers
    * consist of (same mixed-selection treatment the context menu uses).
    */
   replayPausePrivileges(row: TagRow): string[] {
     const privs = new Set<string>();
     for (const m of row.enabled) {
-      privs.add(m.inherited_from ? 'Project.Modify' : 'Link.Modify');
+      privs.add(m.inherited_from ? 'Project.Marker' : 'Link.Marker');
     }
     return [...privs];
   }

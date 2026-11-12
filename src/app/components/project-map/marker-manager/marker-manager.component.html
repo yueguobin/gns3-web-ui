@@ -55,8 +55,8 @@
         <mat-tab label="Definitions">
           @if (activeTabIndex() === 0) {
           <div class="marker-manager__panel">
-            <!-- Create / edit form (Project.Modify: create/update definition) -->
-            <form [formGroup]="definitionForm" (ngSubmit)="submitDefinition()" *appHasProjectPrivilege="'Project.Modify'">
+            <!-- Create / edit form (Project.Marker: create/update definition) -->
+            <form [formGroup]="definitionForm" (ngSubmit)="submitDefinition()" *appHasProjectPrivilege="'Project.Marker'">
               <div class="marker-manager__form-title">
                 {{ editingDefinition() ? 'Edit definition' : 'New definition' }}
               </div>
@@ -136,7 +136,7 @@
               </div>
             </form>
 
-            <mat-divider *appHasProjectPrivilege="'Project.Modify'"></mat-divider>
+            <mat-divider *appHasProjectPrivilege="'Project.Marker'"></mat-divider>
 
             @if (defError()) {
             <div class="marker-manager__error">{{ defError() }}</div>
@@ -182,7 +182,7 @@
                   mat-icon-button
                   (click)="toggleDefinitionPaused(row)"
                   [matTooltip]="row.paused ? 'Resume rule (all copies)' : 'Pause rule (disables all copies)'"
-                  *appHasProjectPrivilege="'Project.Modify'"
+                  *appHasProjectPrivilege="'Project.Marker'"
                 >
                   <ng-container
                     [ngTemplateOutlet]="onOffIcon"
@@ -193,7 +193,7 @@
                   mat-icon-button
                   (click)="startEditDefinition(row)"
                   matTooltip="Edit"
-                  *appHasProjectPrivilege="'Project.Modify'"
+                  *appHasProjectPrivilege="'Project.Marker'"
                 >
                   <mat-icon>edit</mat-icon>
                 </button>
@@ -201,7 +201,7 @@
                   mat-icon-button
                   (click)="deleteDefinition(row)"
                   matTooltip="Delete (clears all copies)"
-                  *appHasProjectPrivilege="'Project.Modify'"
+                  *appHasProjectPrivilege="'Project.Marker'"
                 >
                   @if (isDeletingDefinition(row.name)) {
                   <mat-spinner class="marker-manager__toggle-spinner" [diameter]="18" />
@@ -283,7 +283,7 @@
                   class="add-button"
                   (click)="toggleAddMarker(group.linkId)"
                   [class.add-button--active]="addingToLink() === group.linkId"
-                  *appHasProjectPrivilege="'Link.Modify'"
+                  *appHasProjectPrivilege="'Link.Marker'"
                 >
                   <mat-icon>add</mat-icon>
                   Marker
@@ -347,7 +347,7 @@
                     class="add-button"
                     (click)="$event.stopPropagation(); toggleAddMarker(group.linkId)"
                     [class.add-button--active]="addingToLink() === group.linkId"
-                    *appHasProjectPrivilege="'Link.Modify'"
+                    *appHasProjectPrivilege="'Link.Marker'"
                   >
                     <mat-icon>add</mat-icon>
                     Marker
@@ -451,7 +451,7 @@
                   color="primary"
                   [disabled]="pausingTag() !== null"
                   (click)="pauseAllAndReplay(row)"
-                  [appHasProjectPrivilege]="replayPausePrivileges(row)"
+                  *appHasProjectPrivilege="replayPausePrivileges(row)"
                 >
                   @if (pausingTag() === row.tag) { Pausing… } @else { Pause all &amp; replay }
                 </button>
@@ -522,7 +522,7 @@
       mat-icon-button
       (click)="toggleMarkerEnabled(linkId, m)"
       [matTooltip]="m.enabled === false ? 'Enable (signal + capture)' : 'Disable (signal + capture)'"
-      *appHasProjectPrivilege="'Link.Modify'"
+      *appHasProjectPrivilege="'Link.Marker'"
     >
       <ng-container
         [ngTemplateOutlet]="onOffIcon"
@@ -533,7 +533,7 @@
       mat-icon-button
       (click)="startEditMarker(linkId, m)"
       matTooltip="Edit"
-      *appHasProjectPrivilege="'Link.Modify'"
+      *appHasProjectPrivilege="'Link.Marker'"
     >
       <mat-icon>edit</mat-icon>
     </button>
@@ -541,7 +541,7 @@
       mat-icon-button
       (click)="deleteMarker(linkId, m.name)"
       matTooltip="Delete"
-      *appHasProjectPrivilege="'Link.Modify'"
+      *appHasProjectPrivilege="'Link.Marker'"
     >
       @if (isDeletingMarker(linkId, m.name)) {
       <mat-spinner class="marker-manager__toggle-spinner" [diameter]="18" />
