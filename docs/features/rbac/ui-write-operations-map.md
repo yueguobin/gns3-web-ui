@@ -69,6 +69,8 @@ scene_height, snap_to_grid, show_grid, show_interface_labels, show_layers, varia
 | Import project (.gns3 file) | Projects page → *Import project* dialog | `POST /projects/{project_id}/import?name={name}` | multipart file; `name` query param; `project_id` = client-side UUID path | `Project.Allocate` (import) | closes an already-open project with the same name first |
 | Save as / duplicate project | Project map → *Save project* dialog; also *Duplicate* on projects page | `POST /projects/{project_id}/duplicate` | `name` | `Project.Allocate` (duplicate) | only editable field is the new name |
 | Create snapshot | Snapshots dialog | `POST /projects/{project_id}/snapshots` | `name` | `Snapshot.Allocate` | borderline action, listed because the payload carries a user-chosen field |
+| Distribute project | Projects page → *Distribute Project* dialog | `POST /projects/{project_id}/distribute` | `name` (project name, re-sent), `target_user` / `target_users` / `target_group` (exactly one), `reset_mac_addresses`, `lock_topology` | `Project.Share` (target selection) + `Project.Distribution` (copy options) | 202 + background job; copies are per-recipient (`{name}-{username}`); `lock_topology` locks every node/drawing in each copy (advisory: UI hides actions, owner role enforces); `owner_role` exists in the service signature but is **not exposed** by the dialog |
+| Share project | Projects page → *Share Project* dialog | `POST /projects/{project_id}/share` | `target_user` / `target_users` / `target_group` (exactly one), `role` | `Project.Share` | no copies — one live ACE; re-sharing with the same target updates its role; `role` defaults server-side to the built-in *Lab member* role |
 
 ### Projects findings
 
@@ -82,6 +84,15 @@ scene_height, snap_to_grid, show_grid, show_interface_labels, show_layers, varia
    save with partial-failure states.
 4. `project_id` on create/import is client-generated; server must treat it as a request hint,
    not an assignment.
+5. **Distribute vs share are two different trust moves** landing on sibling endpoints: distribute
+   hands out *copies* (recipients become owners of their copy, role chosen server-side), share
+   grants access to *the same project* (one live ACE, `role` field in the payload). A field-level
+   operation layer that bundles them under one operation cannot distinguish "give away a copy"
+   from "let someone into my project" — keep the target-selection and copy-option fields
+   (`lock_topology`, `reset_mac_addresses`, `role`) separate from each other.
+6. The share dialog never sends `owner_role`; the distribute dialog never sends `role`. Each
+   endpoint therefore sees a disjoint role-ish field, which makes per-endpoint operation
+   validation (not a shared payload schema) the right shape.
 
 ---
 

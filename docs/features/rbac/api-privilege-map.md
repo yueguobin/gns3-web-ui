@@ -20,7 +20,7 @@ All paths are relative to the controller API root (`/v3`).
 - No privilege gate declared: **7** (may still be protected outside the decorator)
 - Distinct privilege names: **51**
 - Endpoints called by a Web UI service: **176**
-- Endpoints with a curated Web UI page/action: **206**
+- Endpoints with a curated Web UI page/action: **213**
 
 ## Endpoints by module
 
@@ -151,10 +151,10 @@ All paths are relative to the controller API root (`/v3`).
 | GET | `/projects/{project_id}` | Project.Audit | Project view | Load the project when it is opened | `src/app/services/project.service.ts:get` |
 | PUT | `/projects/{project_id}` | Project.Modify | Project view | Save project settings, Map settings PUT items (= Project.Modify) | `src/app/services/project.service.ts:update` |
 | POST | `/projects/{project_id}/close` | Project.Allocate | Project view toolbar | Close project (menu = Project.Allocate) | `src/app/services/project.service.ts:close` |
-| POST | `/projects/{project_id}/distribute` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:distribute` |
-| GET | `/projects/{project_id}/distributions` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:listDistributions` |
-| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:cancelDistribution` |
-| GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:getDistribution` |
+| POST | `/projects/{project_id}/distribute` | Project.Audit | Projects page → Distribute Project dialog | Distribute copies to users or a group (= Project.Audit)<br>payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job | `src/app/services/project.service.ts:distribute` |
+| GET | `/projects/{project_id}/distributions` | Project.Audit | Project view → Distribution tasks panel | Load the caller's recent distribution jobs | `src/app/services/project.service.ts:listDistributions` |
+| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Cancel a running distribution job (cooperative: the copy in flight completes) | `src/app/services/project.service.ts:cancelDistribution` |
+| GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Poll a running distribution job until it leaves the running state | `src/app/services/project.service.ts:getDistribution` |
 | POST | `/projects/{project_id}/duplicate` | Project.Audit | Projects page | Duplicate project (button = Project.Audit) | `src/app/services/project.service.ts:duplicate` |
 | GET | `/projects/{project_id}/export` | Project.Audit | Projects page / Project view menu | Export project (button = Project.Audit) | `src/app/services/project.service.ts:export` |
 | GET | `/projects/{project_id}/files/{file_path:path}` | Project.Audit | Project files | Read a project file | — |
@@ -178,9 +178,9 @@ All paths are relative to the controller API root (`/v3`).
 | WEBSOCKET | `/projects/{project_id}/notifications/markers/ws` | Project.Audit | Marker manager / project view | Realtime marker notifications (= Project.Audit) | — |
 | WEBSOCKET | `/projects/{project_id}/notifications/ws` | Project.Audit | Project view | Project realtime events (= Project.Audit) | — |
 | POST | `/projects/{project_id}/open` | Project.Allocate | Projects page | Open project (button = Project.Allocate) | `src/app/services/project.service.ts:open` |
-| POST | `/projects/{project_id}/share` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:share` |
-| GET | `/projects/{project_id}/shares` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:listShares` |
-| DELETE | `/projects/{project_id}/shares/{ace_id}` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:removeShare` |
+| POST | `/projects/{project_id}/share` | Project.Audit | Projects page → Share Project dialog | Share the project with users or a group (instant, no copies)<br>re-sharing with the same target updates its role; role defaults to the built-in Lab member role | `src/app/services/project.service.ts:share` |
+| GET | `/projects/{project_id}/shares` | Project.Audit | Projects page → Share Project dialog | Load the current shares (the owner's own ACE is not included) | `src/app/services/project.service.ts:listShares` |
+| DELETE | `/projects/{project_id}/shares/{ace_id}` | Project.Audit | Projects page → Share Project dialog | Remove one share (revoke access) | `src/app/services/project.service.ts:removeShare` |
 | GET | `/projects/{project_id}/stats` | Project.Audit | Project view | Project statistics (node/link counts) | `src/app/services/project.service.ts:getStatistics` |
 | POST | `/projects/{project_id}/templates/{template_id}` | Node.Allocate | Add node palette | Create a node from a template (= Node.Allocate) | `src/app/services/node.service.ts:createFromTemplate` |
 | POST | `/projects/{project_id}/unlock` | Project.Modify | Project view menu / canvas context menu | Unlock all (= Project.Modify) | `src/app/services/drawing.service.ts:unLockAllNodes` |
