@@ -468,7 +468,10 @@ describe('ProjectsComponent', () => {
       fixture.detectChanges();
 
       const projectName = fixture.nativeElement.querySelector('.projects__card-name');
-      expect(projectName.nextElementSibling.classList.contains('projects__card-status')).toBe(true);
+      // The status chip sits right after the name, inside the meta row that
+      // also holds the share badge.
+      const status = projectName.nextElementSibling.querySelector('.projects__card-status');
+      expect(status).not.toBeNull();
     });
   });
 

@@ -71,6 +71,16 @@
           </mat-select>
         </mat-form-field>
 
+        <!-- Sharing Filter -->
+        <mat-form-field appearance="fill" class="projects__filter" subscriptSizing="dynamic">
+          <mat-label>Sharing</mat-label>
+          <mat-select [value]="filterSharing()" (valueChange)="filterSharing.set($event)">
+            <mat-option value="all">All</mat-option>
+            <mat-option value="shared">Shared</mat-option>
+            <mat-option value="not-shared">Not shared</mat-option>
+          </mat-select>
+        </mat-form-field>
+
         <!-- Sort By -->
         <mat-form-field appearance="fill" class="projects__sort-by" subscriptSizing="dynamic">
           <mat-label>Sort by</mat-label>
@@ -136,6 +146,20 @@
               <a [routerLink]="['/controller', controller.id, 'project', row.project_id]" class="projects__link">
                 {{ row.name }}
               </a>
+              @if (row.share_count) {
+              <button
+                type="button"
+                class="projects__share-badge"
+                (click)="openShares($event, row)"
+                (mouseenter)="loadShareRecipients(row)"
+                [matTooltip]="shareTooltip(row)"
+                [matTooltipClass]="['custom-tooltip', 'custom-tooltip--multiline']"
+                aria-label="View and manage shares"
+              >
+                <mat-icon class="projects__share-badge-icon">share</mat-icon>
+                {{ row.share_count }}
+              </button>
+              }
             </mat-cell>
           </ng-container>
 
@@ -302,14 +326,30 @@
           <!-- Card Body (click navigates to topology) -->
           <a class="projects__card-body" [routerLink]="['/controller', controller.id, 'project', project.project_id]">
             <h3 class="projects__card-name">{{ project.name }}</h3>
-            <span
-              class="projects__card-status"
-              [class.projects__card-status--opened]="project.status === 'opened'"
-              [class.projects__card-status--closed]="project.status === 'closed'"
-            >
-              <span class="projects__card-status-dot"></span>
-              {{ project.status === 'opened' ? 'Running' : 'Stopped' }}
-            </span>
+            <div class="projects__card-meta">
+              <span
+                class="projects__card-status"
+                [class.projects__card-status--opened]="project.status === 'opened'"
+                [class.projects__card-status--closed]="project.status === 'closed'"
+              >
+                <span class="projects__card-status-dot"></span>
+                {{ project.status === 'opened' ? 'Running' : 'Stopped' }}
+              </span>
+              @if (project.share_count) {
+              <button
+                type="button"
+                class="projects__share-badge"
+                (click)="openShares($event, project)"
+                (mouseenter)="loadShareRecipients(project)"
+                [matTooltip]="shareTooltip(project)"
+                [matTooltipClass]="['custom-tooltip', 'custom-tooltip--multiline']"
+                aria-label="View and manage shares"
+              >
+                <mat-icon class="projects__share-badge-icon">share</mat-icon>
+                {{ project.share_count }}
+              </button>
+              }
+            </div>
             @if (project.created_by) {
             <p class="projects__card-owner">{{ project.created_by }}</p>
             }

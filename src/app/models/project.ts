@@ -13,6 +13,13 @@ export class Project {
   scene_width: number;
   status: string;
   readonly: boolean;
+  /**
+   * Number of shares on this project (owner ACE excluded, a group share counts
+   * as one). Only the project owner and superadmins receive a value; for
+   * everybody else the field is absent from list responses and null on the
+   * single-project endpoint.
+   */
+  share_count?: number | null;
   show_interface_labels?: boolean;
   show_layers?: boolean;
   show_grid?: boolean;

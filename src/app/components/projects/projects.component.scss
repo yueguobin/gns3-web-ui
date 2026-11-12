@@ -319,6 +319,38 @@ mat-cell {
 }
 
 /* =============================================
+// Share Badge (table + grid card)
+// ============================================= */
+.projects__share-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  background-color: color-mix(in srgb, var(--mat-sys-tertiary) 12%, transparent);
+  color: var(--mat-sys-tertiary);
+  cursor: pointer;
+  transition: background-color var(--gns3-motion-duration-standard) var(--gns3-motion-easing-standard);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--mat-sys-tertiary) 20%, transparent);
+  }
+}
+
+.projects__share-badge-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+/* =============================================
 // Action Buttons
 // ============================================= */
 .projects__actions-cell {
@@ -460,6 +492,15 @@ mat-cell {
   justify-content: space-between;
 }
 
+/* Row holding the status chip and the share badge on a card */
+.projects__card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .projects__card-status {
   display: inline-flex;
   align-items: center;
@@ -469,7 +510,12 @@ mat-cell {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  margin-top: 8px;
+}
+
+/* Inside the card meta row the badge sits next to the status chip */
+.projects__card-meta .projects__share-badge {
+  margin-left: 0;
+  padding: 4px 10px;
 }
 
 .projects__card-status--opened {
