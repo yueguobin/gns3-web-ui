@@ -206,6 +206,19 @@ export class ProjectService {
   }
 
   /**
+   * Deletes a terminal distribution record (204 → null). A still-running job
+   * is cancelled instead and its updated state is returned (200 → job), so
+   * branch on the emitted value.
+   */
+  deleteDistribution(
+    controller: Controller,
+    project_id: string,
+    distribution_id: string
+  ): Observable<ProjectDistribution | null> {
+    return this.httpController.delete(controller, `/projects/${project_id}/distributions/${distribution_id}`);
+  }
+
+  /**
    * Shares a project: the recipients gain access to the same project (no
    * copies, instant).
    *
