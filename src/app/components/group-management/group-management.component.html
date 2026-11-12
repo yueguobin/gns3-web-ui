@@ -99,6 +99,14 @@
         >
           <mat-icon>psychology</mat-icon>
         </button>
+        <!-- MCP tool whitelist: readable with Group.Audit, written with Group.Modify. -->
+        <button
+          mat-icon-button
+          (click)="openGroupMcpToolsDialog(row)"
+          matTooltip="MCP Tools"
+        >
+          <mat-icon>extension</mat-icon>
+        </button>
       </td>
     </ng-container>
 
