@@ -530,6 +530,48 @@ body .cdk-overlay-container .mat-mdc-dialog-title::before {
 }
 
 /* =============================================
+// Delete All Projects Result Panel
+// Bulk delete progress/result dialog. Section
+// headings and list rows mirror the confirmation
+// dialog's details list so both stages of the
+// delete flow share one visual language.
+// ============================================= */
+.delete-all-projects-dialog-panel {
+  .deletion-result__section-title {
+    margin: 0 0 var(--gns3-density-space-2);
+    font-size: var(--gns3-density-dialog-body-size);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .deletion-result__section-title--error {
+    color: var(--mat-sys-error);
+  }
+
+  .deletion-result__list + .deletion-result__section-title {
+    margin-top: var(--gns3-density-space-4);
+  }
+
+  .deletion-result__list {
+    max-height: 180px;
+    margin: 0;
+    padding: var(--gns3-density-space-2) var(--gns3-density-space-3);
+    list-style: none;
+    overflow-y: auto;
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: var(--gns3-density-radius-sm);
+    color: var(--mat-sys-on-surface);
+  }
+
+  .deletion-result__error {
+    display: block;
+    color: var(--mat-sys-error);
+  }
+}
+
+/* =============================================
 // Project Management Dialogs
 // ============================================= */
 
