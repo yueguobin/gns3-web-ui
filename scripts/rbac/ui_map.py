@@ -219,7 +219,7 @@ UI_MAP: dict[str, dict[str, str]] = {
     "GET /projects/{}/links/{}": {"page": "Project view / link details", "action": "Read a link"},
     "PUT /projects/{}/links/{}": {
         "page": "Link context menu / link filter",
-        "action": "Edit the link, its filters or marker enabled state (= Link.Modify)",
+        "action": "Edit the link or its filters (= Link.Modify)",
     },
     "DELETE /projects/{}/links/{}": {
         "page": "Link context menu / Del key",
@@ -265,15 +265,15 @@ UI_MAP: dict[str, dict[str, str]] = {
     },
     "POST /projects/{}/links/{}/markers": {
         "page": "Marker manager — Links tab",
-        "action": "Add Marker (= Link.Modify)",
+        "action": "Add Marker (= Link.Marker)",
     },
     "PUT /projects/{}/links/{}/markers/{}": {
         "page": "Marker manager — Links tab",
-        "action": "Enable/disable or Edit (= Link.Modify)",
+        "action": "Enable/disable or Edit (= Link.Marker)",
     },
     "DELETE /projects/{}/links/{}/markers/{}": {
         "page": "Marker manager — Links tab",
-        "action": "Delete (= Link.Modify)",
+        "action": "Delete (= Link.Marker)",
     },
     "GET /projects/{}/marker-definitions": {
         "page": "Marker manager — Definitions tab",
@@ -281,23 +281,23 @@ UI_MAP: dict[str, dict[str, str]] = {
     },
     "POST /projects/{}/marker-definitions": {
         "page": "Marker manager — Definitions tab",
-        "action": "Create a definition (= Project.Modify)",
+        "action": "Create a definition (= Project.Marker)",
     },
     "PUT /projects/{}/marker-definitions/{}": {
         "page": "Marker manager — Definitions tab",
-        "action": "Edit a definition (= Project.Modify)",
+        "action": "Edit a definition (= Project.Marker)",
     },
     "DELETE /projects/{}/marker-definitions/{}": {
         "page": "Marker manager — Definitions tab",
-        "action": "Delete a definition (= Project.Modify)",
+        "action": "Delete a definition (= Project.Marker)",
     },
     "POST /projects/{}/marker-definitions/{}/pause": {
         "page": "Marker manager — Definitions tab",
-        "action": "Pause (= Project.Modify)",
+        "action": "Pause (= Project.Marker)",
     },
     "POST /projects/{}/marker-definitions/{}/resume": {
         "page": "Marker manager — Definitions tab",
-        "action": "Resume (= Project.Modify)",
+        "action": "Resume (= Project.Marker)",
     },
     "GET /projects/{}/markers": {
         "page": "Marker manager",
