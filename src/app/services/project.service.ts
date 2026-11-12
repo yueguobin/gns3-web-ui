@@ -154,6 +154,10 @@ export class ProjectService {
    *   as `target_users`); unknown group 404, empty group 409.
    * `owner_role` assigns the role of the copy owners (defaults to the
    * built-in "Lab member" role on the server).
+   * `lock_topology` locks every node and drawing in each copy so
+   * recipients cannot move or delete them (advisory hint: the client hides
+   * the actions, the owner role stays the enforcement; defaults to true
+   * on the server).
    *
    * Returns 202 with the distribution job: copies are created in the
    * background. Follow the progress with `getDistribution` until the job
@@ -169,6 +173,7 @@ export class ProjectService {
       target_group?: string;
       owner_role?: string;
       reset_mac_addresses?: boolean;
+      lock_topology?: boolean;
     }
   ): Observable<ProjectDistribution> {
     return this.httpController.post(controller, `/projects/${project_id}/distribute`, {

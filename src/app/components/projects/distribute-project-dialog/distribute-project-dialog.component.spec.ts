@@ -112,6 +112,7 @@ describe('DistributeProjectDialogComponent', () => {
     expect(mockProjectService.distribute).toHaveBeenCalledWith(controller, 'proj-1', 'Lab', {
       target_user: 'student-01',
       reset_mac_addresses: true,
+      lock_topology: true,
     });
   });
 
@@ -125,6 +126,7 @@ describe('DistributeProjectDialogComponent', () => {
     expect(mockProjectService.distribute).toHaveBeenCalledWith(controller, 'proj-1', 'Homework', {
       target_users: ['student-01', 'student-02'],
       reset_mac_addresses: true,
+      lock_topology: true,
     });
   });
 
@@ -136,6 +138,7 @@ describe('DistributeProjectDialogComponent', () => {
     expect(mockProjectService.distribute).toHaveBeenCalledWith(controller, 'proj-1', 'Lab', {
       target_group: 'Students',
       reset_mac_addresses: true,
+      lock_topology: true,
     });
     expect(component.nameGetsSuffix()).toBe(true);
   });
@@ -148,6 +151,19 @@ describe('DistributeProjectDialogComponent', () => {
     expect(mockProjectService.distribute).toHaveBeenCalledWith(controller, 'proj-1', 'Lab', {
       target_user: 'student-01',
       reset_mac_addresses: false,
+      lock_topology: true,
+    });
+  });
+
+  it('leaves the copy topology editable when the lock checkbox is cleared', () => {
+    component.selectUser(createUser('student-01'));
+    component.lockTopology.set(false);
+    component.onSubmitClick();
+
+    expect(mockProjectService.distribute).toHaveBeenCalledWith(controller, 'proj-1', 'Lab', {
+      target_user: 'student-01',
+      reset_mac_addresses: true,
+      lock_topology: false,
     });
   });
 
