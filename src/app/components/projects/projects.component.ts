@@ -35,6 +35,10 @@ import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-di
 import { AddBlankProjectDialogComponent } from './add-blank-project-dialog/add-blank-project-dialog.component';
 import { ChooseNameDialogComponent } from './choose-name-dialog/choose-name-dialog.component';
 import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
+import {
+  DistributionHistoryDialogComponent,
+  DistributionHistoryDialogData,
+} from './distribution-history-dialog/distribution-history-dialog.component';
 import { ShareProjectDialogComponent } from './share-project-dialog/share-project-dialog.component';
 import { ConfirmationDeleteAllProjectsComponent } from './confirmation-delete-all-projects/confirmation-delete-all-projects.component';
 import { EditProjectDialogComponent } from './edit-project-dialog/edit-project-dialog.component';
@@ -55,6 +59,7 @@ import {
   TopologyPreviewDialogData,
 } from './topology-preview/topology-preview-dialog.component';
 import { TopologyPreviewService } from '@services/topology-preview.service';
+import { ProjectDistributionService } from '@services/project-distribution.service';
 import { TopologyPreviewData } from '@services/gns3-file.mapper';
 import { HasPrivilegeDirective } from '@directives/has-privilege.directive';
 
@@ -157,6 +162,94 @@ export class ProjectsComponent implements OnInit {
         this._shareRecipients.update((map) => new Map(map).set(project.project_id, []));
       },
     });
+  }
+
+  // ── Distribution history badge ───────────────────────────────
+  /**
+   * Project ids with at least one persisted distribution record. The list
+   * response carries no distribution field, so the badge is fed by
+   * per-project existence checks against the distributions endpoint — one
+   * light GET per owned project on the visible page, cached until the next
+   * refresh. Errors count as "no history": a failing endpoint must not
+   * retrigger the check on every change detection.
+   */
+  private readonly _distributedProjects = signal<ReadonlySet<string>>(new Set());
+  /** Plain cache of already-checked ids (positives and negatives alike). */
+  private readonly _distributionChecked = new Set<string>();
+
+  private _checkDistributedProjects = effect(() => {
+    const me = this.currentUsername();
+    // Distributions tracked in this session (corner widget) flip the badge
+    // on immediately: the negative cache below would otherwise hide the
+    // badge until the next manual refresh.
+    const tracked = this.distributionService.tracked();
+    if (tracked.length > 0) {
+      this._distributedProjects.update((ids) => {
+        let next = ids;
+        for (const entry of tracked) {
+          if (!next.has(entry.job.project_id)) {
+            next = new Set(next).add(entry.job.project_id);
+          }
+        }
+        return next;
+      });
+    }
+    for (const project of this.paginatedProjects()) {
+      if (this._distributionChecked.has(project.project_id)) continue;
+      // The endpoint returns the caller's own jobs (every job for a
+      // superadmin), so the badge is only meaningful on projects the user
+      // distributes themselves.
+      if (!me || (project.created_by !== me && !this.permissionService.isSuperadmin())) continue;
+      this.checkDistributed(project);
+    }
+  });
+
+  /**
+   * Runs (or re-runs) the distribution existence check of one project and
+   * adds or removes its badge accordingly. Called by the effect above and
+   * whenever the distribution dialog of the project closes: deleting the
+   * last record in the dialog must drop the badge without a page refresh
+   * (the dialog lives inside this page instance, so no route change would
+   * re-run the check on its own).
+   */
+  private checkDistributed(project: Project): void {
+    this._distributionChecked.add(project.project_id);
+    this.projectService.listDistributions(this.controller, project.project_id).subscribe({
+      next: (jobs) => {
+        this._distributedProjects.update((ids) => {
+          const next = new Set(ids);
+          if (jobs.length > 0) {
+            next.add(project.project_id);
+          } else {
+            next.delete(project.project_id);
+          }
+          return next;
+        });
+      },
+      error: () => {}, // cached as "no history" until the next refresh
+    });
+  }
+
+  /** Whether the project has a persisted distribution history. */
+  isDistributed(project: Project): boolean {
+    return this._distributedProjects().has(project.project_id);
+  }
+
+  /**
+   * Open the distribution history of a project. The grid-view badge lives
+   * inside the card's router-link anchor, so the default navigation has to
+   * be suppressed alongside the event bubbling.
+   */
+  openDistributionHistory(event: Event, project: Project): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dialog
+      .open(DistributionHistoryDialogComponent, {
+        panelClass: ['base-dialog-panel', 'dialog-medium-panel', 'distribution-history-dialog-panel'],
+        data: { controller: this.controller, project } satisfies DistributionHistoryDialogData,
+      })
+      .afterClosed()
+      .subscribe(() => this.checkDistributed(project));
   }
 
   /**
@@ -375,6 +468,7 @@ export class ProjectsComponent implements OnInit {
   private themeService = inject(ThemeService);
   private topologyPreviewService = inject(TopologyPreviewService);
   private permissionService = inject(PermissionService);
+  private readonly distributionService = inject(ProjectDistributionService);
 
   ngOnInit() {
     this.controller = this.route.snapshot.data['controller'];
@@ -510,6 +604,9 @@ export class ProjectsComponent implements OnInit {
         this._projects.set(projects);
         // Share counts came in fresh; drop the hover cache with them.
         this._shareRecipients.set(new Map());
+        // Same for the distribution existence checks.
+        this._distributedProjects.set(new Set());
+        this._distributionChecked.clear();
       },
       error: (err) => {
         const message = err.error?.message || err.message || 'Failed to list projects';

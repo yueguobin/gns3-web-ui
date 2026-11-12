@@ -41,6 +41,11 @@ export class ProjectDistributionResult {
   project: Project | null;
   /** Failure detail, or null on success. */
   error: { message: string } | null;
+  /**
+   * Whether the copy still exists on the server (null when distribution
+   * failed). Absent on older servers — treat missing as existing.
+   */
+  project_exists?: boolean | null;
 }
 
 /**
@@ -70,6 +75,8 @@ export class ProjectDistribution {
   results: ProjectDistributionResult[];
   /** Set when the job itself failed, null otherwise. */
   error: { message: string } | null;
+  /** When the distribution was started (absent on older servers). */
+  created_at?: string;
 }
 
 /** One share of a project: a user or a user group, with the role the share carries. */

@@ -350,6 +350,17 @@ mat-cell {
   height: 14px;
 }
 
+// The distributed badge reuses the share-badge pill without a count: it
+// marks the project as distributed, the details live one click away.
+.projects__distributed-badge {
+  background-color: color-mix(in srgb, var(--mat-sys-secondary) 12%, transparent);
+  color: var(--mat-sys-secondary);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--mat-sys-secondary) 20%, transparent);
+  }
+}
+
 /* =============================================
 // Action Buttons
 // ============================================= */

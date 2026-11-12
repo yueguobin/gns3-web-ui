@@ -160,6 +160,17 @@
                 {{ row.share_count }}
               </button>
               }
+              @if (isDistributed(row)) {
+              <button
+                type="button"
+                class="projects__share-badge projects__distributed-badge"
+                (click)="openDistributionHistory($event, row)"
+                matTooltip="Distributed — click to view the distribution history"
+                aria-label="View distribution history"
+              >
+                <mat-icon class="projects__share-badge-icon">people</mat-icon>
+              </button>
+              }
             </mat-cell>
           </ng-container>
 
@@ -347,6 +358,17 @@
               >
                 <mat-icon class="projects__share-badge-icon">share</mat-icon>
                 {{ project.share_count }}
+              </button>
+              }
+              @if (isDistributed(project)) {
+              <button
+                type="button"
+                class="projects__share-badge projects__distributed-badge"
+                (click)="openDistributionHistory($event, project)"
+                matTooltip="Distributed — click to view the distribution history"
+                aria-label="View distribution history"
+              >
+                <mat-icon class="projects__share-badge-icon">people</mat-icon>
               </button>
               }
             </div>
