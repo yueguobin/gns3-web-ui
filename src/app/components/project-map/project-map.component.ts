@@ -66,7 +66,7 @@ import { NodeWidget } from '../../cartography/widgets/node';
 import { ProgressService } from '../../common/progress/progress.service';
 import { ProjectWebServiceHandler } from '../../handlers/project-web-service-handler';
 import { Link } from '@models/link';
-import { Project } from '@models/project';
+import { Project, isDistributedCopy, isFrozenTemplate } from '@models/project';
 import { Controller } from '@models/controller';
 import { Symbol } from '@models/symbol';
 import { DrawingService } from '@services/drawing.service';
@@ -95,6 +95,10 @@ import { AddBlankProjectDialogComponent } from '../projects/add-blank-project-di
 import { EditProjectDialogComponent } from '../projects/edit-project-dialog/edit-project-dialog.component';
 import { ImportProjectDialogComponent } from '../projects/import-project-dialog/import-project-dialog.component';
 import { SaveProjectDialogComponent } from '../projects/save-project-dialog/save-project-dialog.component';
+import {
+  DistributionHistoryDialogComponent,
+  DistributionHistoryDialogData,
+} from '../projects/distribution-history-dialog/distribution-history-dialog.component';
 import { MissingImagesDialogService } from '../projects/missing-images-dialog/missing-images-dialog.service';
 import { NodeAddedEvent } from '../template/template-list-dialog/template-list-dialog.component';
 import type { TopologySummaryComponent } from '../topology-summary/topology-summary.component';
@@ -1905,6 +1909,41 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     let instance = dialogRef.componentInstance;
     instance.controller = this.controller;
     instance.project = this.project;
+  }
+
+  /** The open project is a distributed template frozen for modification. */
+  get isFrozen(): boolean {
+    return isFrozenTemplate(this.project);
+  }
+
+  /** The open project is a copy provided by a distribution. */
+  get isProvidedByTeacher(): boolean {
+    return isDistributedCopy(this.project);
+  }
+
+  /**
+   * Open the distribution history of the open project. It is also where a
+   * frozen template is unfrozen: re-fetch the project afterwards so the
+   * read-only state and the banners follow without a page reload.
+   */
+  openDistributionHistory(): void {
+    this.dialog
+      .open(DistributionHistoryDialogComponent, {
+        panelClass: ['base-dialog-panel', 'dialog-medium-panel', 'distribution-history-dialog-panel'],
+        data: { controller: this.controller, project: this.project } satisfies DistributionHistoryDialogData,
+      })
+      .afterClosed()
+      .subscribe((unfroze: boolean | undefined) => {
+        if (!unfroze) return;
+        this.projectService.get(this.controller, this.project.project_id).subscribe({
+          next: (project: Project) => {
+            this.project = project;
+            this.readonly = this.projectService.isReadOnly(project);
+            this.cd.markForCheck();
+          },
+          error: () => {}, // the notification stream updates the list anyway
+        });
+      });
   }
 
   editProject() {

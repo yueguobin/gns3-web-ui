@@ -14,13 +14,13 @@ All paths are relative to the controller API root (`/v3`).
 
 ## Summary
 
-- Controller endpoints: **236** (WebSocket: 6)
-- With a privilege declaration: **195**
+- Controller endpoints: **241** (WebSocket: 6)
+- With a privilege declaration: **200**
 - Login only (authenticated, no privilege): **34**
 - No privilege gate declared: **7** (may still be protected outside the decorator)
-- Distinct privilege names: **51**
-- Endpoints called by a Web UI service: **176**
-- Endpoints with a curated Web UI page/action: **213**
+- Distinct privilege names: **53**
+- Endpoints called by a Web UI service: **182**
+- Endpoints with a curated Web UI page/action: **218**
 
 ## Endpoints by module
 
@@ -76,6 +76,9 @@ All paths are relative to the controller API root (`/v3`).
 | DELETE | `/access/groups/{user_group_id}` | Group.Allocate | Management — Groups page | Delete / bulk delete (= Group.Allocate) | `src/app/services/group.service.ts:delete` |
 | GET | `/access/groups/{user_group_id}` | Group.Audit | Group details dialog | Read a group | `src/app/services/group.service.ts:get` |
 | PUT | `/access/groups/{user_group_id}` | Group.Modify | Group details dialog | Update Group (= Group.Modify) | `src/app/services/group.service.ts:update` |
+| DELETE | `/access/groups/{user_group_id}/mcp_tools` | Group.Modify | Group details → MCP tools dialog | Clear the whitelist, restoring the default access (= Group.Modify) | `src/app/services/group.service.ts:clearMcpTools` |
+| GET | `/access/groups/{user_group_id}/mcp_tools` | Group.Audit | Group details → MCP tools dialog | Load the group's MCP tool whitelist<br>the response returns the stored tools as-is; an unknown or removed tool name can still appear | `src/app/services/group.service.ts:getMcpTools` |
+| PUT | `/access/groups/{user_group_id}/mcp_tools` | Group.Modify | Group details → MCP tools dialog | Save the whitelist (= Group.Modify)<br>the request replaces the whole whitelist; a name outside the server's catalog rejects the whole request with 400 | `src/app/services/group.service.ts:updateMcpTools` |
 | GET | `/access/groups/{user_group_id}/members` | Group.Audit | Group details dialog | Load the member list | `src/app/services/group.service.ts:getGroupMember` |
 | DELETE | `/access/groups/{user_group_id}/members/{user_id}` | Group.Modify | Group details dialog | Remove user (= Group.Modify) | `src/app/services/group.service.ts:removeUser` |
 | PUT | `/access/groups/{user_group_id}/members/{user_id}` | Group.Modify | Group details dialog | Add user (= Group.Modify) | `src/app/services/group.service.ts:addMemberToGroup` |
@@ -144,25 +147,26 @@ All paths are relative to the controller API root (`/v3`).
 
 | Method | Path | Privilege | Web UI page | Web UI action | Service |
 |--------|------|-----------|-------------|---------------|---------|
-| GET | `/distributions` | Project.Audit | — | — | — |
+| GET | `/distributions` | Project.Audit | — | (to be filled) | `src/app/services/project.service.ts:listAllDistributions` |
 | DELETE | `/distributions/{distribution_id}` | Project.Audit | — | — | — |
 | GET | `/projects` | — (login only) | Projects page | Load the project list (the server filters by ACE/resource pool) | `src/app/services/project.service.ts:list` |
 | POST | `/projects` | Project.Allocate | Projects page | New project (button = Project.Allocate) | `src/app/services/project.service.ts:add` |
 | POST | `/projects/load` | Server.Modify | Projects page | Reload the projects on the controller<br>only supported by the local service | — |
-| DELETE | `/projects/{project_id}` | Project.Allocate | Projects page | Delete project (button = Project.Allocate) | `src/app/services/project.service.ts:delete` |
+| DELETE | `/projects/{project_id}` | Project.Allocate | Projects page | Delete project (button = Project.Allocate)<br>a frozen template with existing copies answers 409 and lists the usernames | `src/app/services/project.service.ts:delete` |
 | GET | `/projects/{project_id}` | Project.Audit | Project view | Load the project when it is opened | `src/app/services/project.service.ts:get` |
 | PUT | `/projects/{project_id}` | Project.Modify | Project view | Save project settings, Map settings PUT items (= Project.Modify) | `src/app/services/project.service.ts:update` |
 | POST | `/projects/{project_id}/close` | Project.Allocate | Project view toolbar | Close project (menu = Project.Allocate) | `src/app/services/project.service.ts:close` |
-| POST | `/projects/{project_id}/distribute` | Project.Audit | Projects page → Distribute Project dialog | Distribute copies to users or a group (= Project.Audit)<br>payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job | `src/app/services/project.service.ts:distribute` |
-| GET | `/projects/{project_id}/distributions` | Project.Audit | Project view → Distribution tasks panel | Load the caller's recent distribution jobs | `src/app/services/project.service.ts:listDistributions` |
-| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Cancel a running distribution job (cooperative: the copy in flight completes) | `src/app/services/project.service.ts:cancelDistribution`<br>`src/app/services/project.service.ts:deleteDistribution` |
-| GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Project view → Distribution tasks panel | Poll a running distribution job until it leaves the running state | `src/app/services/project.service.ts:getDistribution` |
-| POST | `/projects/{project_id}/duplicate` | Project.Audit | Projects page | Duplicate project (button = Project.Audit) | `src/app/services/project.service.ts:duplicate` |
-| GET | `/projects/{project_id}/export` | Project.Audit | Projects page / Project view menu | Export project (button = Project.Audit) | `src/app/services/project.service.ts:export` |
+| POST | `/projects/{project_id}/distribute` | Project.Audit | Projects page → Distribute Project dialog | Distribute copies to users or a group (= Project.Audit)<br>payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job; the first distribution freezes the source project as a template; a distributed copy answers 409 | `src/app/services/project.service.ts:distribute` |
+| GET | `/projects/{project_id}/distributions` | Project.Audit | Projects page → Distribution history dialog | Load the caller's recent distribution jobs | `src/app/services/project.service.ts:listDistributions` |
+| DELETE | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Distribution history dialog | Cancel a running distribution job (cooperative: the copy in flight completes), or delete the record of a finished one<br>409 while running, and on a finished record whose copies still exist (the message lists the usernames) | `src/app/services/project.service.ts:cancelDistribution`<br>`src/app/services/project.service.ts:deleteDistribution` |
+| GET | `/projects/{project_id}/distributions/{distribution_id}` | Project.Audit | Distribution tasks panel / Distribution history dialog | Poll a running distribution job until it leaves the running state | `src/app/services/project.service.ts:getDistribution` |
+| DELETE | `/projects/{project_id}/distributions/{distribution_id}/copies` | Project.Audit | Distribution history dialog | Delete every copy of a finished distribution that still exists (button = Project.Audit, job creator or superadmin)<br>the record is kept; the response refreshes the per-recipient project_exists flags; 409 while the job runs | `src/app/services/project.service.ts:deleteDistributionCopies` |
+| POST | `/projects/{project_id}/duplicate` | Project.Duplicate | Projects page | Duplicate project (button = Project.Duplicate)<br>a distributed copy answers 409; a frozen template can be duplicated (the copy is a normal project) | `src/app/services/project.service.ts:duplicate` |
+| GET | `/projects/{project_id}/export` | Project.Export | Projects page / Project view menu | Export project (button = Project.Export)<br>a distributed copy answers 409; the archive drops the frozen and copy markers | `src/app/services/project.service.ts:export` |
 | GET | `/projects/{project_id}/files/{file_path:path}` | Project.Audit | Project files | Read a project file | — |
 | POST | `/projects/{project_id}/files/{file_path:path}` | Project.Modify | Project files | Write or upload a project file | — |
 | GET | `/projects/{project_id}/gns3file` | Project.Audit | Topology preview | Read the .gns3 file to render the static preview | `src/app/services/project.service.ts:gns3file` |
-| POST | `/projects/{project_id}/import` | — (login only) | Projects page | Import project (button = Project.Allocate) | — |
+| POST | `/projects/{project_id}/import` | — (login only) | Projects page | Import project (button = Project.Allocate)<br>409 when the target is a frozen template or a distributed copy | — |
 | POST | `/projects/{project_id}/lock` | Project.Modify | Project view menu / canvas context menu | Lock all (= Project.Modify) | `src/app/services/drawing.service.ts:lockAllNodes` |
 | GET | `/projects/{project_id}/locked` | Project.Audit | Project view | Read the lock state | — |
 | GET | `/projects/{project_id}/marker-definitions` | Project.Audit | Marker manager — Definitions tab | Load the definitions | `src/app/services/marker.service.ts:listDefinitions` |
@@ -185,6 +189,7 @@ All paths are relative to the controller API root (`/v3`).
 | DELETE | `/projects/{project_id}/shares/{ace_id}` | Project.Audit | Projects page → Share Project dialog | Remove one share (revoke access) | `src/app/services/project.service.ts:removeShare` |
 | GET | `/projects/{project_id}/stats` | Project.Audit | Project view | Project statistics (node/link counts) | `src/app/services/project.service.ts:getStatistics` |
 | POST | `/projects/{project_id}/templates/{template_id}` | Node.Allocate | Add node palette | Create a node from a template (= Node.Allocate) | `src/app/services/node.service.ts:createFromTemplate` |
+| POST | `/projects/{project_id}/unfreeze` | Project.Modify | Project view → Distribution history dialog / project details | Unfreeze a distributed template once no copy exists (button = Project.Modify, owner or superadmin)<br>409 while any copy still exists; the message lists the usernames holding one | `src/app/services/project.service.ts:unfreeze` |
 | POST | `/projects/{project_id}/unlock` | Project.Modify | Project view menu / canvas context menu | Unlock all (= Project.Modify) | `src/app/services/drawing.service.ts:unLockAllNodes` |
 
 ### Nodes — `nodes.py`
@@ -205,7 +210,7 @@ All paths are relative to the controller API root (`/v3`).
 | POST | `/projects/{project_id}/nodes/{node_id}/console/reset` | Node.Console | Node context menu | Reset console (= Node.Console) | — |
 | WEBSOCKET | `/projects/{project_id}/nodes/{node_id}/console/vnc` | Node.Console | Console window | Open the VNC console (= Node.Console) | — |
 | WEBSOCKET | `/projects/{project_id}/nodes/{node_id}/console/ws` | Node.Console | Console window | Open the node console (= Node.Console) | — |
-| POST | `/projects/{project_id}/nodes/{node_id}/duplicate` | Node.Allocate | Node context menu | Duplicate (= Node.Allocate) | `src/app/services/node.service.ts:duplicate` |
+| POST | `/projects/{project_id}/nodes/{node_id}/duplicate` | Node.Allocate | Node context menu | Duplicate (= Node.Allocate)<br>a locked node answers 409; the action skips locked nodes and is hidden when nothing duplicable remains | `src/app/services/node.service.ts:duplicate` |
 | GET | `/projects/{project_id}/nodes/{node_id}/dynamips/auto_idlepc` | Node.Audit | Node context menu | Auto Idle-PC (read-only probe) | `src/app/services/node.service.ts:getAutoIdlePC` |
 | GET | `/projects/{project_id}/nodes/{node_id}/dynamips/idlepc_proposals` | Node.Audit | Node context menu | Idle-PC candidate values | `src/app/services/node.service.ts:getIdlePCProposals` |
 | GET | `/projects/{project_id}/nodes/{node_id}/files` | Node.Audit | Node file manager | Load the file tree | `src/app/services/node.service.ts:getNodeFilesRecursive` |

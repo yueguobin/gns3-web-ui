@@ -211,13 +211,23 @@ export class ContextMenuComponent implements OnInit {
     return nodeType === 'cloud' || nodeType === 'ethernet_switch' || nodeType === 'ethernet_hub' || nodeType === 'nat';
   }
 
+  /** The project is a frozen distributed template: edits are refused server-side. */
+  get isFrozen(): boolean {
+    return !!this.project?.frozen;
+  }
+
+  /** Selected nodes duplication may act on: a locked node cannot be cloned. */
+  get duplicableNodes(): Node[] {
+    return this.nodes.filter((node) => !node.locked);
+  }
+
   /**
    * Privileges required to duplicate the current selection — one entry per
    * selected element kind, all of them required (the directive matches 'all').
    */
   get duplicatePrivileges(): string[] {
     const privileges: string[] = [];
-    if (this.nodes.length) privileges.push('Node.Allocate');
+    if (this.duplicableNodes.length) privileges.push('Node.Allocate');
     if (this.drawings.length) privileges.push('Drawing.Allocate');
     return privileges;
   }

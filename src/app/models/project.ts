@@ -14,6 +14,18 @@ export class Project {
   status: string;
   readonly: boolean;
   /**
+   * A distributed template: its copies' disk overlays point at its files, so
+   * the server refuses every modification until every copy is deleted. Absent
+   * on older servers — treat missing as false.
+   */
+  frozen?: boolean;
+  /**
+   * Project id of the template this project was distributed from. Set only on
+   * a distributed copy: the server refuses to duplicate, export or distribute
+   * it again. Absent on older servers — treat missing as null.
+   */
+  distribution_master_id?: string | null;
+  /**
    * Number of shares on this project (owner ACE excluded, a group share counts
    * as one). Only the project owner and superadmins receive a value; for
    * everybody else the field is absent from list responses and null on the
@@ -27,6 +39,16 @@ export class Project {
   variables: ProjectVariable[];
   zoom?: number;
   supplier?: Supplier;
+}
+
+/** The project is a distributed template frozen for modification. */
+export function isFrozenTemplate(project: Project | null | undefined): boolean {
+  return !!project?.frozen;
+}
+
+/** The project is a copy produced by a distribution (provided by its author). */
+export function isDistributedCopy(project: Project | null | undefined): boolean {
+  return !!project?.distribution_master_id;
 }
 
 export class Supplier {

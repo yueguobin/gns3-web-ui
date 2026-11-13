@@ -111,18 +111,24 @@
           <mat-icon>add</mat-icon>
           <span>Add new blank project</span>
         </button>
-        <button mat-menu-item *appHasProjectPrivilege="'Project.Audit'" (click)="saveProject()">
+        @if (!isProvidedByTeacher) {
+        <button mat-menu-item *appHasProjectPrivilege="'Project.Duplicate'" (click)="saveProject()">
           <mat-icon>save</mat-icon>
           <span>Save project as</span>
         </button>
+        }
+        @if (!isFrozen) {
         <button mat-menu-item *appHasProjectPrivilege="'Project.Modify'" (click)="editProject()">
           <mat-icon>edit</mat-icon>
           <span>Edit project</span>
         </button>
-        <button mat-menu-item *appHasProjectPrivilege="'Project.Audit'" (click)="exportProject()">
+        }
+        @if (!isProvidedByTeacher) {
+        <button mat-menu-item *appHasProjectPrivilege="'Project.Export'" (click)="exportProject()">
           <mat-icon>call_made</mat-icon>
           <span>Export project</span>
         </button>
+        }
         <button mat-menu-item *appHasProjectPrivilege="'Project.Allocate'" (click)="importProject()">
           <mat-icon>call_received</mat-icon>
           <span>Import project</span>
@@ -141,6 +147,7 @@
     <!-- Map Settings sub-menu -->
     <mat-menu #viewMenu="matMenu" class="map-settings-menu" [overlapTrigger]="false">
       <div class="options-item">
+        @if (!isFrozen) {
         <mat-checkbox
           *appHasProjectPrivilege="'Project.Modify'"
           [checked]="isInterfaceLabelVisible"
@@ -148,6 +155,7 @@
         >
           Show interface labels
         </mat-checkbox>
+        }
         <mat-checkbox [checked]="isConsoleVisible" (change)="toggleShowConsole($event.checked)">
           Show console
         </mat-checkbox>
@@ -157,6 +165,7 @@
         <mat-checkbox [checked]="notificationsVisibility" (change)="toggleNotifications($event.checked)">
           Show notification toasts
         </mat-checkbox>
+        @if (!isFrozen) {
         <mat-checkbox
           *appHasProjectPrivilege="'Project.Modify'"
           [checked]="layersVisibility"
@@ -164,9 +173,11 @@
         >
           Show layers
         </mat-checkbox>
+        }
         <mat-checkbox [checked]="itemLockStatusVisibility" (change)="toggleItemLockStatus($event.checked)">
           Show item lock status
         </mat-checkbox>
+        @if (!isFrozen) {
         <mat-checkbox
           *appHasProjectPrivilege="'Project.Modify'"
           [checked]="gridVisibility"
@@ -181,12 +192,37 @@
         >
           Snap to grid
         </mat-checkbox>
+        }
         <mat-checkbox [checked]="symbolScaling" (change)="toggleSymbolScaling($event.checked)">
           Scale symbols
         </mat-checkbox>
       </div>
     </mat-menu>
   </div>
+
+  <!-- Distribution state: a frozen template refuses every modification until
+       its copies are gone; a distributed copy cannot be duplicated, exported
+       or distributed again. Both are lifecycle markers from the server. -->
+  @if (isFrozen || isProvidedByTeacher) {
+  <div class="project-banner" [class.project-banner--frozen]="isFrozen" [class.project-banner--provided]="!isFrozen">
+    <mat-icon class="project-banner__icon">{{ isFrozen ? 'ac_unit' : 'school' }}</mat-icon>
+    <div class="project-banner__body">
+      @if (isFrozen) {
+      <strong class="project-banner__title">Frozen template</strong>
+      <span class="project-banner__text">Editing is disabled until every distributed copy is deleted.</span>
+      } @else {
+      <strong class="project-banner__title">Provided by the teacher</strong>
+      <span class="project-banner__text">Duplication, export and re-distribution are disabled.</span>
+      }
+    </div>
+    @if (isFrozen) {
+    <button mat-stroked-button type="button" class="project-banner__action" (click)="openDistributionHistory()">
+      <mat-icon>people</mat-icon>
+      Manage distributions
+    </button>
+    }
+  </div>
+  }
 
   <!-- Render the map only after the project + controller data has resolved.
        project/controller start as empty shells ({} as Project/Controller) and are
@@ -294,7 +330,9 @@
         <mat-icon>insights</mat-icon>
       </button>
     </div>
-    @if (!readonly) {
+    <!-- A frozen template still allows taking and deleting snapshots: only
+         restoring one is refused (handled inside the dialog). -->
+    @if (!readonly || project.frozen) {
     <div class="section">
       <app-snapshot-menu-item
         *appHasProjectPrivilege="'Snapshot.Audit'"

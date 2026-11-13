@@ -8,3 +8,13 @@
 mat-chip-set {
   margin-bottom: 8px;
 }
+
+// Lifecycle hint: the source becomes a frozen template on the first call.
+.distribute-project__note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  background-color: color-mix(in srgb, var(--mat-sys-tertiary) 12%, transparent);
+  color: var(--mat-sys-on-surface);
+}

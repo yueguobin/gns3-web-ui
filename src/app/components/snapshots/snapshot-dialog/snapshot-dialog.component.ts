@@ -53,9 +53,12 @@ export class SnapshotDialogComponent {
   snapshots = model<Snapshot[]>([]);
   searchText = model('');
   /** The actions column renders only when at least one of its buttons does —
-   *  without Snapshot.Allocate or Snapshot.Restore it would be an empty column. */
+   *  without Snapshot.Allocate or Snapshot.Restore it would be an empty column.
+   *  A frozen template refuses Restore, so only Allocate still offers one. */
   displayedColumns = computed(() =>
-    this.projectPermissionService.hasAny(['Snapshot.Allocate', 'Snapshot.Restore'])
+    (this.project?.frozen
+      ? this.projectPermissionService.has('Snapshot.Allocate')
+      : this.projectPermissionService.hasAny(['Snapshot.Allocate', 'Snapshot.Restore']))
       ? ['name', 'created_at', 'actions']
       : ['name', 'created_at']
   );

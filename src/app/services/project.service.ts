@@ -229,6 +229,35 @@ export class ProjectService {
   }
 
   /**
+   * Deletes every copy of a finished distribution that still exists on the
+   * server (copies already deleted are skipped). The distribution record is
+   * kept: it still tells who received a copy and when. A running distribution
+   * answers 409 — cancel it first.
+   *
+   * Returns the distribution with its per-recipient `project_exists` flags
+   * refreshed.
+   */
+  deleteDistributionCopies(
+    controller: Controller,
+    project_id: string,
+    distribution_id: string
+  ): Observable<ProjectDistribution> {
+    return this.httpController.delete(
+      controller,
+      `/projects/${project_id}/distributions/${distribution_id}/copies`
+    );
+  }
+
+  /**
+   * Unfreezes a distributed template so it can be modified again. Only
+   * allowed once every copy made from it is gone, and only to the project
+   * owner or a superadmin (409 or 403 otherwise).
+   */
+  unfreeze(controller: Controller, project_id: string): Observable<Project> {
+    return this.httpController.post(controller, `/projects/${project_id}/unfreeze`, {});
+  }
+
+  /**
    * Shares a project: the recipients gain access to the same project (no
    * copies, instant).
    *
@@ -266,7 +295,10 @@ export class ProjectService {
     if (project.readonly) {
       return project.readonly;
     }
-    return false;
+    // A distributed template is frozen: the server refuses every modification
+    // while copies exist, so the map hides the editing tools exactly like a
+    // read-only project. Reading, opening and snapshot creation stay allowed.
+    return !!project.frozen;
   }
 
   getCompression() {

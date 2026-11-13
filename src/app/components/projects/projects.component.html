@@ -171,6 +171,25 @@
                 <mat-icon class="projects__share-badge-icon">people</mat-icon>
               </button>
               }
+              @if (isFrozen(row)) {
+              <button
+                type="button"
+                class="projects__share-badge projects__frozen-badge"
+                (click)="openDistributionHistory($event, row)"
+                matTooltip="Frozen template — distributed copies exist. Click to manage distributions."
+                aria-label="Manage distributions"
+              >
+                <mat-icon class="projects__share-badge-icon">ac_unit</mat-icon>
+              </button>
+              }
+              @if (isProvidedByTeacher(row)) {
+              <span
+                class="projects__share-badge projects__provided-badge"
+                matTooltip="Provided by the teacher — duplication, export and re-distribution are disabled."
+              >
+                <mat-icon class="projects__share-badge-icon">school</mat-icon>
+              </span>
+              }
             </mat-cell>
           </ng-container>
 
@@ -235,6 +254,7 @@
                 >
                   <mat-icon>info</mat-icon>
                 </button>
+                @if (!isFrozen(row)) {
                 <button
                   mat-icon-button
                   class="projects__action-button projects__action-button--edit"
@@ -245,11 +265,12 @@
                 >
                   <mat-icon>edit</mat-icon>
                 </button>
-                @if (row.status === 'closed') {
+                }
+                @if (row.status === 'closed' && !isProvidedByTeacher(row)) {
                 <button
                   mat-icon-button
                   class="projects__action-button projects__action-button--duplicate"
-                  *appHasPrivilege="'Project.Audit'"
+                  *appHasPrivilege="'Project.Duplicate'"
                   (click)="duplicate(row)"
                   matTooltip="Duplicate project"
                   aria-label="Duplicate project"
@@ -257,16 +278,18 @@
                   <mat-icon>content_copy</mat-icon>
                 </button>
                 }
+                @if (!isProvidedByTeacher(row)) {
                 <button
                   mat-icon-button
                   class="projects__action-button projects__action-button--export"
-                  *appHasPrivilege="'Project.Audit'"
+                  *appHasPrivilege="'Project.Export'"
                   (click)="exportSelectProject(row)"
                   matTooltip="Export project"
                   aria-label="Export project"
                 >
                   <mat-icon>file_download</mat-icon>
                 </button>
+                }
               </div>
             </mat-cell>
           </ng-container>
@@ -371,6 +394,25 @@
                 <mat-icon class="projects__share-badge-icon">people</mat-icon>
               </button>
               }
+              @if (isFrozen(project)) {
+              <button
+                type="button"
+                class="projects__share-badge projects__frozen-badge"
+                (click)="openDistributionHistory($event, project)"
+                matTooltip="Frozen template — distributed copies exist. Click to manage distributions."
+                aria-label="Manage distributions"
+              >
+                <mat-icon class="projects__share-badge-icon">ac_unit</mat-icon>
+              </button>
+              }
+              @if (isProvidedByTeacher(project)) {
+              <span
+                class="projects__share-badge projects__provided-badge"
+                matTooltip="Provided by the teacher — duplication, export and re-distribution are disabled."
+              >
+                <mat-icon class="projects__share-badge-icon">school</mat-icon>
+              </span>
+              }
             </div>
             @if (project.created_by) {
             <p class="projects__card-owner">{{ project.created_by }}</p>
@@ -417,6 +459,7 @@
             >
               <mat-icon>info</mat-icon>
             </button>
+            @if (!isFrozen(project)) {
             <button
               mat-icon-button
               class="projects__action-button projects__action-button--edit"
@@ -427,11 +470,12 @@
             >
               <mat-icon>edit</mat-icon>
             </button>
-            @if (project.status === 'closed') {
+            }
+            @if (project.status === 'closed' && !isProvidedByTeacher(project)) {
             <button
               mat-icon-button
               class="projects__action-button projects__action-button--duplicate"
-              *appHasPrivilege="'Project.Audit'"
+              *appHasPrivilege="'Project.Duplicate'"
               (click)="$event.stopPropagation(); duplicate(project)"
               matTooltip="Duplicate project"
               aria-label="Duplicate project"
@@ -460,16 +504,18 @@
               <mat-icon>share</mat-icon>
             </button>
             }
+            @if (!isProvidedByTeacher(project)) {
             <button
               mat-icon-button
               class="projects__action-button projects__action-button--export"
-              *appHasPrivilege="'Project.Audit'"
+              *appHasPrivilege="'Project.Export'"
               (click)="$event.stopPropagation(); exportSelectProject(project)"
               matTooltip="Export project"
               aria-label="Export project"
             >
               <mat-icon>file_download</mat-icon>
             </button>
+            }
             @if (project.status === 'closed') {
             <button
               mat-icon-button
@@ -589,6 +635,21 @@
             <span class="projects__detail-value">{{ project.readonly ? 'Read-only' : 'Read/Write' }}</span>
           </div>
 
+          @if (isFrozen(project)) {
+          <div class="projects__detail-item">
+            <span class="projects__detail-icon"><mat-icon>ac_unit</mat-icon></span>
+            <span class="projects__detail-label">Distribution</span>
+            <span class="projects__detail-value">Frozen template — distributed copies exist</span>
+          </div>
+          }
+          @if (isProvidedByTeacher(project)) {
+          <div class="projects__detail-item">
+            <span class="projects__detail-icon"><mat-icon>school</mat-icon></span>
+            <span class="projects__detail-label">Distribution</span>
+            <span class="projects__detail-value">Provided by the teacher</span>
+          </div>
+          }
+
           <!-- Node / link / drawing counts come from the
                .gns3 file when topology data is loaded (closed projects have zero
                server stats) -->
@@ -675,6 +736,7 @@
             <mat-icon>pause</mat-icon>
           </button>
           }
+          @if (!isFrozen(project)) {
           <button
             mat-icon-button
             class="projects__details-action-btn projects__details-action-btn--edit"
@@ -685,11 +747,23 @@
           >
             <mat-icon>edit</mat-icon>
           </button>
-          @if (project.status === 'closed') {
+          }
+          @if (isFrozen(project) && canUnfreeze(project)) {
+          <button
+            mat-icon-button
+            class="projects__details-action-btn projects__details-action-btn--unfreeze"
+            (click)="unfreeze(project)"
+            matTooltip="Unfreeze template"
+            aria-label="Unfreeze template"
+          >
+            <mat-icon>lock_open</mat-icon>
+          </button>
+          }
+          @if (project.status === 'closed' && !isProvidedByTeacher(project)) {
           <button
             mat-icon-button
             class="projects__details-action-btn projects__details-action-btn--duplicate"
-            *appHasPrivilege="'Project.Audit'"
+            *appHasPrivilege="'Project.Duplicate'"
             (click)="duplicate(project)"
             matTooltip="Duplicate project"
             aria-label="Duplicate project"
@@ -718,16 +792,18 @@
             <mat-icon>share</mat-icon>
           </button>
           }
+          @if (!isProvidedByTeacher(project)) {
           <button
             mat-icon-button
             class="projects__details-action-btn projects__details-action-btn--export"
-            *appHasPrivilege="'Project.Audit'"
+            *appHasPrivilege="'Project.Export'"
             (click)="exportSelectProject(project)"
             matTooltip="Export project"
             aria-label="Export project"
           >
             <mat-icon>file_download</mat-icon>
           </button>
+          }
           @if (project.status === 'closed') {
           <button
             mat-icon-button

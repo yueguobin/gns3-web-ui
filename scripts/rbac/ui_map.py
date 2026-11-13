@@ -64,14 +64,27 @@ UI_MAP: dict[str, dict[str, str]] = {
         "action": "Reload the projects on the controller",
         "note": "only supported by the local service",
     },
-    "POST /projects/{}/import": {"page": "Projects page", "action": "Import project (button = Project.Allocate)"},
-    "DELETE /projects/{}": {"page": "Projects page", "action": "Delete project (button = Project.Allocate)"},
+    "POST /projects/{}/import": {
+        "page": "Projects page",
+        "action": "Import project (button = Project.Allocate)",
+        "note": "409 when the target is a frozen template or a distributed copy",
+    },
+    "DELETE /projects/{}": {
+        "page": "Projects page",
+        "action": "Delete project (button = Project.Allocate)",
+        "note": "a frozen template with existing copies answers 409 and lists the usernames",
+    },
     "POST /projects/{}/open": {"page": "Projects page", "action": "Open project (button = Project.Allocate)"},
     "POST /projects/{}/close": {"page": "Project view toolbar", "action": "Close project (menu = Project.Allocate)"},
-    "POST /projects/{}/duplicate": {"page": "Projects page", "action": "Duplicate project (button = Project.Audit)"},
+    "POST /projects/{}/duplicate": {
+        "page": "Projects page",
+        "action": "Duplicate project (button = Project.Duplicate)",
+        "note": "a distributed copy answers 409; a frozen template can be duplicated (the copy is a normal project)",
+    },
     "GET /projects/{}/export": {
         "page": "Projects page / Project view menu",
-        "action": "Export project (button = Project.Audit)",
+        "action": "Export project (button = Project.Export)",
+        "note": "a distributed copy answers 409; the archive drops the frozen and copy markers",
     },
     "GET /projects/{}": {"page": "Project view", "action": "Load the project when it is opened"},
     "PUT /projects/{}": {
@@ -93,19 +106,30 @@ UI_MAP: dict[str, dict[str, str]] = {
     "POST /projects/{}/distribute": {
         "page": "Projects page → Distribute Project dialog",
         "action": "Distribute copies to users or a group (= Project.Audit)",
-        "note": "payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job",
+        "note": "payload carries reset_mac_addresses and lock_topology (locks every node/drawing in each copy); copies are created by a background job; the first distribution freezes the source project as a template; a distributed copy answers 409",
+    },
+    "POST /projects/{}/unfreeze": {
+        "page": "Project view → Distribution history dialog / project details",
+        "action": "Unfreeze a distributed template once no copy exists (button = Project.Modify, owner or superadmin)",
+        "note": "409 while any copy still exists; the message lists the usernames holding one",
     },
     "GET /projects/{}/distributions": {
-        "page": "Project view → Distribution tasks panel",
+        "page": "Projects page → Distribution history dialog",
         "action": "Load the caller's recent distribution jobs",
     },
     "GET /projects/{}/distributions/{}": {
-        "page": "Project view → Distribution tasks panel",
+        "page": "Distribution tasks panel / Distribution history dialog",
         "action": "Poll a running distribution job until it leaves the running state",
     },
     "DELETE /projects/{}/distributions/{}": {
-        "page": "Project view → Distribution tasks panel",
-        "action": "Cancel a running distribution job (cooperative: the copy in flight completes)",
+        "page": "Distribution history dialog",
+        "action": "Cancel a running distribution job (cooperative: the copy in flight completes), or delete the record of a finished one",
+        "note": "409 while running, and on a finished record whose copies still exist (the message lists the usernames)",
+    },
+    "DELETE /projects/{}/distributions/{}/copies": {
+        "page": "Distribution history dialog",
+        "action": "Delete every copy of a finished distribution that still exists (button = Project.Audit, job creator or superadmin)",
+        "note": "the record is kept; the response refreshes the per-recipient project_exists flags; 409 while the job runs",
     },
     "POST /projects/{}/share": {
         "page": "Projects page → Share Project dialog",
@@ -159,6 +183,7 @@ UI_MAP: dict[str, dict[str, str]] = {
     "POST /projects/{}/nodes/{}/duplicate": {
         "page": "Node context menu",
         "action": "Duplicate (= Node.Allocate)",
+        "note": "a locked node answers 409; the action skips locked nodes and is hidden when nothing duplicable remains",
     },
     "POST /projects/{}/nodes/{}/start": {"page": "Node context menu / Nodes menu", "action": "Start (= Node.PowerMgmt)"},
     "POST /projects/{}/nodes/{}/stop": {"page": "Node context menu / Nodes menu", "action": "Stop (= Node.PowerMgmt)"},
@@ -536,6 +561,20 @@ UI_MAP: dict[str, dict[str, str]] = {
     "GET /access/groups/{}/members": {"page": "Group details dialog", "action": "Load the member list"},
     "PUT /access/groups/{}/members/{}": {"page": "Group details dialog", "action": "Add user (= Group.Modify)"},
     "DELETE /access/groups/{}/members/{}": {"page": "Group details dialog", "action": "Remove user (= Group.Modify)"},
+    "GET /access/groups/{}/mcp_tools": {
+        "page": "Group details → MCP tools dialog",
+        "action": "Load the group's MCP tool whitelist",
+        "note": "the response returns the stored tools as-is; an unknown or removed tool name can still appear",
+    },
+    "PUT /access/groups/{}/mcp_tools": {
+        "page": "Group details → MCP tools dialog",
+        "action": "Save the whitelist (= Group.Modify)",
+        "note": "the request replaces the whole whitelist; a name outside the server's catalog rejects the whole request with 400",
+    },
+    "DELETE /access/groups/{}/mcp_tools": {
+        "page": "Group details → MCP tools dialog",
+        "action": "Clear the whitelist, restoring the default access (= Group.Modify)",
+    },
 
     # ------------------------------------------------------------------
     # Access management: roles

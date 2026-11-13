@@ -21,7 +21,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ExportPortableProjectComponent } from '@components/export-portable-project/export-portable-project.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProgressService } from '../../common/progress/progress.service';
-import { Project, isTerminalDistributionStatus } from '@models/project';
+import { Project, isDistributedCopy, isFrozenTemplate, isTerminalDistributionStatus } from '@models/project';
 import { ProjectStatistics } from '@models/project-statistics';
 import { Controller } from '@models/controller';
 import { ProjectService } from '@services/project.service';
@@ -225,6 +225,57 @@ export class ProjectsComponent implements OnInit {
     return this._distributedProjects().has(project.project_id);
   }
 
+  /** Whether the project is a frozen distributed template. */
+  isFrozen(project: Project): boolean {
+    return isFrozenTemplate(project);
+  }
+
+  /** Whether the project is a copy provided by a distribution. */
+  isProvidedByTeacher(project: Project): boolean {
+    return isDistributedCopy(project);
+  }
+
+  /** Unfreezing is reserved to the template owner and superadmins. */
+  canUnfreeze(project: Project): boolean {
+    return this.isFrozen(project) && (this.permissionService.isSuperadmin() || project.created_by === this.controller?.username);
+  }
+
+  /**
+   * Unfreeze a distributed template so it can be modified again. The server
+   * only allows it once every copy made from it is gone, and answers 409 with
+   * the usernames still holding one otherwise.
+   */
+  unfreeze(project: Project): void {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      panelClass: ['base-confirmation-dialog-panel', 'dialog-small-panel', 'confirmation-warning-panel'],
+      autoFocus: '.cancel-button',
+      data: {
+        title: 'Unfreeze template?',
+        message: `"${project.name}" becomes editable again. New copies will match any later changes.`,
+        note: 'This is only possible once every distributed copy has been deleted.',
+        confirmButtonText: 'Unfreeze template',
+        tone: 'warning',
+        icon: 'lock_open',
+      },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      if (!result) return;
+      this.projectService.unfreeze(this.controller, project.project_id).subscribe({
+        next: (updated: Project) => {
+          this.toasterService.success(`Project "${project.name}" unfrozen.`);
+          if (this.selectedProject()?.project_id === updated.project_id) {
+            this.selectedProject.set({ ...updated, share_count: this.selectedProject()?.share_count });
+          }
+          this.refresh();
+        },
+        error: (err) => {
+          const message = err.error?.message || err.message || 'Failed to unfreeze project';
+          this.toasterService.error(message);
+        },
+      });
+    });
+  }
+
   /**
    * Open the distribution history of a project. The grid-view badge lives
    * inside the card's router-link anchor, so the default navigation has to
@@ -239,7 +290,12 @@ export class ProjectsComponent implements OnInit {
         data: { controller: this.controller, project } satisfies DistributionHistoryDialogData,
       })
       .afterClosed()
-      .subscribe(() => this.refreshDistributedProjects());
+      .subscribe((unfroze: boolean | undefined) => {
+        this.refreshDistributedProjects();
+        // Unfreezing emits project.updated, but a dropped notification stream
+        // must not leave the frozen badge behind.
+        if (unfroze) this.refresh();
+      });
   }
 
   /**
@@ -638,6 +694,14 @@ export class ProjectsComponent implements OnInit {
       }
       return list;
     });
+
+    // The details panel holds its own reference: freeze/unfreeze (and any
+    // other project update) must refresh it too, or it keeps rendering the
+    // previous lifecycle state.
+    const selected = this.selectedProject();
+    if (selected && selected.project_id === notification.event.project_id && notification.action !== 'project.deleted') {
+      this.selectedProject.set({ ...notification.event, share_count: selected.share_count });
+    }
   }
 
   // ── Loading state ─────────────────────────────────────────────
@@ -783,6 +847,9 @@ export class ProjectsComponent implements OnInit {
     let instance = dialogRef.componentInstance;
     instance.controller = this.controller;
     instance.project = project;
+    // The first distribution freezes the source project: refresh so the new
+    // state lands even when the notification stream is disconnected.
+    dialogRef.afterClosed().subscribe(() => this.refresh());
   }
 
   /**

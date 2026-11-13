@@ -361,6 +361,28 @@ mat-cell {
   }
 }
 
+// A frozen template: copies exist and the server refuses modifications.
+// Clicking opens the distribution history, where the copies are managed.
+.projects__frozen-badge {
+  background-color: color-mix(in srgb, var(--mat-sys-tertiary) 12%, transparent);
+  color: var(--mat-sys-tertiary);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--mat-sys-tertiary) 20%, transparent);
+  }
+}
+
+// A distributed copy the current user received: informational only.
+.projects__provided-badge {
+  background-color: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-primary);
+  cursor: default;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  }
+}
+
 /* =============================================
 // Action Buttons
 // ============================================= */

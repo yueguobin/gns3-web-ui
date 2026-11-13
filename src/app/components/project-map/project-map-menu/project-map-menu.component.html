@@ -151,6 +151,7 @@
 >
   <span class="ai-icon">AI</span>
 </button>
+@if (!readonly) {
 <button
   matTooltip="Inject Fault"
   matTooltipClass="custom-tooltip"
@@ -161,6 +162,7 @@
 >
   <mat-icon>bug_report</mat-icon>
 </button>
+}
 <app-drawing-added
   [controller]="controller()"
   [project]="project()"

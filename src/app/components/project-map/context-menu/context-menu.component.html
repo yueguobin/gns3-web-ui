@@ -22,25 +22,25 @@
       [controller]="controller"
       [node]="nodes[0]"
     ></app-fix-missing-image-action>
-    } @if (nodes.length) {
+    } @if (nodes.length && !isFrozen) {
     <app-start-node-action
       *appHasProjectPrivilege="'Node.PowerMgmt'"
       [controller]="controller"
       [nodes]="nodes"
     ></app-start-node-action>
-    } @if (nodes.length) {
+    } @if (nodes.length && !isFrozen) {
     <app-suspend-node-action
       *appHasProjectPrivilege="'Node.PowerMgmt'"
       [controller]="controller"
       [nodes]="nodes"
     ></app-suspend-node-action>
-    } @if (nodes.length) {
+    } @if (nodes.length && !isFrozen) {
     <app-stop-node-action
       *appHasProjectPrivilege="'Node.PowerMgmt'"
       [controller]="controller"
       [nodes]="nodes"
     ></app-stop-node-action>
-    } @if (nodes.length) {
+    } @if (nodes.length && !isFrozen) {
     <app-reload-node-action
       *appHasProjectPrivilege="'Node.PowerMgmt'"
       [controller]="controller"
@@ -66,13 +66,13 @@
       [controller]="controller"
       [node]="nodes[0]"
     ></app-console-device-action-browser>
-    } @if (nodes.length === 1) {
+    } @if (nodes.length === 1 && !isFrozen) {
     <app-isolate-node-action
       *appHasProjectPrivilege="'Link.Modify'"
       [controller]="controller"
       [node]="nodes[0]"
     ></app-isolate-node-action>
-    } @if (nodes.length === 1) {
+    } @if (nodes.length === 1 && !isFrozen) {
     <app-unisolate-node-action
       *appHasProjectPrivilege="'Link.Modify'"
       [controller]="controller"
@@ -90,12 +90,12 @@
       [controller]="controller"
       [node]="nodes[0]"
     ></app-change-symbol-action>
-    } @if (drawings.length > 0 || nodes.length > 0) {
+    } @if (!isFrozen && (drawings.length > 0 || duplicableNodes.length > 0)) {
     <app-duplicate-action
       *appHasProjectPrivilege="duplicatePrivileges"
       [controller]="controller"
       [project]="project"
-      [nodes]="nodes"
+      [nodes]="duplicableNodes"
       [drawings]="drawings"
     ></app-duplicate-action>
     } @if (!projectService.isReadOnly(project) && drawings.length === 1 && !hasTextCapabilities) {
@@ -118,7 +118,7 @@
       [link]="links[0]"
       [linkNode]="linkNodes[0]"
     ></app-edit-text-action>
-    } @if (nodes.length === 1 && nodes[0].node_type === 'vpcs') {
+    } @if (nodes.length === 1 && nodes[0].node_type === 'vpcs' && !isFrozen) {
     <app-edit-config-action
       *appHasProjectPrivilege="['Node.Audit', 'Node.Modify']"
       [controller]="controller"
@@ -133,19 +133,19 @@
       [node]="nodes[0]"
     ></app-export-config-action>
     } @if (nodes.length === 1 && (nodes[0].node_type === 'vpcs' || nodes[0].node_type === 'iou' || nodes[0].node_type
-    === 'dynamips')) {
+    === 'dynamips') && !isFrozen) {
     <app-import-config-action
       *appHasProjectPrivilege="'Node.Modify'"
       [controller]="controller"
       [node]="nodes[0]"
     ></app-import-config-action>
-    } @if (nodes.length === 1 && nodes[0].node_type === 'dynamips') {
+    } @if (nodes.length === 1 && nodes[0].node_type === 'dynamips' && !isFrozen) {
     <app-idle-pc-action
       *appHasProjectPrivilege="['Node.Audit', 'Node.Modify']"
       [controller]="controller"
       [node]="nodes[0]"
     ></app-idle-pc-action>
-    } @if (nodes.length === 1 && nodes[0].node_type === 'dynamips') {
+    } @if (nodes.length === 1 && nodes[0].node_type === 'dynamips' && !isFrozen) {
     <app-auto-idle-pc-action
       *appHasProjectPrivilege="'Node.Audit'"
       [controller]="controller"

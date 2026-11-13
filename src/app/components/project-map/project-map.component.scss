@@ -629,3 +629,61 @@ g.node text,
     white-space: nowrap;
   }
 }
+
+/* =============================================
+// Distribution banner
+// A frozen template (copies exist) or a distributed copy (provided by the
+// teacher): a floating strip under the titlebar, above the canvas.
+// ============================================= */
+.project-banner {
+  position: fixed;
+  top: calc(var(--gns3-project-titlebar-height) + 8px);
+  left: 64px;
+  right: 16px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-tertiary) 40%, transparent);
+  background-color: color-mix(in srgb, var(--mat-sys-tertiary) 14%, var(--mat-sys-surface));
+  color: var(--mat-sys-on-surface);
+  @extend .shadow-subtle;
+
+  &--provided {
+    border-color: color-mix(in srgb, var(--mat-sys-primary) 40%, transparent);
+    background-color: color-mix(in srgb, var(--mat-sys-primary) 14%, var(--mat-sys-surface));
+  }
+
+  &__icon {
+    color: var(--mat-sys-tertiary);
+    flex-shrink: 0;
+
+    .project-banner--provided & {
+      color: var(--mat-sys-primary);
+    }
+  }
+
+  &__body {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: 600;
+  }
+
+  &__text {
+    font-size: 13px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__action {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}

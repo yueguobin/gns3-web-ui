@@ -1,6 +1,15 @@
 <h2 mat-dialog-title>Distribution history — {{ data.project.name }}</h2>
 
 <mat-dialog-content>
+  @if (data.project.frozen) {
+  <div class="distribution-history__notice">
+    <mat-icon>ac_unit</mat-icon>
+    <div>
+      <strong>This project is a frozen template.</strong>
+      Modifications are disabled until every distributed copy is deleted. Use the Unfreeze action once no copy remains.
+    </div>
+  </div>
+  }
   <!-- Distribution records are an event log: the numbers describe what
        happened at distribution time, not how many copies still exist. -->
   @if (loadFailed()) {
@@ -30,33 +39,49 @@
           <span class="distribution-history__copies">
             {{ successfulCopies(job) }}/{{ job.total }} copies
           </span>
+          @if (canDeleteCopies(job)) {
+          <span class="distribution-history__live">{{ liveCopies(job).length }} live</span>
+          }
           @if (job.created_at) {
             <span class="distribution-history__date">{{ job.created_at | date: 'medium' }}</span>
           }
           <!-- Same endpoint either way: a running job is cancelled (the
                response carries its updated state), a finished one has its
                record deleted. -->
-          @if (job.status === 'running' || job.status === 'cancelling') {
-          <button
-            mat-icon-button
-            class="distribution-history__record-action"
-            (click)="removeJob(job)"
-            matTooltip="Cancel distribution"
-            aria-label="Cancel distribution"
-          >
-            <mat-icon>stop</mat-icon>
-          </button>
-          } @else {
-          <button
-            mat-icon-button
-            class="distribution-history__record-action distribution-history__record-action--delete"
-            (click)="removeJob(job)"
-            matTooltip="Delete record"
-            aria-label="Delete record"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
-          }
+          <div class="distribution-history__record-actions">
+            @if (canDeleteCopies(job)) {
+            <button
+              mat-icon-button
+              class="distribution-history__record-action distribution-history__record-action--delete"
+              (click)="deleteCopies(job)"
+              matTooltip="Delete the copies that still exist"
+              aria-label="Delete distributed copies"
+            >
+              <mat-icon>delete_sweep</mat-icon>
+            </button>
+            }
+            @if (job.status === 'running' || job.status === 'cancelling') {
+            <button
+              mat-icon-button
+              class="distribution-history__record-action"
+              (click)="removeJob(job)"
+              matTooltip="Cancel distribution"
+              aria-label="Cancel distribution"
+            >
+              <mat-icon>stop</mat-icon>
+            </button>
+            } @else {
+            <button
+              mat-icon-button
+              class="distribution-history__record-action distribution-history__record-action--delete"
+              (click)="removeJob(job)"
+              [matTooltip]="recordDeleteTooltip(job)"
+              aria-label="Delete record"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+            }
+          </div>
         </div>
         <div class="distribution-history__record-meta">
           <span class="distribution-history__created-by">by {{ job.created_by }}</span>
@@ -100,5 +125,21 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
+  @if (canUnfreeze) {
+  <button
+    mat-stroked-button
+    class="distribution-history__unfreeze"
+    (click)="unfreeze()"
+    [disabled]="hasAnyLiveCopy"
+    [matTooltip]="
+      hasAnyLiveCopy
+        ? 'Delete every distributed copy before unfreezing the template'
+        : 'Make the template editable again'
+    "
+  >
+    <mat-icon>lock_open</mat-icon>
+    Unfreeze template
+  </button>
+  }
   <button mat-button (click)="close()">Close</button>
 </mat-dialog-actions>

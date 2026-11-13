@@ -1,6 +1,13 @@
 <h1 mat-dialog-title>Distribute project</h1>
 
 <div mat-dialog-content>
+  <p class="distribute-project__note">
+    @if (project.frozen) {
+    This project is a frozen template. New copies match the copies already distributed.
+    } @else {
+    The first distribution freezes this project: it stays read-only until every copy is deleted.
+    }
+  </p>
   <form class="gns3-form-stack">
   <mat-form-field appearance="outline" subscriptSizing="dynamic">
     <mat-label>Copy name</mat-label>
