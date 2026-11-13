@@ -789,7 +789,7 @@ export class ProjectsComponent implements OnInit {
 
   share(project: Project) {
     const dialogRef = this.dialog.open(ShareProjectDialogComponent, {
-      panelClass: ['base-dialog-panel', 'dialog-small-panel', 'share-project-dialog-panel'],
+      panelClass: ['base-dialog-panel', 'dialog-medium-panel', 'share-project-dialog-panel'],
       autoFocus: false,
       disableClose: true,
     });

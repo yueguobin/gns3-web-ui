@@ -2006,6 +2006,16 @@ html[data-density='compact'] .node-configurator-dialog-panel {
   }
 }
 
+// Share project dialog: content is fit by design. Once the content area grows
+// a vertical scrollbar its width loss would otherwise couple into a phantom
+// horizontal scrollbar on the Shared with section, so the horizontal axis is
+// clipped at the scroll container itself.
+.share-project-dialog-panel {
+  .mat-mdc-dialog-content {
+    overflow-x: hidden;
+  }
+}
+
 /* =============================================
 // Standard Dialog System
 // Four reusable categories for every conventional modal workflow.
