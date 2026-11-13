@@ -21,7 +21,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ExportPortableProjectComponent } from '@components/export-portable-project/export-portable-project.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProgressService } from '../../common/progress/progress.service';
-import { Project } from '@models/project';
+import { Project, isTerminalDistributionStatus } from '@models/project';
 import { ProjectStatistics } from '@models/project-statistics';
 import { Controller } from '@models/controller';
 import { ProjectService } from '@services/project.service';
@@ -177,12 +177,15 @@ export class ProjectsComponent implements OnInit {
   private _checkDistributedProjects = effect(() => {
     // Distributions tracked in this session (corner widget) flip the badge
     // on immediately: the global fetch below only lands on the next refresh.
+    // Only non-terminal jobs force the badge: a terminal job's record is
+    // already persisted (or was deleted on purpose), so from then on the
+    // fetched data alone decides.
     const tracked = this.distributionService.tracked();
     if (tracked.length > 0) {
       this._distributedProjects.update((ids) => {
         let next = ids;
         for (const entry of tracked) {
-          if (!next.has(entry.job.project_id)) {
+          if (!isTerminalDistributionStatus(entry.job.status) && !next.has(entry.job.project_id)) {
             next = new Set(next).add(entry.job.project_id);
           }
         }
@@ -203,9 +206,13 @@ export class ProjectsComponent implements OnInit {
       next: (records) => {
         const ids = new Set(records.map((record) => record.project_id));
         // Session-tracked jobs stay badged even before their record lands
-        // in the fetched list.
+        // in the fetched list — but only while they still run: once a job
+        // is terminal its record is persisted, and deleting that record
+        // must drop the badge without a page refresh.
         for (const entry of this.distributionService.tracked()) {
-          ids.add(entry.job.project_id);
+          if (!isTerminalDistributionStatus(entry.job.status)) {
+            ids.add(entry.job.project_id);
+          }
         }
         this._distributedProjects.set(ids);
       },
