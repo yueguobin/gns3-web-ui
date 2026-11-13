@@ -14,6 +14,7 @@ import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-di
 import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
 import { ShareProjectDialogComponent } from './share-project-dialog/share-project-dialog.component';
 import { ProjectService } from '@services/project.service';
+import { ProjectDistributionService, TrackedDistribution } from '@services/project-distribution.service';
 import { SettingsService, Settings } from '@services/settings.service';
 import { ProgressService } from '../../common/progress/progress.service';
 import { RecentlyOpenedProjectService } from '@services/recentlyOpenedProject.service';
@@ -534,6 +535,23 @@ describe('ProjectsComponent', () => {
   });
 
   describe('Distribution history badge', () => {
+    /**
+     * Seeds the ProjectDistributionService's tracking state directly: the
+     * corner widget keeps terminal entries around until dismissed, and
+     * that is exactly the state the badge logic must cope with.
+     */
+    const setTrackedJobs = (entries: TrackedDistribution[]): void => {
+      (TestBed.inject(ProjectDistributionService) as any).trackedState.set(entries);
+    };
+
+    const trackedEntry = (project_id: string, distribution_id: string, status: string): TrackedDistribution =>
+      ({
+        controller: mockController,
+        job: { distribution_id, project_id, status, name: 'Project A', total: 1, results: [] },
+        expired: false,
+        cancelPending: false,
+      } as unknown as TrackedDistribution);
+
     it('should badge projects from one cross-project fetch instead of per-project checks', () => {
       mockProjectService.listAllDistributions.mockReturnValue(
         of([{ distribution_id: 'dist-1', project_id: 'proj1' } as any])
@@ -568,6 +586,48 @@ describe('ProjectsComponent', () => {
       component.openDistributionHistory(new Event('click'), mockProjects[0]);
 
       expect(mockProjectService.listAllDistributions).toHaveBeenCalledTimes(1);
+    });
+
+    it('should drop the badge when the last record is deleted while a terminal job is still tracked', () => {
+      mockProjectService.listAllDistributions.mockReturnValue(
+        of([{ distribution_id: 'dist-1', project_id: 'proj1' } as any])
+      );
+      fixture.detectChanges();
+      expect(component.isDistributed(mockProjects[0])).toBe(true);
+
+      // The job finished, but its corner-widget card was never dismissed.
+      setTrackedJobs([trackedEntry('proj1', 'dist-1', 'completed')]);
+
+      // Deleting the last record re-fetches; the server now returns nothing.
+      mockProjectService.listAllDistributions.mockReturnValue(of([]));
+      component['refresh']();
+      fixture.detectChanges();
+
+      expect(component.isDistributed(mockProjects[0])).toBe(false);
+    });
+
+    it('should not re-light a badge from a terminal job when the tracking state changes', () => {
+      fixture.detectChanges();
+      expect(component.isDistributed(mockProjects[0])).toBe(false);
+
+      setTrackedJobs([trackedEntry('proj1', 'dist-1', 'cancelled')]);
+      fixture.detectChanges();
+
+      expect(component.isDistributed(mockProjects[0])).toBe(false);
+    });
+
+    it('should keep the badge lit for a running job whose record has not landed yet', () => {
+      fixture.detectChanges();
+      expect(component.isDistributed(mockProjects[0])).toBe(false);
+
+      setTrackedJobs([trackedEntry('proj1', 'dist-1', 'running')]);
+      fixture.detectChanges();
+      expect(component.isDistributed(mockProjects[0])).toBe(true);
+
+      // A refresh with no persisted records yet keeps it lit.
+      component['refresh']();
+      fixture.detectChanges();
+      expect(component.isDistributed(mockProjects[0])).toBe(true);
     });
   });
 
