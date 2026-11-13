@@ -12,6 +12,7 @@ import { TopologyPreviewComponent } from './topology-preview/topology-preview.co
 import { TopologyPreviewDialogComponent } from './topology-preview/topology-preview-dialog.component';
 import { ConfirmationDialogComponent } from '@components/dialogs/confirmation-dialog/confirmation-dialog.component';
 import { DistributeProjectDialogComponent } from './distribute-project-dialog/distribute-project-dialog.component';
+import { DistributionHistoryDialogComponent } from './distribution-history-dialog/distribution-history-dialog.component';
 import { ShareProjectDialogComponent } from './share-project-dialog/share-project-dialog.component';
 import { ProjectService } from '@services/project.service';
 import { ProjectDistributionService, TrackedDistribution } from '@services/project-distribution.service';
@@ -100,6 +101,7 @@ describe('ProjectsComponent', () => {
       getReadmeFile: vi.fn().mockReturnValue(of('A useful project description.')),
       listAllDistributions: vi.fn().mockReturnValue(of([])),
       listDistributions: vi.fn(),
+      unfreeze: vi.fn().mockReturnValue(of({})),
     };
 
     mockSettingsService = {
@@ -160,7 +162,14 @@ describe('ProjectsComponent', () => {
           useValue: {
             has: (privilege: string) => true,
             hasAny: (privileges: string[]) => true,
-            privileges: () => new Set<string>(['Project.Allocate', 'Project.Audit', 'Project.Modify']),
+            privileges: () =>
+            new Set<string>([
+              'Project.Allocate',
+              'Project.Audit',
+              'Project.Modify',
+              'Project.Duplicate',
+              'Project.Export',
+            ]),
             isSuperadmin: () => false,
             loaded: () => true,
           },
@@ -628,6 +637,101 @@ describe('ProjectsComponent', () => {
       component['refresh']();
       fixture.detectChanges();
       expect(component.isDistributed(mockProjects[0])).toBe(true);
+    });
+  });
+
+  describe('Distribution lifecycle (frozen template / distributed copy)', () => {
+    const cardActionButton = (card: Element, label: string): HTMLButtonElement | null =>
+      card.querySelector(`button[aria-label="${label}"]`);
+
+    const frozenTemplate = {
+      project_id: 'frozen-1',
+      name: 'Lab',
+      status: 'closed',
+      created_by: 'Alice',
+      frozen: true,
+    } as Project;
+
+    const distributedCopy = {
+      project_id: 'copy-1',
+      name: 'Lab-alice',
+      status: 'closed',
+      created_by: 'alice',
+      distribution_master_id: 'frozen-1',
+    } as Project;
+
+    beforeEach(() => {
+      // Runs ngOnInit (controller from the route, initial project list) so
+      // the per-test seeds below are not overwritten by the first refresh.
+      fixture.detectChanges();
+      component.toggleView('grid');
+    });
+
+    it('shows the frozen badge on a frozen template and opens the distribution history', () => {
+      component['_projects'].set([frozenTemplate]);
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.projects__card');
+      expect(card.querySelector('.projects__frozen-badge')).not.toBeNull();
+
+      (card.querySelector('.projects__frozen-badge') as HTMLElement).click();
+      expect(mockDialog.open).toHaveBeenCalledWith(DistributionHistoryDialogComponent, expect.anything());
+    });
+
+    it('shows the provided-by-teacher badge on a distributed copy', () => {
+      component['_projects'].set([distributedCopy]);
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.projects__card');
+      expect(card.querySelector('.projects__provided-badge')).not.toBeNull();
+      expect(card.querySelector('.projects__frozen-badge')).toBeNull();
+    });
+
+    it('hides duplicate and export on a distributed copy but keeps them on a regular project', () => {
+      component['_projects'].set([frozenTemplate, distributedCopy]);
+      fixture.detectChanges();
+
+      const cards = fixture.nativeElement.querySelectorAll('.projects__card');
+      expect(cards.length).toBe(2);
+
+      // A frozen template can still be duplicated and exported.
+      expect(cardActionButton(cards[0], 'Duplicate project')).not.toBeNull();
+      expect(cardActionButton(cards[0], 'Export project')).not.toBeNull();
+
+      // A distributed copy cannot.
+      expect(cardActionButton(cards[1], 'Duplicate project')).toBeNull();
+      expect(cardActionButton(cards[1], 'Export project')).toBeNull();
+    });
+
+    it('hides the edit action on a frozen template', () => {
+      component['_projects'].set([frozenTemplate]);
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.projects__card');
+      expect(cardActionButton(card, 'Edit project')).toBeNull();
+    });
+
+    it('unfreezes a template from the details panel', () => {
+      vi.spyOn(TestBed.inject(PermissionService), 'isSuperadmin').mockReturnValue(true);
+      mockDialog.open.mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(true)),
+        componentInstance: {},
+      });
+      mockProjectService.unfreeze.mockReturnValue(of({ ...frozenTemplate, frozen: false }));
+
+      component.unfreeze(frozenTemplate);
+
+      expect(mockProjectService.unfreeze).toHaveBeenCalledWith(mockController, 'frozen-1');
+      expect(mockToasterService.success).toHaveBeenCalledWith('Project "Lab" unfrozen.');
+    });
+
+    it('restricts unfreezing to the owner and superadmins', () => {
+      // The mock controller carries no username, so the user is neither the
+      // owner ('Alice') nor a superadmin.
+      expect(component.canUnfreeze(frozenTemplate)).toBe(false);
+
+      vi.spyOn(TestBed.inject(PermissionService), 'isSuperadmin').mockReturnValue(true);
+      expect(component.canUnfreeze(frozenTemplate)).toBe(true);
     });
   });
 

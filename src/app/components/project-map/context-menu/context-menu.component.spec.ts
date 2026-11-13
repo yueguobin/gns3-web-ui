@@ -540,6 +540,54 @@ describe('ContextMenuComponent', () => {
     });
   });
 
+  describe('distribution lifecycle gating', () => {
+    it('should report a frozen template', () => {
+      component.project = { ...mockProject, frozen: true };
+
+      expect(component.isFrozen).toBe(true);
+    });
+
+    it('should report not frozen for a regular project (older servers included)', () => {
+      expect(component.isFrozen).toBe(false);
+    });
+
+    it('should exclude locked nodes from the duplicable selection', () => {
+      const unlocked = createMockNode({ node_id: 'node-free' });
+      const locked = createMockNode({ node_id: 'node-locked', locked: true });
+      component.nodes = [unlocked, locked];
+
+      expect(component.duplicableNodes).toEqual([unlocked]);
+    });
+
+    it('should keep requesting node privileges while a duplicable node remains', () => {
+      component.nodes = [createMockNode({ locked: true }), createMockNode()];
+      component.drawings = [];
+
+      expect(component.duplicatePrivileges).toEqual(['Node.Allocate']);
+    });
+
+    it('should drop the node privilege when every selected node is locked', () => {
+      component.nodes = [createMockNode({ locked: true })];
+      component.drawings = [createMockDrawing()];
+
+      expect(component.duplicatePrivileges).toEqual(['Drawing.Allocate']);
+    });
+
+    it('should request both privileges for a mixed selection', () => {
+      component.nodes = [createMockNode()];
+      component.drawings = [createMockDrawing()];
+
+      expect(component.duplicatePrivileges).toEqual(['Node.Allocate', 'Drawing.Allocate']);
+    });
+
+    it('should request no privilege when nothing is duplicable', () => {
+      component.nodes = [createMockNode({ locked: true })];
+      component.drawings = [];
+
+      expect(component.duplicatePrivileges).toEqual([]);
+    });
+  });
+
   describe('integration behaviors', () => {
     it('should clear previous selections when opening different menu types', () => {
       // Open for node first

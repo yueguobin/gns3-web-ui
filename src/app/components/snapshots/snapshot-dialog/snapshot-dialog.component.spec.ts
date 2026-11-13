@@ -23,6 +23,7 @@ describe('SnapshotDialogComponent', () => {
   let mockProgressDialogService: any;
   let mockController: Controller;
   let mockProject: Project;
+  let mockProjectPermissionService: any;
 
   const createMockSnapshot = (id: string, name: string): Snapshot =>
     ({
@@ -106,6 +107,14 @@ describe('SnapshotDialogComponent', () => {
       readonly: false,
     } as Project;
 
+    mockProjectPermissionService = {
+      privileges: () => new Set<string>(['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore']),
+      has: (privilege: string) => ['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore'].includes(privilege),
+      hasAny: (names: string[]) =>
+        ['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore'].some((p) => names.includes(p)),
+      loaded: () => true,
+    };
+
     await TestBed.configureTestingModule({
       imports: [SnapshotDialogComponent, MatDialogModule],
       providers: [
@@ -114,16 +123,7 @@ describe('SnapshotDialogComponent', () => {
         { provide: SnapshotService, useValue: mockSnapshotService },
         { provide: ProgressDialogService, useValue: mockProgressDialogService },
         { provide: ToasterService, useValue: mockToasterService },
-        {
-          provide: ProjectPermissionService,
-          useValue: {
-            privileges: () => new Set<string>(['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore']),
-            has: (privilege: string) => ['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore'].includes(privilege),
-            hasAny: (names: string[]) =>
-              ['Snapshot.Audit', 'Snapshot.Allocate', 'Snapshot.Restore'].some((p) => names.includes(p)),
-            loaded: () => true,
-          },
-        },
+        { provide: ProjectPermissionService, useValue: mockProjectPermissionService },
         { provide: MatDialog, useValue: mockDialog },
         { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef },
       ],
@@ -153,6 +153,25 @@ describe('SnapshotDialogComponent', () => {
 
     it('should have correct displayed columns', () => {
       expect(component.displayedColumns()).toEqual(['name', 'created_at', 'actions']);
+    });
+  });
+
+  describe('displayed columns on a frozen distributed template', () => {
+    // A frozen template only allows creating and deleting snapshots: restore
+    // is refused by the server, so the actions column renders only when
+    // Snapshot.Allocate is held.
+    it('should keep the actions column when Snapshot.Allocate is held', () => {
+      component.project = { ...mockProject, frozen: true } as Project;
+
+      expect(component.displayedColumns()).toEqual(['name', 'created_at', 'actions']);
+    });
+
+    it('should drop the actions column when only Snapshot.Restore is held', () => {
+      mockProjectPermissionService.has = (privilege: string) => privilege === 'Snapshot.Restore';
+      mockProjectPermissionService.hasAny = (names: string[]) => names.includes('Snapshot.Restore');
+      component.project = { ...mockProject, frozen: true } as Project;
+
+      expect(component.displayedColumns()).toEqual(['name', 'created_at']);
     });
   });
 
