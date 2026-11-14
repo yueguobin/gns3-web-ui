@@ -2,14 +2,20 @@
 // floating-window standard. Consumed via `@use` from each host component's
 // SCSS so the rules land inside that component's style encapsulation.
 
-// ---- resize handles: entirely OUTSIDE the window ----
+// ---- resize handles: straddling the border, invisible ----
 
-// Zero inward reach, on purpose: handles overlapping INTO the window would sit
-// right across the content scrollbar's thumb zone (the cursor would flip to
-// ew-resize over it and drags would resize instead of scroll). Resizing lives
-// wholly beyond the borders. Trade-offs accepted: a window clamped hard
+// EDGES: zero inward reach, on purpose. A handle overlapping INTO the window
+// would sit right across the content scrollbar's thumb zone (the cursor would
+// flip to ew-resize over it and drags would resize instead of scroll). Edge
+// strips therefore span the FULL side but stay entirely outside the border
+// box — no 12px corner inset, so the cursor never vanishes near a corner.
+//
+// CORNERS: the one allowed inward reach (~6px). An outside-only corner box
+// reads as "far from the corner": the edge strips stop, and aiming anywhere
+// near the visible corner hits nothing. No scrollbar thumb lives at a corner,
+// so a corner may straddle it. Trade-offs accepted: a window clamped hard
 // against a viewport edge loses that side's handle (grab another edge), and
-// snapped neighbours share the 12px seam gutter.
+// snapped neighbours share the seam gutter.
 //
 // AFFORDANCE: the hit zones are FUNCTIONAL but fully INVISIBLE by design
 // (settled user preference): grabbing works, the cursor morphs on hover — but
@@ -22,63 +28,64 @@
 
   &--top {
     top: -10px;
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
     height: 10px;
     cursor: ns-resize;
   }
 
   &--right {
-    top: 12px;
+    top: 0;
     right: -10px;
-    bottom: 12px;
+    bottom: 0;
     width: 10px;
     cursor: ew-resize;
   }
 
   &--bottom {
     bottom: -10px;
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
     height: 10px;
     cursor: ns-resize;
   }
 
   &--left {
-    top: 12px;
+    top: 0;
     left: -10px;
-    bottom: 12px;
+    bottom: 0;
     width: 10px;
     cursor: ew-resize;
   }
 
+  // 16×16 straddling the corner: ~6px inside the padding box, the rest out.
   &--top-left {
-    top: -16px;
-    left: -16px;
+    top: -10px;
+    left: -10px;
     width: 16px;
     height: 16px;
     cursor: nwse-resize;
   }
 
   &--top-right {
-    top: -16px;
-    right: -16px;
+    top: -10px;
+    right: -10px;
     width: 16px;
     height: 16px;
     cursor: nesw-resize;
   }
 
   &--bottom-left {
-    bottom: -16px;
-    left: -16px;
+    bottom: -10px;
+    left: -10px;
     width: 16px;
     height: 16px;
     cursor: nesw-resize;
   }
 
   &--bottom-right {
-    bottom: -16px;
-    right: -16px;
+    bottom: -10px;
+    right: -10px;
     width: 16px;
     height: 16px;
     cursor: nwse-resize;

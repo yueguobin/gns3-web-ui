@@ -68,10 +68,15 @@ onResizing(event: ResizeEvent): void {
 
 ### Handles
 
-- 8 handles, **entirely OUTSIDE the border box** (edges 10px strips starting
-  12px in; corners 16×16 at −16px). Zero inward reach: an inside-reaching
-  handle covers the content scrollbar's thumb zone (cursor flips to resize
-  over it, drags resize instead of scroll).
+- 8 handles, invisible but functional. **Edge strips** are 10px deep and span
+  the FULL side, entirely OUTSIDE the border box — zero inward reach: an
+  inside-reaching edge handle covers the content scrollbar's thumb zone
+  (cursor flips to resize, drags resize instead of scroll). No corner inset:
+  the strips run to the corners so the cursor never vanishes near one.
+- **Corners** are 16×16 and straddle the corner (~6px inside the padding box,
+  the rest outside) — the ONLY allowed inward reach. No scrollbar thumb lives
+  at a corner, and an outside-only corner box reads as "far from the corner":
+  the edge strips stop and aiming near the visible corner hits nothing.
 - Accepted trade-offs: a window clamped flush to a viewport edge loses that
   side's handle (grab another edge); snapped neighbours share the seam gap.
 - Copy `replay-window-handles.scss` — including the trailing
