@@ -120,7 +120,7 @@ export function dockSlot(
   };
 }
 
-// ---- magnetic snap (dragging pinned windows) ------------------------------
+// ---- magnetic snap (dragging + resizing the replay windows) ----------------
 
 /** Snap distance in px — a dragged edge within this of a sibling's attaches. */
 export const SNAP_THRESHOLD = 12;
@@ -160,6 +160,211 @@ export function snapRect(tentative: Rect, siblings: Rect[], threshold: number = 
     }
   }
   return { left, top, width: tentative.width, height: tentative.height };
+}
+
+/** Where a snap engaged: the guide line's viewport coordinate, null per idle axis. */
+export interface SnapGuides {
+  /** Vertical guide line at this viewport x (an edge pair aligned/attached). */
+  x: number | null;
+  /** Horizontal guide line at this viewport y. */
+  y: number | null;
+}
+
+/** A snap pass's product: the (possibly) adjusted rect + what engaged. */
+export interface SnapResult {
+  rect: Rect;
+  guides: SnapGuides;
+}
+
+/**
+ * One attach candidate per axis: where MY anchor edge would sit (`at`, in
+ * viewport px) and the contact line a guide should highlight (`guide` — the
+ * SIBLING's (or rail's) edge, so the line reads as "you snapped to THIS",
+ * not as a stranger stripe through my own window).
+ */
+interface SnapCandidate {
+  at: number;
+  guide: number;
+}
+
+/**
+ * Sibling attach candidates for one axis, generic over x/y (`start`/`size` =
+ * the sibling's edge and extent on that axis, `extent` = MINE): align
+ * edge-to-edge, sit after it, or sit before it — always one seam apart.
+ */
+function attachCandidates(start: number, size: number, gap: number, extent: number): SnapCandidate[] {
+  return [
+    { at: start, guide: start }, // edge-to-edge align (tidy columns/rows)
+    { at: start + size + gap, guide: start + size }, // I sit after it
+    { at: start - gap - extent, guide: start }, // I sit before it
+  ];
+}
+
+/**
+ * Magnetic snap of ANY dragged replay window (main, pinned, peek) against
+ * both its sibling windows AND the viewport rails (the toolbar clearance
+ * `minTop`, the left/right/top screen edges): the same attach model as
+ * {@link snapRect} — nearest candidate per axis wins, one {@link DOCK_GAP}
+ * seam between windows — plus the coordinates the caller renders as snap
+ * guide lines while the gesture is live. Viewport rails snap FLUSH (no gap):
+ * a window dragged to a screen edge parks hard against it.
+ */
+export function snapDraggedWindow(
+  tentative: Rect,
+  siblings: Rect[],
+  viewport: { width: number; height: number },
+  minTop: number,
+  threshold: number = SNAP_THRESHOLD
+): SnapResult {
+  const xs: SnapCandidate[] = [];
+  const ys: SnapCandidate[] = [];
+  for (const s of siblings) {
+    xs.push(...attachCandidates(s.left, s.width, DOCK_GAP, tentative.width));
+    ys.push(...attachCandidates(s.top, s.height, DOCK_GAP, tentative.height));
+  }
+  // Viewport rails: flush to the usable screen edges.
+  xs.push({ at: 0, guide: 0 }, { at: viewport.width - tentative.width, guide: viewport.width });
+  ys.push({ at: minTop, guide: minTop }, { at: viewport.height - tentative.height, guide: viewport.height });
+
+  const pick = (from: SnapCandidate[], anchor: number): SnapCandidate | null => {
+    let best: SnapCandidate | null = null;
+    let bestD = threshold + 1;
+    for (const c of from) {
+      const d = Math.abs(c.at - anchor);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return bestD <= threshold ? best : null;
+  };
+
+  const pickX = pick(xs, tentative.left);
+  const pickY = pick(ys, tentative.top);
+  return {
+    rect: {
+      left: pickX ? pickX.at : tentative.left,
+      top: pickY ? pickY.at : tentative.top,
+      width: tentative.width,
+      height: tentative.height,
+    },
+    guides: { x: pickX ? pickX.guide : null, y: pickY ? pickY.guide : null },
+  };
+}
+
+/** Which edges a resize gesture drags (mwlResizable's `ResizeEvent.edges`). */
+export interface ResizeEdges {
+  top?: boolean | number;
+  left?: boolean | number;
+  right?: boolean | number;
+  bottom?: boolean | number;
+}
+
+/**
+ * Magnetic snap of a RESIZE in flight: each dragged edge attaches to the
+ * nearest sibling edge (one {@link DOCK_GAP} seam, like drag snapping) or
+ * the viewport rail (the same ceilings {@link clampWindowSize} enforces),
+ * while the OPPOSITE edges stay put — per axis independently, so corner
+ * drags attach on both. Candidates that would push the size under
+ * `minW`/`minH` are skipped (the directive's own minimum validation then
+ * freezes the edge instead — the gesture never breaks).
+ */
+export function snapResizedWindow(
+  current: Rect,
+  edges: ResizeEdges,
+  siblings: Rect[],
+  viewport: { width: number; height: number },
+  minTop: number,
+  minW: number,
+  minH: number,
+  threshold: number = SNAP_THRESHOLD
+): SnapResult {
+  let { left, top, width, height } = current;
+  let guideX: number | null = null;
+  let guideY: number | null = null;
+
+  const attach = (candidates: SnapCandidate[], edge: number): SnapCandidate | null => {
+    let best: SnapCandidate | null = null;
+    let bestD = threshold + 1;
+    for (const c of candidates) {
+      const d = Math.abs(c.at - edge);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return bestD <= threshold ? best : null;
+  };
+
+  if (edges.left) {
+    // My LEFT edge may attach to: a sibling's left (align), its right + seam
+    // (I grow out of its right side), or its left − seam (it sits on my
+    // right); rails: flush 0.
+    const cands: SnapCandidate[] = [];
+    for (const s of siblings) {
+      cands.push({ at: s.left, guide: s.left }, { at: s.left + s.width + DOCK_GAP, guide: s.left + s.width }, {
+        at: s.left - DOCK_GAP,
+        guide: s.left,
+      });
+    }
+    cands.push({ at: 0, guide: 0 });
+    const hit = attach(cands, left);
+    if (hit && left + width - hit.at >= minW) {
+      width = left + width - hit.at;
+      left = hit.at;
+      guideX = hit.guide;
+    }
+  }
+  if (edges.right) {
+    const right = left + width;
+    const cands: SnapCandidate[] = [];
+    for (const s of siblings) {
+      cands.push({ at: s.left - DOCK_GAP, guide: s.left }, { at: s.left + s.width, guide: s.left + s.width }, {
+        at: s.left + s.width + DOCK_GAP,
+        guide: s.left + s.width,
+      });
+    }
+    cands.push({ at: viewport.width - WINDOW_GUTTER, guide: viewport.width - WINDOW_GUTTER });
+    const hit = attach(cands, right);
+    if (hit && hit.at - left >= minW) {
+      width = hit.at - left;
+      guideX = hit.guide;
+    }
+  }
+  if (edges.top) {
+    const cands: SnapCandidate[] = [];
+    for (const s of siblings) {
+      cands.push({ at: s.top, guide: s.top }, { at: s.top + s.height + DOCK_GAP, guide: s.top + s.height }, {
+        at: s.top - DOCK_GAP,
+        guide: s.top,
+      });
+    }
+    cands.push({ at: minTop, guide: minTop });
+    const hit = attach(cands, top);
+    if (hit && top + height - hit.at >= minH) {
+      height = top + height - hit.at;
+      top = hit.at;
+      guideY = hit.guide;
+    }
+  }
+  if (edges.bottom) {
+    const bottom = top + height;
+    const cands: SnapCandidate[] = [];
+    for (const s of siblings) {
+      cands.push({ at: s.top - DOCK_GAP, guide: s.top }, { at: s.top + s.height, guide: s.top + s.height }, {
+        at: s.top + s.height + DOCK_GAP,
+        guide: s.top + s.height,
+      });
+    }
+    cands.push({ at: viewport.height - WINDOW_GUTTER_BOTTOM, guide: viewport.height - WINDOW_GUTTER_BOTTOM });
+    const hit = attach(cands, bottom);
+    if (hit && hit.at - top >= minH) {
+      height = hit.at - top;
+      guideY = hit.guide;
+    }
+  }
+
+  return { rect: { left, top, width, height }, guides: { x: guideX, y: guideY } };
 }
 
 // ---- cluster join (new pins beside hand-arranged windows) -----------------

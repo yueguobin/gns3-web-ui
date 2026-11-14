@@ -58,6 +58,10 @@ export const SYNCED_PREFERENCE_KEYS: readonly string[] = [
   // minutes-scale lifetime, dropped the moment a job finishes — stale refs
   // self-heal via 404 on the next restore, so the doc never accumulates them)
   'gns3-active-distributions',
+  // Replay window geometry (JSON: main-window rect + pin tile size; restored
+  // viewport-clamped at use time, so values from a larger screen degrade
+  // safely on a smaller one — same contract as the widget geometry above)
+  'gns3_replay_window_state',
 ];
 
 interface UserPreferencesDoc {

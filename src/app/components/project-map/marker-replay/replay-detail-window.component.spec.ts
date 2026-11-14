@@ -15,6 +15,7 @@ import { NodesDataSource } from '../../../cartography/datasources/nodes-datasour
 import { Controller } from '@models/controller';
 import { PinnedDetail, ReplayFrame, ReplayFrameDetail, ReplayRangeResponse } from '@models/marker-replay';
 import { dockSlot, DOCK_GAP } from './replay-geometry';
+import { REPLAY_WINDOW_STATE_KEY } from './replay-window-state';
 
 describe('ReplayDetailWindowComponent (pinned comparison window)', () => {
   let fixture: ComponentFixture<ReplayDetailWindowComponent>;
@@ -91,6 +92,9 @@ describe('ReplayDetailWindowComponent (pinned comparison window)', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Resize tests persist the pin tile size — drop it so every service
+    // instance starts from the default tile instead of the previous test's.
+    localStorage.removeItem(REPLAY_WINDOW_STATE_KEY);
     mockHttp = { get: vi.fn().mockReturnValue(of(range)) };
 
     await TestBed.configureTestingModule({
@@ -360,7 +364,7 @@ describe('ReplayDetailWindowComponent (pinned comparison window)', () => {
     /** Dispatch a header drag gesture: down at (100,100), move by (dx,dy), up. */
     async function dragBy(dx: number, dy: number) {
       const header = (fixture.nativeElement as HTMLElement).querySelector(
-        '.gns3-replay__window-header'
+        '.gns3-replay__header-drag'
       ) as HTMLElement;
       header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
       if (dx || dy) document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + dx, clientY: 100 + dy }));
@@ -477,7 +481,7 @@ describe('ReplayDetailWindowComponent (pinned comparison window)', () => {
 
       // Drag toward it: raw (start + 294, start − 229) = (310, ~top-229) —
       // within the 12px snap threshold of the sibling's (300, 200).
-      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__window-header') as HTMLElement;
+      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__header-drag') as HTMLElement;
       header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
       document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + 294, clientY: 100 + (200 - startTop) + 3 }));
       document.dispatchEvent(new MouseEvent('mouseup'));
@@ -508,7 +512,7 @@ describe('ReplayDetailWindowComponent (pinned comparison window)', () => {
       await flushFrames();
 
       // Pin #1 docks, then the user drags it out to (100, 200) — hand-arranged.
-      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__window-header') as HTMLElement;
+      const header = (fixture.nativeElement as HTMLElement).querySelector('.gns3-replay__header-drag') as HTMLElement;
       header.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100 }));
       document.dispatchEvent(new MouseEvent('mousemove', { clientX: 100 + 84, clientY: 100 - 232 }));
       document.dispatchEvent(new MouseEvent('mouseup'));

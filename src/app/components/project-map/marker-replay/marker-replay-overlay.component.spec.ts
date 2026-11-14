@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { of, throwError, Subject } from 'rxjs';
 import { MarkerReplayOverlayComponent } from './marker-replay-overlay.component';
+import { REPLAY_WINDOW_STATE_KEY } from './replay-window-state';
 import { MarkerReplayService } from '@services/marker-replay.service';
 import { WindowManagementService } from '@services/window-management.service';
 import { HttpController } from '@services/http-controller.service';
@@ -48,6 +49,9 @@ describe('MarkerReplayOverlayComponent', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Gesture tests persist the main rect — drop it so every fixture starts
+    // at the default placement instead of restoring the previous test's.
+    localStorage.removeItem(REPLAY_WINDOW_STATE_KEY);
     mockHttp = { get: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [MarkerReplayOverlayComponent],

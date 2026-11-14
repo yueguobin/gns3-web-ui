@@ -10,6 +10,11 @@
 // wholly beyond the borders. Trade-offs accepted: a window clamped hard
 // against a viewport edge loses that side's handle (grab another edge), and
 // snapped neighbours share the 12px seam gutter.
+//
+// AFFORDANCE: the hit zones are FUNCTIONAL but fully INVISIBLE by design
+// (user preference): grabbing works, the cursor morphs on hover — but no
+// background tint ever renders, at rest, on hover or mid-gesture. The only
+// allowed visual feedback of a resize is the cursor itself.
 .gns3-replay__resize-handle {
   position: absolute;
   z-index: 100;
@@ -78,4 +83,13 @@
     height: 16px;
     cursor: nwse-resize;
   }
+}
+
+// Silent gesture, defense-in-depth: handles must stay colorless even while
+// a resize is in flight (the cursor rides the grabbed edge, so any hover
+// tint would stay lit through the whole gesture). Pin transparent AFTER any
+// future tint rule — equal specificity, later wins.
+.gns3-replay__window--resizing .gns3-replay__resize-handle,
+.gns3-replay__main--resizing .gns3-replay__resize-handle {
+  background: transparent;
 }

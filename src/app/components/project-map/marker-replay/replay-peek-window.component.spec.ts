@@ -112,7 +112,7 @@ describe('ReplayPeekWindowComponent (transient double-click detail window)', () 
 
     // The title bar (the drag-handle strip) dismisses instead.
     const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
-    el.querySelector('.gns3-replay__window-header')!.dispatchEvent(ev);
+    el.querySelector('.gns3-replay__header-drag')!.dispatchEvent(ev);
     expect(svc.peek()).toBeNull();
     expect(ev.defaultPrevented).toBe(true); // browser menu suppressed
   });

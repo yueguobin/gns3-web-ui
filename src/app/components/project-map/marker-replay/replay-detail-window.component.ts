@@ -21,7 +21,18 @@ import { MarkerReplayService } from '@services/marker-replay.service';
 import { MapScaleService } from '@services/mapScale.service';
 import { MapSettingsService } from '@services/mapsettings.service';
 import { PinnedDetail } from '@models/marker-replay';
-import { clampRect, clampWindowSize, clusterAppend, DOCK_TILE_H, DOCK_TILE_W, dockSlot, snapRect } from './replay-geometry';
+import {
+  SnapGuides,
+  clampRect,
+  clampWindowSize,
+  clusterAppend,
+  DOCK_TILE_H,
+  DOCK_TILE_W,
+  dockSlot,
+  snapDraggedWindow,
+  snapResizedWindow,
+} from './replay-geometry';
+import { ReplayZoomController } from './replay-zoom';
 import { ReplayDetailPaneComponent } from './replay-detail-pane.component';
 
 /** Leader-line endpoint pair in viewport px (window edge → link anchor). */
@@ -103,6 +114,13 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
   readonly leader = signal<Leader | null>(null);
   /** True while a resize gesture is in flight. */
   readonly resizing = signal(false);
+  /**
+   * This window's content zoom — born at the pin kind's last-used level,
+   * then adjusted here without touching any sibling (see replay-zoom.ts).
+   */
+  readonly zoomCtl = new ReplayZoomController('pin');
+  /** Live snap-guide lines while a drag/resize attaches; null when idle. */
+  readonly snapGuides = signal<SnapGuides | null>(null);
   /**
    * Whether this window has had its FIRST placement pass — the join-the-cluster
    * decision only applies to a brand-new window, never to reflows of an
@@ -292,7 +310,53 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     this.resizing.set(true);
   }
 
+  /**
+   * LIVE follow: non-ghost mode applies NOTHING by itself (the library only
+   * reports), so the validated rect is mirrored into the signals on every
+   * move — the window tracks the pointer instead of teleporting on release.
+   * The dragged edges magnetize against the fleet + viewport rails, and the
+   * leader/report stay live so siblings can already snap against the new
+   * shape.
+   */
+  onResizing(event: ResizeEvent): void {
+    this.applyResizeSnap(event); // signals already carry the result
+    this.updateLeader();
+    this.reportRect();
+  }
+
+  /** Mirror + magnetize one live resize rectangle into the signals. */
+  private applyResizeSnap(event: ResizeEvent): void {
+    const r = event.rectangle;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
+    const vh = typeof window !== 'undefined' ? window.innerHeight : this.winHeight();
+    const snapped = snapResizedWindow(
+      {
+        left: r.left ?? this.winLeft(),
+        top: r.top ?? this.winTop(),
+        width: r.width ?? this.winWidth(),
+        height: r.height ?? this.winHeight(),
+      },
+      event.edges ?? {},
+      this.svc.snapSiblingRects({ pinId: this.pinned().id }),
+      { width: vw, height: vh },
+      64, // project toolbar
+      this.MIN_W,
+      this.MIN_H
+    );
+    this.winLeft.set(snapped.rect.left);
+    this.winTop.set(snapped.rect.top);
+    this.winWidth.set(snapped.rect.width);
+    this.winHeight.set(snapped.rect.height);
+    this.snapGuides.set(snapped.guides);
+  }
+
   onResizeEnd(event: ResizeEvent): void {
+    // Consume the FULL rectangle — left/top too: a left/top-edge drag MOVES
+    // those edges, and dropping them would snap the window back and grow it
+    // toward the opposite side (the old jump-on-release bug).
+    const r = event.rectangle;
+    if (r.left !== undefined) this.winLeft.set(r.left);
+    if (r.top !== undefined) this.winTop.set(r.top);
     // Clamp locally — WindowBoundaryService's config is GLOBAL shared state
     // (its 500px minWidth suits marker-manager, not this window).
     const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
@@ -308,6 +372,7 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
     this.winWidth.set(width);
     this.winHeight.set(height);
     this.resizing.set(false);
+    this.snapGuides.set(null);
     // Remember the chosen size for the session — later pins dock at it. A
     // docked snapshot owns its size, so resizing one frees it (the dock would
     // otherwise snap the size back).
@@ -344,20 +409,30 @@ export class ReplayDetailWindowComponent implements OnInit, OnDestroy {
       moved = true;
       const vw = typeof window !== 'undefined' ? window.innerWidth : this.winWidth();
       const vh = typeof window !== 'undefined' ? window.innerHeight : this.winHeight();
-      // Magnetize against settled siblings — dragging several together builds
-      // flush comparison grids.
-      const snapped = snapRect(
+      // Magnetize against the whole settled fleet (other pins, the main
+      // window, the peek) AND the viewport rails — dragging several together
+      // builds flush comparison grids; the guides make the attach visible.
+      const snapped = snapDraggedWindow(
         { left: startLeft + dx, top: startTop + dy, width: this.winWidth(), height: this.winHeight() },
-        this.svc.pinSiblingRects(this.pinned().id)
+        this.svc.snapSiblingRects({ pinId: this.pinned().id }),
+        { width: vw, height: vh },
+        minTop
       );
-      const r = clampRect(snapped, { width: vw, height: vh }, minTop);
+      const r = clampRect(snapped.rect, { width: vw, height: vh }, minTop);
       this.winLeft.set(r.left);
       this.winTop.set(r.top);
+      // A guide that clampRect overrode would lie — only show engagements
+      // that survived into the final position.
+      this.snapGuides.set({
+        x: r.left === snapped.rect.left ? snapped.guides.x : null,
+        y: r.top === snapped.rect.top ? snapped.guides.y : null,
+      });
       this.updateLeader();
     };
     const onUp = (): void => {
       this.teardownDrag();
       this.dragging.set(false);
+      this.snapGuides.set(null);
       if (moved) this.dragPinned.set(true);
       // Full reposition pass — clamps the dropped spot AND republishes this
       // window's rect so siblings snap against where it LANDED, not where it

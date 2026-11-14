@@ -6,6 +6,9 @@
 // OUTSIDE the border box (see replay-window-handles.scss for the geometry);
 // the header/body carry the corner radii instead.
 @use './replay-window-handles';
+@use './replay-snap-guides';
+@use './replay-window-zoom';
+@use './replay-window-header';
 @use '../../../../styles/buttons' as buttons;
 
 .gns3-replay__main {
@@ -19,13 +22,16 @@
     0 4px 8px color-mix(in srgb, var(--mat-sys-shadow) 10%, transparent);
 }
 
+// Gesture states are SILENT (user preference — see _replay-window-surface):
+// no colored ring while dragging/resizing, the cursor says it all.
 .gns3-replay__main--dragging,
 .gns3-replay__main--resizing {
   user-select: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary) 45%, transparent),
-    0 8px 24px color-mix(in srgb, var(--mat-sys-shadow) 15%, transparent);
 }
 
+// The header strip hosts TWO zones (see _replay-window-header.scss): the
+// drag-owning title strip on the left, the never-dragging action toolbar on
+// the right. The strip itself is layout only — no cursor, no drag binding.
 .gns3-replay__header {
   display: flex;
   align-items: center;
@@ -36,12 +42,6 @@
   border-radius: 6px 6px 0 0; // inner radius (outer 8px − 2px border)
   user-select: none;
   flex-shrink: 0;
-  cursor: grab;
-}
-
-// Hand CLOSED while the gesture is live — the pressed state of the grab.
-.gns3-replay__main--dragging .gns3-replay__header {
-  cursor: grabbing;
 }
 
 .gns3-replay__icon {

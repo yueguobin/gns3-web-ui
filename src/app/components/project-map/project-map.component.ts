@@ -130,7 +130,7 @@ import { NodeDraggedComponent } from '../drawings-listeners/node-dragged/node-dr
 import { NodeLabelDraggedComponent } from '../drawings-listeners/node-label-dragged/node-label-dragged.component';
 import { TextAddedComponent } from '../drawings-listeners/text-added/text-added.component';
 import { MarkerManagerComponent } from './marker-manager/marker-manager.component';
-import { MarkerReplayOverlayComponent } from './marker-replay/marker-replay-overlay.component';
+import { MarkerReplayOverlayComponent, REPLAY_WINDOW_Z_BAND } from './marker-replay/marker-replay-overlay.component';
 import { TextEditedComponent } from '../drawings-listeners/text-edited/text-edited.component';
 import { createActionCompletion } from '@utils/action-completion.util';
 import { NotificationCenterComponent } from '@components/notification-center/notification-center.component';
@@ -250,6 +250,18 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
   public fileManagerInlineZIndex = new Map<string, number>();
   // Counter for generating unique z-indices
   private zIndexCounter = 0;
+
+  /**
+   * Raise a window a whole Z BAND above the current top (base + n × band),
+   * not +1: the replay overlay runs a click-to-front focus fleet INSIDE its
+   * band (internal boosts < {@link REPLAY_WINDOW_Z_BAND}), so a window
+   * raised here is guaranteed above every internal boost of every other
+   * window — "whoever I click is frontmost" holds across ALL windows again.
+   */
+  private raiseZIndex(): number {
+    this.zIndexCounter++;
+    return this.baseZIndex + this.zIndexCounter * REPLAY_WINDOW_Z_BAND;
+  }
 
   // Z-index for console and AI chat windows
   public consoleZIndex: number = this.baseZIndex;
@@ -1395,8 +1407,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     }
 
     // Assign z-index for new window (increment counter)
-    this.zIndexCounter++;
-    const windowZIndex = this.baseZIndex + this.zIndexCounter;
+        const windowZIndex = this.raiseZIndex();
 
     // Add the link to our Map of open windows
     this.webWiresharkInlineWindows.set(data.link.link_id, data.link);
@@ -1422,8 +1433,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     }
 
     // Increment counter and assign higher z-index
-    this.zIndexCounter++;
-    const newZIndex = this.baseZIndex + this.zIndexCounter;
+        const newZIndex = this.raiseZIndex();
     this.webWiresharkInlineZIndex.set(linkId, newZIndex);
     this.cd.markForCheck();
   }
@@ -1455,8 +1465,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     }
 
     // Assign z-index for new window (increment counter)
-    this.zIndexCounter++;
-    const windowZIndex = this.baseZIndex + this.zIndexCounter;
+        const windowZIndex = this.raiseZIndex();
 
     // Add the node to our Map of open windows
     this.webConsoleInlineWindows.set(data.node.node_id, data.node);
@@ -1482,8 +1491,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     }
 
     // Increment counter and assign higher z-index
-    this.zIndexCounter++;
-    const newZIndex = this.baseZIndex + this.zIndexCounter;
+        const newZIndex = this.raiseZIndex();
     this.webConsoleInlineZIndex.set(nodeId, newZIndex);
     this.cd.markForCheck();
   }
@@ -1506,8 +1514,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
    * Bring console window to front
    */
   public bringConsoleToFront() {
-    this.zIndexCounter++;
-    this.consoleZIndex = this.baseZIndex + this.zIndexCounter;
+        this.consoleZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -1515,8 +1522,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
    * Bring AI chat window to front
    */
   public bringAIChatToFront() {
-    this.zIndexCounter++;
-    this.aiChatZIndex = this.baseZIndex + this.zIndexCounter;
+        this.aiChatZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -1535,8 +1541,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       return;
     }
     this.isMarkerManagerVisible = true;
-    this.zIndexCounter++;
-    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
+        this.markerManagerZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -1553,8 +1558,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
    * Bring the Marker Manager window to front.
    */
   public bringMarkerManagerToFront() {
-    this.zIndexCounter++;
-    this.markerManagerZIndex = this.baseZIndex + this.zIndexCounter;
+        this.markerManagerZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -1569,8 +1573,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
     // A fresh session opens un-minimized (it may inherit the registry entry of
     // a previous, minimized one).
     this.windowManagement.restoreWindow('replay-main');
-    this.zIndexCounter++;
-    this.markerReplayZIndex = this.baseZIndex + this.zIndexCounter;
+        this.markerReplayZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -1608,8 +1611,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
   /** Bring the replay overlay to front. */
   public bringMarkerReplayToFront() {
-    this.zIndexCounter++;
-    this.markerReplayZIndex = this.baseZIndex + this.zIndexCounter;
+        this.markerReplayZIndex = this.raiseZIndex();
     this.cd.markForCheck();
   }
 
@@ -2199,9 +2201,8 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
       this.bringFileManagerToFront(data.node.node_id);
       return;
     }
-    this.zIndexCounter++;
     this.fileManagerInlineWindows.set(data.node.node_id, data.node);
-    this.fileManagerInlineZIndex.set(data.node.node_id, this.baseZIndex + this.zIndexCounter);
+    this.fileManagerInlineZIndex.set(data.node.node_id, this.raiseZIndex());
     this.cd.markForCheck();
   }
 
@@ -2213,8 +2214,7 @@ export class ProjectMapComponent implements OnInit, OnDestroy {
 
   public bringFileManagerToFront(nodeId: string) {
     if (!this.fileManagerInlineWindows.has(nodeId)) return;
-    this.zIndexCounter++;
-    this.fileManagerInlineZIndex.set(nodeId, this.baseZIndex + this.zIndexCounter);
+    this.fileManagerInlineZIndex.set(nodeId, this.raiseZIndex());
     this.cd.markForCheck();
   }
 
