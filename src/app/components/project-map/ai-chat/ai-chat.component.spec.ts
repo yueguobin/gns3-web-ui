@@ -249,9 +249,10 @@ describe('AiChatComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('should set boundary config with correct toolbar height for desktop', () => {
-      // Default is desktop (innerWidth > 768)
-      expect(mockBoundaryService.setConfig).toHaveBeenCalledWith({ topOffset: 64 });
+    it('no longer configures the global boundary service (own clamps now)', () => {
+      // The panel clamps through the shared floating-window helpers instead —
+      // the global boundary config is deliberately untouched.
+      expect(mockBoundaryService.setConfig).not.toHaveBeenCalled();
     });
 
     it('should call initializeChat on ngOnInit', () => {
@@ -445,13 +446,29 @@ describe('AiChatComponent', () => {
     });
 
     it('should handle onResizeEnd with debounced save', () => {
+      // Tall viewport so the kit's bottom gutter does not clamp the height.
+      window.innerWidth = 1920;
+      window.innerHeight = 1200;
       const mockEvent = {
         rectangle: { width: 700, height: 800, left: 100, top: 100 },
       } as ResizeEvent;
       component.onResizeEnd(mockEvent);
-      expect(mockBoundaryService.constrainResizeSize).toHaveBeenCalled();
+      // The final rect is written into the panel style (full rectangle).
+      expect(component.style['width']).toBe('700px');
+      expect(component.style['height']).toBe('800px');
       // The debounced save should be scheduled (we can't easily test timers in zoneless mode)
       expect(mockAiChatStore.updatePanelSize).not.toHaveBeenCalled();
+    });
+
+    it('should mirror a live resize into the panel style', () => {
+      window.innerWidth = 1920;
+      window.innerHeight = 1200;
+      const mockEvent = {
+        rectangle: { width: 720, height: 820, left: 90, top: 95 },
+      } as ResizeEvent;
+      component.onResizing(mockEvent);
+      expect(component.style['width']).toBe('720px');
+      expect(component.style['height']).toBe('820px');
     });
   });
 
@@ -486,11 +503,14 @@ describe('AiChatComponent', () => {
       expect(mockBoundaryService.constrainWindowPosition).not.toHaveBeenCalled();
     });
 
-    it('should constrain window position on window resize in normal state', () => {
+    it('should clamp the window into the viewport on window resize in normal state', () => {
       component.isMinimized = false;
       component.isMaximized = false;
+      component.style = { position: 'fixed', left: '-500px', top: '40px', width: '600px', height: '500px' };
       component.onWindowResize();
-      expect(mockBoundaryService.constrainWindowPosition).toHaveBeenCalled();
+      // Left clamps to 0 via the shared helpers, without the boundary service.
+      expect(component.style['left']).toBe('0px');
+      expect(mockBoundaryService.constrainWindowPosition).not.toHaveBeenCalled();
     });
   });
 

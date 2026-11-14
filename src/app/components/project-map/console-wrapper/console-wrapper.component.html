@@ -6,13 +6,16 @@
     lightTheme: isLightThemeEnabled(),
     'console-active': isConsoleActive(),
     'is-minimized': isMinimized(),
-    'is-dragging': isDragging()
+    'is-dragging': isDragging(),
+    'is-resizing': isResizing()
   }"
   [style.z-index]="zIndex()"
   (mousedown)="onWindowFocus()"
   mwlResizable
   [validateResize]="validate"
-  [enableGhostResize]="true"
+  [enableGhostResize]="false"
+  (resizeStart)="onResizingStart()"
+  (resizing)="onResizing($event)"
   (resizeEnd)="onResizeEnd($event)"
   tabindex="0"
   (click)="onConsoleActivate()"
@@ -20,16 +23,48 @@
 >
   @if (!isMinimized()) {
   <!-- Edge handles -->
-  <div class="resize-handle resize-handle-top" mwlResizeHandle [resizeEdges]="{ top: true }"></div>
-  <div class="resize-handle resize-handle-right" mwlResizeHandle [resizeEdges]="{ right: true }"></div>
-  <div class="resize-handle resize-handle-bottom" mwlResizeHandle [resizeEdges]="{ bottom: true }"></div>
-  <div class="resize-handle resize-handle-left" mwlResizeHandle [resizeEdges]="{ left: true }"></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--top"
+    mwlResizeHandle
+    [resizeEdges]="{ top: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--right"
+    mwlResizeHandle
+    [resizeEdges]="{ right: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--bottom"
+    mwlResizeHandle
+    [resizeEdges]="{ bottom: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--left"
+    mwlResizeHandle
+    [resizeEdges]="{ left: true }"
+  ></div>
 
   <!-- Corner handles -->
-  <div class="resize-handle resize-handle-top-left" mwlResizeHandle [resizeEdges]="{ top: true, left: true }"></div>
-  <div class="resize-handle resize-handle-top-right" mwlResizeHandle [resizeEdges]="{ top: true, right: true }"></div>
-  <div class="resize-handle resize-handle-bottom-left" mwlResizeHandle [resizeEdges]="{ bottom: true, left: true }"></div>
-  <div class="resize-handle resize-handle-bottom-right" mwlResizeHandle [resizeEdges]="{ bottom: true, right: true }"></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--top-left"
+    mwlResizeHandle
+    [resizeEdges]="{ top: true, left: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--top-right"
+    mwlResizeHandle
+    [resizeEdges]="{ top: true, right: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--bottom-left"
+    mwlResizeHandle
+    [resizeEdges]="{ bottom: true, left: true }"
+  ></div>
+  <div
+    class="gns3-window__resize-handle gns3-window__resize-handle--bottom-right"
+    mwlResizeHandle
+    [resizeEdges]="{ bottom: true, right: true }"
+  ></div>
   }
 
   <!-- Console Content -->

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ResizeEvent } from 'angular-resizable-element';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of, throwError, Subject } from 'rxjs';
 import { MarkerManagerComponent } from './marker-manager.component';
@@ -9,7 +10,6 @@ import { MapLinksDataSource } from '../../../cartography/datasources/map-datasou
 import { NodesDataSource } from '../../../cartography/datasources/nodes-datasource';
 import { MarkerRegistryService } from '@services/marker-registry.service';
 import { ToasterService } from '@services/toaster.service';
-import { WindowBoundaryService } from '@services/window-boundary.service';
 import { WindowManagementService } from '@services/window-management.service';
 import { ProjectPermissionService } from '@services/project-permission.service';
 import { Controller } from '@models/controller';
@@ -72,10 +72,6 @@ describe('MarkerManagerComponent', () => {
           },
         },
         {
-          provide: WindowBoundaryService,
-          useValue: { setConfig: vi.fn(), constrainResizeSize: vi.fn() },
-        },
-        {
           provide: WindowManagementService,
           useValue: {
             minimizedWindows: vi.fn(() => []),
@@ -106,14 +102,25 @@ describe('MarkerManagerComponent', () => {
     expect(component.fitEmptyDefinitions()).toBe(false);
   });
 
-  it('starts resizing from the actual content height of an empty window', () => {
+  it('mirrors a live resize into the window and suspends fit mode while resizing', () => {
     markerService.listDefinitions.mockReturnValue(of({}));
     markerService.aggregateList.mockReturnValue(of({}));
     fixture.detectChanges();
+    expect(component.fitEmptyDefinitions()).toBe(true);
+    component.chrome.onResizeStart();
+    component.chrome.onResizing({
+      rectangle: { left: 120, top: 80, width: 700, height: 460 },
+    } as ResizeEvent);
+    fixture.detectChanges();
     const element = fixture.nativeElement.querySelector('.marker-manager');
-    vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ height: 460 } as DOMRect);
-    component.onResizeStart();
-    expect(component.resizedHeight).toBe(460);
+    expect(element.style.width).toBe('700px');
+    // The fit-mode `height: auto` override yields to the live mirror.
+    expect(element.style.height).toBe('460px');
+    component.chrome.onResizeEnd({
+      rectangle: { left: 120, top: 80, width: 700, height: 460 },
+    } as ResizeEvent);
+    expect(component.manuallyResized()).toBe(true);
+    expect(component.fitEmptyDefinitions()).toBe(false);
   });
 
   it('loads definitions and aggregate on init', () => {
