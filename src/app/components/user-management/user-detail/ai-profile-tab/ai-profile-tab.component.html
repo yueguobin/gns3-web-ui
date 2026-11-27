@@ -2,9 +2,9 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="toolbar-info">
-      <h3>LLM Model Configurations <span class="compatibility-badge">OpenAI-Compatible</span></h3>
+      <h3>LLM Model Configurations</h3>
       <p class="subtitle">
-        Manage OpenAI-compatible LLM model configurations. Your configs and configs inherited from your groups are shown below.
+        Manage LLM model configurations. Your configs and configs inherited from your groups are shown below.
       </p>
     </div>
     <div class="toolbar-actions">
@@ -73,7 +73,9 @@
             <ng-container matColumnDef="context_limit">
               <th mat-header-cell *matHeaderCellDef>Context Limit</th>
               <td mat-cell *matCellDef="let config">
+                @if (config.config.context_limit !== undefined && config.config.context_limit !== null) {
                 <span class="context-limit-value">{{ config.config.context_limit }}K</span>
+                }
                 @if (config.config.context_strategy) {
                 <span class="context-strategy-badge">
                   {{ config.config.context_strategy }}
@@ -131,7 +133,7 @@
         <div class="empty-state">
           <mat-icon class="empty-icon">folder_open</mat-icon>
           <p>No configurations yet</p>
-          <p class="empty-hint">Click "New Configuration" above to create your first LLM model configuration</p>
+          <p class="empty-hint">Click "New profile" above to create your first LLM model configuration</p>
         </div>
         }
       </mat-card-content>

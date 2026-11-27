@@ -1,0 +1,262 @@
+<mat-dialog-content>
+  <form [formGroup]="form" class="schema-config-form">
+    <!-- Configuration Name -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+      <mat-label>Configuration Name</mat-label>
+      <input matInput formControlName="name" placeholder="e.g.: my-config" />
+      @if (hasError('name')) {
+      <mat-error>{{ getErrorMessage('name') }}</mat-error>
+      }
+      <mat-hint>A name to identify this configuration</mat-hint>
+    </mat-form-field>
+
+    <!-- Provider (only schema-declared providers, plus the legacy value when editing) -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+      <mat-label>LLM Provider</mat-label>
+      <mat-select [value]="selectedProvider()" (selectionChange)="onProviderChange($event.value)">
+        @for (option of providerOptions(); track option.value) {
+        <mat-option [value]="option.value">
+          {{ option.label }}
+        </mat-option>
+        }
+      </mat-select>
+      <mat-hint>Only providers installed on this server are listed</mat-hint>
+    </mat-form-field>
+
+    <!-- Legacy provider note -->
+    @if (isLegacyProvider()) {
+    <div class="legacy-provider-note">
+      <mat-icon class="info-icon">info</mat-icon>
+      <p>
+        This configuration uses provider <strong>{{ selectedProvider() }}</strong
+        >, which is not in this server's provider list. It can be saved unchanged, or switching to a listed provider
+        will replace its settings.
+      </p>
+    </div>
+    }
+
+    <!-- Provider schema fields -->
+    <div formGroupName="configFields">
+      @for (field of basicFields(); track field.name) {
+      @switch (field.type) {
+      @case ('select') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+        <mat-label>{{ fieldLabel(field) }}</mat-label>
+        <mat-select [formControlName]="field.name">
+          @for (option of field.options || []; track option) {
+          <mat-option [value]="option">
+            {{ optionLabel(field, option) }}
+          </mat-option>
+          }
+        </mat-select>
+        @if (field.help) {
+        <mat-hint>{{ field.help }}</mat-hint>
+        }
+      </mat-form-field>
+      }
+      @case ('bool') {
+      <div class="checkbox-section">
+        <mat-checkbox [formControlName]="field.name" color="primary">{{ fieldLabel(field) }}</mat-checkbox>
+        @if (field.help) {
+        <p class="field-help">{{ field.help }}</p>
+        }
+      </div>
+      }
+      @case ('secret') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+        <mat-label>{{ fieldLabel(field) }}</mat-label>
+        <input
+          matInput
+          [formControlName]="field.name"
+          type="password"
+          autocomplete="off"
+          [placeholder]="mode() === 'edit' ? 'Leave empty to keep existing key' : (field.placeholder || '')"
+        />
+        @if (hasFieldError(field.name)) {
+        <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+        }
+        @if (mode() === 'edit') {
+        <mat-hint><span class="existing-key-hint">A saved key exists. Leave empty to keep it.</span></mat-hint>
+        } @else if (field.help) {
+        <mat-hint>{{ field.help }}</mat-hint>
+        }
+      </mat-form-field>
+      }
+      @case ('int') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+        <mat-label>{{ fieldLabel(field) }}</mat-label>
+        <input
+          matInput
+          [formControlName]="field.name"
+          type="number"
+          step="1"
+          [placeholder]="field.placeholder || ''"
+        />
+        @if (hasFieldError(field.name)) {
+        <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+        }
+        @if (field.help) {
+        <mat-hint>{{ field.help }}</mat-hint>
+        }
+      </mat-form-field>
+      }
+      @case ('float') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+        <mat-label>{{ fieldLabel(field) }}</mat-label>
+        <input
+          matInput
+          [formControlName]="field.name"
+          type="number"
+          step="0.1"
+          [placeholder]="field.placeholder || ''"
+        />
+        @if (hasFieldError(field.name)) {
+        <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+        }
+        @if (field.help) {
+        <mat-hint>{{ field.help }}</mat-hint>
+        }
+      </mat-form-field>
+      }
+      @default {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+        <mat-label>{{ fieldLabel(field) }}</mat-label>
+        <input matInput [formControlName]="field.name" [placeholder]="field.placeholder || ''" />
+        @if (hasFieldError(field.name)) {
+        <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+        }
+        @if (field.help) {
+        <mat-hint>{{ field.help }}</mat-hint>
+        }
+      </mat-form-field>
+      }
+      }
+      }
+    </div>
+
+    <!-- Advanced settings -->
+    @if (hasAdvancedFields()) {
+    <div class="advanced-section">
+      <div class="section-header advanced-toggle">
+        <h4>Advanced Settings</h4>
+        <button mat-button type="button" (click)="toggleAdvanced()">
+          <mat-icon>{{ showAdvanced() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          <span>{{ showAdvanced() ? 'Hide' : 'Show' }}</span>
+        </button>
+      </div>
+
+      @if (showAdvanced()) {
+      <div formGroupName="configFields">
+        @for (field of advancedFields(); track field.name) {
+        @switch (field.type) {
+        @case ('select') {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>{{ fieldLabel(field) }}</mat-label>
+          <mat-select [formControlName]="field.name">
+            @for (option of field.options || []; track option) {
+            <mat-option [value]="option">
+              {{ optionLabel(field, option) }}
+            </mat-option>
+            }
+          </mat-select>
+          @if (field.help) {
+          <mat-hint>{{ field.help }}</mat-hint>
+          }
+        </mat-form-field>
+        }
+        @case ('bool') {
+        <div class="checkbox-section">
+          <mat-checkbox [formControlName]="field.name" color="primary">{{ fieldLabel(field) }}</mat-checkbox>
+          @if (field.help) {
+          <p class="field-help">{{ field.help }}</p>
+          }
+        </div>
+        }
+        @case ('secret') {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>{{ fieldLabel(field) }}</mat-label>
+          <input
+            matInput
+            [formControlName]="field.name"
+            type="password"
+            autocomplete="off"
+            [placeholder]="mode() === 'edit' ? 'Leave empty to keep existing key' : (field.placeholder || '')"
+          />
+          @if (hasFieldError(field.name)) {
+          <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+          }
+          @if (mode() === 'edit') {
+          <mat-hint><span class="existing-key-hint">A saved key exists. Leave empty to keep it.</span></mat-hint>
+          } @else if (field.help) {
+          <mat-hint>{{ field.help }}</mat-hint>
+          }
+        </mat-form-field>
+        }
+        @case ('int') {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>{{ fieldLabel(field) }}</mat-label>
+          <input
+            matInput
+            [formControlName]="field.name"
+            type="number"
+            step="1"
+            [placeholder]="field.placeholder || ''"
+          />
+          @if (hasFieldError(field.name)) {
+          <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+          }
+          @if (field.help) {
+          <mat-hint>{{ field.help }}</mat-hint>
+          }
+        </mat-form-field>
+        }
+        @case ('float') {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>{{ fieldLabel(field) }}</mat-label>
+          <input
+            matInput
+            [formControlName]="field.name"
+            type="number"
+            step="0.1"
+            [placeholder]="field.placeholder || ''"
+          />
+          @if (hasFieldError(field.name)) {
+          <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+          }
+          @if (field.help) {
+          <mat-hint>{{ field.help }}</mat-hint>
+          }
+        </mat-form-field>
+        }
+        @default {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+          <mat-label>{{ fieldLabel(field) }}</mat-label>
+          <input matInput [formControlName]="field.name" [placeholder]="field.placeholder || ''" />
+          @if (hasFieldError(field.name)) {
+          <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
+          }
+          @if (field.help) {
+          <mat-hint>{{ field.help }}</mat-hint>
+          }
+        </mat-form-field>
+        }
+        }
+        }
+      </div>
+      }
+    </div>
+    }
+
+    <!-- Default Configuration Checkbox -->
+    <div class="checkbox-section">
+      <mat-checkbox formControlName="is_default" color="primary"> Set as default configuration </mat-checkbox>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="form.invalid">
+    {{ mode() === 'create' ? 'Create' : 'Save' }}
+  </button>
+</mat-dialog-actions>

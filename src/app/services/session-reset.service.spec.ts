@@ -4,21 +4,25 @@ import { SessionResetService } from './session-reset.service';
 import { PermissionService } from './permission.service';
 import { ProjectDistributionService } from './project-distribution.service';
 import { NotificationCenterService } from './notification-center.service';
+import { AiProfilesService } from './ai-profiles.service';
 
 describe('SessionResetService', () => {
   let permissionInvalidate: ReturnType<typeof vi.fn>;
   let distributionInvalidate: ReturnType<typeof vi.fn>;
+  let aiProfilesInvalidate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     permissionInvalidate = vi.fn();
     distributionInvalidate = vi.fn();
+    aiProfilesInvalidate = vi.fn();
 
     TestBed.configureTestingModule({
       providers: [
         { provide: PermissionService, useValue: { invalidate: permissionInvalidate } },
         { provide: ProjectDistributionService, useValue: { invalidate: distributionInvalidate } },
+        { provide: AiProfilesService, useValue: { invalidate: aiProfilesInvalidate } },
       ],
     });
   });

@@ -4,365 +4,42 @@
  * This file only contains component-specific layout and styling
  */
 
-.config-form {
-  // Form field layout
-  .full-width {
-    width: 100%;
-    margin-bottom: var(--gns3-density-space-3);
-  }
+.schema-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gns3-density-space-3);
+  padding: var(--gns3-density-space-6) 0;
 
-  // Section headers
-  .section-header {
-    margin-top: var(--gns3-density-space-4);
-    margin-bottom: var(--gns3-density-card-gap);
-
-    h3,
-    h4 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface);
-    }
-  }
-
-  // Help icon in label
-  .help-icon {
-    display: inline-flex;
-    vertical-align: middle;
-    width: 18px;
-    height: 18px;
-    margin-left: 4px;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: var(--mat-sys-on-surface-variant);
-    }
-
-    &:hover mat-icon {
-      color: var(--mat-sys-primary);
-    }
-  }
-
-  // Two-column row layout
-  .row {
-    display: flex;
-    gap: var(--gns3-density-space-3);
-    margin-bottom: var(--gns3-density-space-3);
-
-    .half-width {
-      flex: 1;
-      min-width: 0;
-    }
-  }
-
-  // Checkbox section
-  .checkbox-section {
-    margin: var(--gns3-density-space-4) 0;
-
-    mat-checkbox {
-      display: block;
-    }
-  }
-
-  // Text hints
-  .option-hint {
-    color: var(--mat-sys-on-surface-variant);
+  p {
+    margin: 0;
     font-size: 14px;
-  }
-
-  .existing-key-hint {
-    color: var(--mat-sys-primary);
-    font-size: 12px;
-  }
-
-  .warning-hint {
     color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.schema-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gns3-density-space-3);
+  padding: var(--gns3-density-space-6) 0;
+  text-align: center;
+
+  .state-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  p {
+    margin: 0;
+    max-width: 420px;
     font-size: 14px;
-  }
-
-  // Custom fields section
-  .custom-fields-section {
-    margin-top: var(--gns3-density-space-4);
-    padding-top: var(--gns3-density-space-4);
-    border-top: 1px solid var(--mat-sys-outline-variant);
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 0;
-      margin-bottom: var(--gns3-density-space-2);
-
-      h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--mat-sys-on-surface);
-      }
-
-      button {
-        width: 40px;
-        height: 40px;
-        padding: 8px;
-        transition: all var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-
-        &::before {
-          content: '';
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          background-color: currentColor;
-          opacity: 0;
-          transition: opacity var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-          transform: scale(0.75);
-        }
-
-        mat-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
-          transition: transform var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          z-index: 1;
-        }
-
-        &:hover::before {
-          opacity: 1;
-          background-color: var(--mat-sys-primary-container);
-        }
-
-        &:hover mat-icon {
-          color: var(--mat-sys-primary);
-          transform: scale(1.1);
-        }
-      }
-    }
-
-    .section-description {
-      margin-bottom: var(--gns3-density-card-gap);
-
-      .reserved-field-hint {
-        margin: 0;
-        font-size: 14px;
-        color: var(--mat-sys-on-surface-variant);
-        font-style: italic;
-      }
-    }
-
-    .custom-fields-list {
-      display: flex;
-      flex-direction: column;
-      gap: var(--gns3-density-space-3);
-
-      .custom-field-row {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--gns3-density-space-2);
-
-        .field-key {
-          flex: 1;
-          min-width: 150px;
-        }
-
-        .field-value {
-          flex: 1;
-          min-width: 150px;
-        }
-
-        button {
-          margin-top: 12px;
-          width: 40px;
-          height: 40px;
-          padding: 8px;
-          transition: all var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-          border-radius: 50%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-
-          &::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background-color: currentColor;
-            opacity: 0;
-            transition: opacity var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-            transform: scale(0.75);
-          }
-
-          mat-icon {
-            font-size: 24px;
-            width: 24px;
-            height: 24px;
-            transition: transform var(--gns3-motion-duration-standard) cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            z-index: 1;
-          }
-
-          &.delete-btn:hover::before {
-            opacity: 1;
-            background-color: var(--mat-sys-error-container);
-          }
-
-          &:hover mat-icon {
-            transform: scale(1.1);
-          }
-        }
-      }
-    }
-
-    .empty-custom-fields {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: var(--gns3-density-card-padding);
-      color: var(--mat-sys-on-surface-variant);
-      text-align: center;
-
-      .empty-icon {
-        font-size: 40px;
-        margin-bottom: 8px;
-        opacity: 0.5;
-      }
-
-      p {
-        margin: 0;
-        font-size: 14px;
-      }
-    }
-  }
-
-  // Mode Selector
-  .mode-selector {
-    display: flex;
-    align-items: center;
-    gap: var(--gns3-density-space-3);
-    margin-bottom: var(--gns3-density-card-gap);
-    padding: var(--gns3-density-space-2) 0;
-
-    mat-button-toggle-group {
-      flex: 1;
-      display: flex;
-
-      .mat-button-toggle {
-        flex: 1;
-
-        .mat-button-toggle-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 8px 16px;
-
-          mat-icon {
-            font-size: 20px;
-            height: 20px;
-            width: 20px;
-          }
-
-          span {
-            font-size: 14px;
-            font-weight: 500;
-          }
-        }
-      }
-    }
-
-    .help-icon {
-      flex-shrink: 0;
-      mat-icon {
-        font-size: 20px;
-        height: 20px;
-        width: 20px;
-        color: var(--mat-sys-on-surface-variant);
-      }
-
-      &:hover mat-icon {
-        color: var(--mat-sys-primary);
-      }
-    }
-  }
-
-  // Basic Mode
-  .basic-mode {
-    .mode-info {
-      display: flex;
-      gap: var(--gns3-density-space-3);
-      padding: var(--gns3-density-space-3);
-      margin-top: var(--gns3-density-space-4);
-      background: var(--mat-sys-surface-container);
-      border: 1px solid var(--mat-sys-outline-variant);
-      border-radius: 8px;
-
-      .info-icon {
-        flex-shrink: 0;
-        color: var(--mat-sys-on-surface-variant);
-        font-size: 20px;
-        height: 20px;
-        width: 20px;
-        margin-top: 2px;
-      }
-
-      p {
-        margin: 0;
-        font-size: 14px;
-        color: var(--mat-sys-on-surface-variant);
-        line-height: 1.5;
-
-        strong {
-          font-weight: 500;
-          color: var(--mat-sys-on-surface);
-        }
-      }
-    }
-  }
-
-  // Custom Mode
-  .custom-mode {
-    .custom-mode-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--gns3-density-space-4);
-      padding: var(--gns3-density-space-4);
-      background: var(--mat-sys-surface-container);
-      border-radius: 8px;
-
-      h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--mat-sys-on-surface);
-      }
-
-      button {
-        display: flex;
-        align-items: center;
-        gap: var(--gns3-density-space-2);
-
-        .help-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-
-        span {
-          font-size: 14px;
-          font-weight: 500;
-        }
-      }
-    }
+    line-height: 1.5;
+    color: var(--mat-sys-on-surface-variant);
   }
 }

@@ -167,6 +167,7 @@ export class GroupAiProfileTabComponent implements OnInit, OnDestroy {
         mode: 'create',
         config: null,
         existingNames: this.configs.map((c) => c.name),
+        controller: this.controller(),
       },
     });
 
@@ -190,6 +191,7 @@ export class GroupAiProfileTabComponent implements OnInit, OnDestroy {
         mode: 'edit',
         config: { ...config },
         existingNames: this.configs.filter((c) => c.config_id !== config.config_id).map((c) => c.name),
+        controller: this.controller(),
       },
     });
 

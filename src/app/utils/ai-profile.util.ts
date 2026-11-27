@@ -1,9 +1,34 @@
-import { LLMModelConfigWithSource } from '@models/ai-profile';
+import { ContextStrategy, CopilotMode, LLMModelConfigWithSource } from '@models/ai-profile';
 
 /**
  * AI Profile Utility Functions
  * Helper functions for processing and displaying AI model configurations
  */
+
+// Note: model_type is not selectable in the web UI - only the text model
+// type is supported today, so no model type option list exists here.
+
+/**
+ * Context strategy options (labels for select fields backed by the schema)
+ */
+export const CONTEXT_STRATEGIES: { value: ContextStrategy; label: string; description: string }[] = [
+  { value: 'conservative', label: 'Conservative', description: '60% of context limit' },
+  { value: 'balanced', label: 'Balanced', description: '75% of context limit (default)' },
+  { value: 'aggressive', label: 'Aggressive', description: '85% of context limit' },
+];
+
+/**
+ * Copilot mode options (labels for select fields backed by the schema)
+ */
+export const COPILOT_MODES: { value: CopilotMode; label: string; description: string }[] = [
+  { value: 'teaching_assistant', label: 'Teaching Assistant', description: 'Diagnostics only' },
+  { value: 'lab_automation_assistant', label: 'Lab Automation Assistant', description: 'Full configuration access' },
+  {
+    value: 'troubleshooting_injection',
+    label: 'Troubleshooting Injection',
+    description: 'Injects troubleshooting guidance',
+  },
+];
 
 /**
  * Get model display name with domain

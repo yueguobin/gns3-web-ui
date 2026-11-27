@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { HttpController } from './http-controller.service';
 import { Controller } from '@models/controller';
@@ -9,6 +9,7 @@ import {
   LLMModelConfigListResponse,
   CreateLLMModelConfigRequest,
   UpdateLLMModelConfigRequest,
+  ProviderSchemaResponse,
 } from '@models/ai-profile';
 
 /**
@@ -18,7 +19,58 @@ import {
   providedIn: 'root',
 })
 export class AiProfilesService {
+  /**
+   * Provider schema cache, keyed by controller. The payload only changes with
+   * a server upgrade, so it is fetched once per login session and invalidated
+   * on session reset (see SessionResetService).
+   */
+  private providerSchemaCache = new Map<string, ProviderSchemaResponse>();
+
   constructor(private httpController: HttpController) {}
+
+  /* ==================== Provider Schema Methods ==================== */
+
+  /**
+   * Get the dynamic provider config schema (rendering hints for the config form).
+   * GET /v3/access/llm-model-configs/provider-schema
+   *
+   * Only providers with declared metadata AND an installed langchain
+   * integration are returned. Feature-detect: the endpoint is new and not yet
+   * in released servers, so callers must fall back to the static form on
+   * error/404/empty. Successful responses are cached per controller for the
+   * login session; errors are never cached.
+   *
+   * @param provider Optional single-provider query
+   */
+  getProviderSchema(controller: Controller, provider?: string): Observable<ProviderSchemaResponse> {
+    const cacheKey = `${controller.host}:${controller.port}${controller.path}`;
+    const cached = this.providerSchemaCache.get(cacheKey);
+    if (cached) {
+      return of(cached);
+    }
+
+    const options = provider ? { params: { provider } } : undefined;
+    return this.httpController
+      .get<ProviderSchemaResponse>(controller, '/access/llm-model-configs/provider-schema', options)
+      .pipe(
+        map((response) => {
+          this.providerSchemaCache.set(cacheKey, response);
+          return response;
+        }),
+        catchError((error) => {
+          console.error('Failed to get provider schema:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  /**
+   * Drop the provider schema cache. Called on session reset so the next user
+   * on the same browser starts from a fresh fetch.
+   */
+  invalidate(): void {
+    this.providerSchemaCache.clear();
+  }
 
   /* ==================== User Configuration Methods ==================== */
 

@@ -2,8 +2,8 @@
   <!-- Toolbar -->
   <div class="toolbar">
     <div class="toolbar-info">
-      <h3>Group LLM Model Configurations <span class="compatibility-badge">OpenAI-Compatible</span></h3>
-      <p class="subtitle">Manage group OpenAI-compatible LLM model configurations. These configs will be inherited by group members.</p>
+      <h3>Group LLM Model Configurations</h3>
+      <p class="subtitle">Manage group LLM model configurations. These configs will be inherited by group members.</p>
     </div>
     <div class="toolbar-actions">
       <button mat-button (click)="loadConfigs()" [disabled]="loading$ | async">
@@ -65,7 +65,9 @@
             <ng-container matColumnDef="context_limit">
               <th mat-header-cell *matHeaderCellDef>Context Limit</th>
               <td mat-cell *matCellDef="let config">
+                @if (config.config.context_limit !== undefined && config.config.context_limit !== null) {
                 <span class="context-limit-value">{{ config.config.context_limit }}K</span>
+                }
                 @if (config.config.context_strategy) {
                 <span class="context-strategy-badge">
                   {{ config.config.context_strategy }}

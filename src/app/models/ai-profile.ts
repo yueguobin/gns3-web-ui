@@ -24,7 +24,8 @@ export type ContextStrategy =
  */
 export type CopilotMode =
   | 'teaching_assistant' // Diagnostics only (default)
-  | 'lab_automation_assistant'; // Full configuration access
+  | 'lab_automation_assistant' // Full configuration access
+  | 'troubleshooting_injection'; // Troubleshooting guidance injection
 
 /**
  * LLM Model Configuration Data (nested in config object)
@@ -91,10 +92,10 @@ export interface CreateLLMModelConfigRequest {
   name: string; // Configuration name (1-100 chars)
   model_type: ModelType; // Model type
   provider: string; // LLM provider
-  base_url: string; // API base URL
-  model: string; // Model name
-  temperature: number; // Temperature (0.0-2.0, default: 0.7)
-  context_limit: number; // Model context window limit in K tokens (required)
+  base_url?: string; // API base URL (presence depends on the provider schema)
+  model?: string; // Model name (presence depends on the provider schema)
+  temperature?: number; // Temperature (providers with sampling: false reject it)
+  context_limit?: number; // Model context window limit in K tokens (presence depends on the provider schema)
   api_key?: string; // API key (auto-encrypted)
   max_tokens?: number; // Max tokens for generation
   context_strategy?: ContextStrategy; // Context trimming strategy
@@ -129,4 +130,58 @@ export interface UpdateLLMModelConfigRequest {
 export interface ApiError {
   detail: string;
   status?: number;
+}
+
+/**
+ * Provider config field control type
+ */
+export type ProviderFieldType = 'string' | 'int' | 'float' | 'bool' | 'secret' | 'select';
+
+/**
+ * Provider capability flags. A false capability hides the whole block:
+ * - sampling: false -> no temperature field (the provider API rejects it)
+ * - request_controls: false -> request_timeout is a no-op, hide it
+ * - reasoning_toggle: false -> no reasoning mode toggle
+ */
+export interface ProviderCapabilities {
+  sampling?: boolean;
+  request_controls?: boolean;
+  reasoning_toggle?: boolean;
+}
+
+/**
+ * Single provider config field descriptor from the provider schema endpoint.
+ * Rendering hint only - server-side pydantic validation stays the source of
+ * truth for POST/PUT bodies.
+ */
+export interface ProviderConfigField {
+  name: string; // Key in the config object (same key in POST/PUT bodies)
+  type: ProviderFieldType; // Control type; secret = password input, masked on echo
+  required?: boolean; // Required marker
+  label?: string; // Display text, server-provided
+  help?: string; // Hint text, server-provided
+  placeholder?: string; // Placeholder, server-provided
+  default?: unknown; // Pre-fill value
+  options?: string[]; // Choices for type: "select"
+  advanced?: boolean; // Fold into an "Advanced" section
+}
+
+/**
+ * One provider entry from the provider schema endpoint. Only providers with
+ * declared metadata AND an installed langchain integration are returned.
+ */
+export interface ProviderSchemaEntry {
+  provider: string;
+  display_name: string;
+  integration_module: string;
+  capabilities: ProviderCapabilities;
+  fields: ProviderConfigField[];
+}
+
+/**
+ * GET /v3/access/llm-model-configs/provider-schema response
+ */
+export interface ProviderSchemaResponse {
+  providers: ProviderSchemaEntry[];
+  total: number;
 }

@@ -192,6 +192,7 @@ export class AiProfileTabComponent implements OnInit, OnDestroy {
         existingNames: this.configs()
           .filter((c) => c.source === 'user')
           .map((c) => c.name),
+        controller: this.controller(),
       },
     });
 
@@ -217,6 +218,7 @@ export class AiProfileTabComponent implements OnInit, OnDestroy {
         existingNames: this.configs()
           .filter((c) => c.source === 'user' && c.config_id !== config.config_id)
           .map((c) => c.name),
+        controller: this.controller(),
       },
     });
 

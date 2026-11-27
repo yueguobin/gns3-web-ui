@@ -1,0 +1,114 @@
+/**
+ * Schema-driven AI Profile Form Styles
+ * Inherits base and sizing from _dialogs.scss (.base-dialog-panel + .ai-profile-dialog-panel)
+ * This file only contains component-specific layout and styling
+ */
+
+.schema-config-form {
+  .full-width {
+    width: 100%;
+    margin-bottom: var(--gns3-density-space-3);
+  }
+
+  .section-header {
+    margin-top: var(--gns3-density-space-4);
+    margin-bottom: var(--gns3-density-card-gap);
+
+    h3,
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--mat-sys-on-surface);
+    }
+
+    &.advanced-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: var(--gns3-density-space-1);
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+
+        span {
+          font-size: 14px;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .advanced-section {
+    margin-top: var(--gns3-density-space-4);
+    padding-top: var(--gns3-density-space-4);
+    border-top: 1px solid var(--mat-sys-outline-variant);
+
+    > .section-header {
+      margin-top: 0;
+    }
+  }
+
+  .checkbox-section {
+    margin: var(--gns3-density-space-4) 0;
+
+    mat-checkbox {
+      display: block;
+    }
+
+    .field-help {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+
+  .field-help {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .existing-key-hint {
+    color: var(--mat-sys-primary);
+    font-size: 12px;
+  }
+
+  .legacy-provider-note {
+    display: flex;
+    gap: var(--gns3-density-space-3);
+    padding: var(--gns3-density-space-3);
+    margin-bottom: var(--gns3-density-space-3);
+    background: var(--mat-sys-surface-container);
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 8px;
+
+    .info-icon {
+      flex-shrink: 0;
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+      margin-top: 2px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--mat-sys-on-surface-variant);
+      line-height: 1.5;
+
+      strong {
+        font-weight: 500;
+        color: var(--mat-sys-on-surface);
+      }
+    }
+  }
+}

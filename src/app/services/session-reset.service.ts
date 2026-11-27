@@ -1,8 +1,9 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { PermissionService } from '@services/permission.service';
 import { UserPreferencesService } from '@services/user-preferences.service';
 import { ProjectDistributionService } from '@services/project-distribution.service';
 import { NotificationCenterService } from '@services/notification-center.service';
+import { AiProfilesService } from '@services/ai-profiles.service';
 
 /** localStorage key prefix of the per-project item-lock visibility flag. */
 export const ITEM_LOCK_STATUS_KEY_PREFIX = 'itemLockStatusVisibility_';
@@ -27,12 +28,17 @@ export class SessionResetService {
   private readonly userPreferences = inject(UserPreferencesService);
   private readonly projectDistributions = inject(ProjectDistributionService);
   private readonly notificationCenter = inject(NotificationCenterService);
+  // Resolved lazily: AiProfilesService -> HttpController sits above this
+  // service in the injector graph (HttpController lazily calls reset()), so
+  // a construction-time injection would close a cycle.
+  private readonly injector = inject(Injector);
 
   reset(): void {
     this.permissionService.invalidate();
     this.userPreferences.invalidate();
     this.projectDistributions.invalidate();
     this.notificationCenter.invalidate();
+    this.injector.get(AiProfilesService).invalidate();
     this.wipeItemLockStatusKeys();
   }
 
