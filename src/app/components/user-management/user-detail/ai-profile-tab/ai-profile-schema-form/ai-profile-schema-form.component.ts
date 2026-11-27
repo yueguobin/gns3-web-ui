@@ -113,6 +113,11 @@ export class AiProfileSchemaFormComponent implements OnInit {
   // and returns to typing the model name by hand.
   readonly modelManualSentinel = MODEL_MANUAL_SENTINEL;
 
+  // Last configuration name this form auto-filled from a model selection;
+  // a name still equal to it may be updated by the next selection, a
+  // user-edited name never is.
+  private lastAutoFilledName = '';
+
   // Only the text model type is supported today (server-side constraint);
   // the config form has no model type selector.
   private static readonly SUPPORTED_MODEL_TYPE = 'text';
@@ -369,6 +374,38 @@ export class AiProfileSchemaFormComponent implements OnInit {
     if (entry?.max_input_tokens && contextLimit) {
       contextLimit.setValue(String(Math.floor(entry.max_input_tokens / 1000)));
     }
+    this.autoFillNameFromModel(value);
+  }
+
+  /**
+   * Auto-fill the configuration name from the selected model id. Never
+   * overwrites a user-entered name: it only fills an empty name, or updates
+   * a name that is still the previous auto-filled suggestion.
+   */
+  private autoFillNameFromModel(modelId: string): void {
+    const candidate = this.sanitizeConfigName(modelId);
+    const nameControl = this.form.get('name');
+    if (!candidate || !nameControl) {
+      return;
+    }
+    const currentName = String(nameControl.value ?? '').trim();
+    if (currentName && currentName !== this.lastAutoFilledName) {
+      return;
+    }
+    nameControl.setValue(candidate);
+    nameControl.markAsDirty();
+    this.lastAutoFilledName = candidate;
+  }
+
+  /**
+   * The name validator only allows [a-zA-Z0-9_-]; map everything else
+   * (provider prefixes like "openai/", spaces, dots) to dashes.
+   */
+  private sanitizeConfigName(value: string): string {
+    return value
+      .replace(/[^a-zA-Z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 100);
   }
 
   private resetModelFetch(): void {
@@ -376,6 +413,7 @@ export class AiProfileSchemaFormComponent implements OnInit {
     this.modelFetchState.set('idle');
     this.modelFetchError.set('');
     this.manualModelMode.set(false);
+    this.lastAutoFilledName = '';
   }
 
   /* ==================== Display helpers ==================== */
