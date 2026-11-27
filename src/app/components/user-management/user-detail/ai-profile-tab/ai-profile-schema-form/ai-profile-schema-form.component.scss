@@ -76,6 +76,39 @@
     color: var(--mat-sys-on-surface-variant);
   }
 
+  // Live model catalog fetch row (under the model field)
+  .model-fetch-row {
+    display: flex;
+    align-items: center;
+    gap: var(--gns3-density-space-3);
+    margin: calc(var(--gns3-density-space-2) * -1) 0 var(--gns3-density-space-3);
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: var(--gns3-density-space-1);
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      span {
+        font-size: 13px;
+      }
+
+      .button-spinner {
+        flex-shrink: 0;
+      }
+    }
+
+    .model-fetch-error {
+      font-size: 12px;
+      color: var(--mat-sys-error);
+    }
+  }
+
   .existing-key-hint {
     color: var(--mat-sys-primary);
     font-size: 12px;

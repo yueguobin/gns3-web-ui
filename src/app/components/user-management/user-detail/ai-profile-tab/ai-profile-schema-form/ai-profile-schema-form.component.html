@@ -121,7 +121,21 @@
       @default {
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
         <mat-label>{{ fieldLabel(field) }}</mat-label>
+        @if (isModelField(field) && modelDropdownActive()) {
+        <mat-select [formControlName]="field.name" (selectionChange)="onModelSelect($event.value)">
+          @for (model of fetchedModels(); track model.id) {
+          <mat-option [value]="model.id">
+            {{ model.display_name || model.id }}
+          </mat-option>
+          }
+          @if (missingCurrentModelOption(); as currentModel) {
+          <mat-option [value]="currentModel">{{ currentModel }} (current)</mat-option>
+          }
+          <mat-option [value]="modelManualSentinel">Enter model name manually</mat-option>
+        </mat-select>
+        } @else {
         <input matInput [formControlName]="field.name" [placeholder]="field.placeholder || ''" />
+        }
         @if (hasFieldError(field.name)) {
         <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
         }
@@ -129,6 +143,21 @@
         <mat-hint>{{ field.help }}</mat-hint>
         }
       </mat-form-field>
+      @if (isModelField(field)) {
+      <div class="model-fetch-row">
+        <button mat-button type="button" (click)="fetchModels()" [disabled]="modelFetchState() === 'loading'">
+          @if (modelFetchState() === 'loading') {
+          <mat-spinner [diameter]="16" class="button-spinner" />
+          } @else {
+          <mat-icon>cloud_download</mat-icon>
+          }
+          <span>{{ modelFetchState() === 'loading' ? 'Fetching…' : 'Fetch model list' }}</span>
+        </button>
+        @if (modelFetchError()) {
+        <span class="model-fetch-error">{{ modelFetchError() }}</span>
+        }
+      </div>
+      }
       }
       }
       }
@@ -231,7 +260,21 @@
         @default {
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
           <mat-label>{{ fieldLabel(field) }}</mat-label>
+          @if (isModelField(field) && modelDropdownActive()) {
+          <mat-select [formControlName]="field.name" (selectionChange)="onModelSelect($event.value)">
+            @for (model of fetchedModels(); track model.id) {
+            <mat-option [value]="model.id">
+              {{ model.display_name || model.id }}
+            </mat-option>
+            }
+            @if (missingCurrentModelOption(); as currentModel) {
+            <mat-option [value]="currentModel">{{ currentModel }} (current)</mat-option>
+            }
+            <mat-option [value]="modelManualSentinel">Enter model name manually</mat-option>
+          </mat-select>
+          } @else {
           <input matInput [formControlName]="field.name" [placeholder]="field.placeholder || ''" />
+          }
           @if (hasFieldError(field.name)) {
           <mat-error>{{ getFieldErrorMessage(field) }}</mat-error>
           }
@@ -239,6 +282,21 @@
           <mat-hint>{{ field.help }}</mat-hint>
           }
         </mat-form-field>
+        @if (isModelField(field)) {
+        <div class="model-fetch-row">
+          <button mat-button type="button" (click)="fetchModels()" [disabled]="modelFetchState() === 'loading'">
+            @if (modelFetchState() === 'loading') {
+            <mat-spinner [diameter]="16" class="button-spinner" />
+            } @else {
+            <mat-icon>cloud_download</mat-icon>
+            }
+            <span>{{ modelFetchState() === 'loading' ? 'Fetching…' : 'Fetch model list' }}</span>
+          </button>
+          @if (modelFetchError()) {
+          <span class="model-fetch-error">{{ modelFetchError() }}</span>
+          }
+        </div>
+        }
         }
         }
         }

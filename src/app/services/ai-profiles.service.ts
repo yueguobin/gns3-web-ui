@@ -9,6 +9,8 @@ import {
   LLMModelConfigListResponse,
   CreateLLMModelConfigRequest,
   UpdateLLMModelConfigRequest,
+  ProviderModelsRequest,
+  ProviderModelsResponse,
   ProviderSchemaResponse,
 } from '@models/ai-profile';
 
@@ -70,6 +72,29 @@ export class AiProfilesService {
    */
   invalidate(): void {
     this.providerSchemaCache.clear();
+  }
+
+  /**
+   * Fetch a provider's live model catalog.
+   * POST /v3/access/llm-model-configs/provider-models
+   *
+   * The API key is request-scoped (forwarded to the provider for this one
+   * call, never stored), so the response is NOT cached. The request body
+   * carries the key and must never be logged - only the failure message is
+   * logged here.
+   */
+  getProviderModels(
+    controller: Controller,
+    request: ProviderModelsRequest
+  ): Observable<ProviderModelsResponse> {
+    return this.httpController
+      .post<ProviderModelsResponse>(controller, '/access/llm-model-configs/provider-models', request)
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to fetch provider models:', error?.message ?? error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /* ==================== User Configuration Methods ==================== */

@@ -185,3 +185,32 @@ export interface ProviderSchemaResponse {
   providers: ProviderSchemaEntry[];
   total: number;
 }
+
+/**
+ * One entry of a provider's live model catalog
+ */
+export interface ProviderModel {
+  id: string;
+  display_name?: string; // Optional; anthropic reports it, OpenAI-style catalogs do not
+  max_input_tokens?: number; // Optional; used to auto-fill context_limit (field unit is K tokens)
+}
+
+/**
+ * POST /v3/access/llm-model-configs/provider-models request body.
+ * The API key is request-scoped: forwarded to the provider for this one
+ * call, never stored - and never logged.
+ */
+export interface ProviderModelsRequest {
+  provider: string;
+  api_key: string;
+  base_url?: string; // Optional; wins over the provider default
+}
+
+/**
+ * POST /v3/access/llm-model-configs/provider-models response
+ */
+export interface ProviderModelsResponse {
+  provider: string;
+  total: number;
+  models: ProviderModel[];
+}

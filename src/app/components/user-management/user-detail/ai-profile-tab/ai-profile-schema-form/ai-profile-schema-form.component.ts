@@ -15,7 +15,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+import { Controller } from '@models/controller';
+import { AiProfilesService } from '@services/ai-profiles.service';
 import {
   CreateLLMModelConfigRequest,
   LLMModelConfigData,
@@ -23,6 +26,7 @@ import {
   LLMModelConfigWithSource,
   ProviderCapabilities,
   ProviderConfigField,
+  ProviderModel,
   ProviderSchemaEntry,
 } from '@models/ai-profile';
 import { CONTEXT_STRATEGIES, COPILOT_MODES } from '@utils/ai-profile.util';
@@ -37,8 +41,26 @@ const FIELD_CAPABILITY_GATES: Record<string, keyof ProviderCapabilities> = {
   request_timeout: 'request_controls',
 };
 
+/**
+ * Client-side presentation order for known connection fields: the key and
+ * base URL are entered (or pre-filled from the schema default) before the
+ * model field, so the fetch-model-list flow reads top-down:
+ * provider -> api key -> base url -> fetch -> model.
+ * Everything not listed here keeps the schema's declared order.
+ */
+const FIELD_PRESENTATION_PRIORITY = ['api_key', 'base_url', 'model'];
+
 const INT_PATTERN = new RegExp('^-?\\d+$');
 const FLOAT_PATTERN = new RegExp('^-?\\d+(\\.\\d+)?$');
+
+/**
+ * Sentinel select value for leaving the fetched model list and going back
+ * to typing the model name by hand (the schema keeps the model field free
+ * text on purpose; manual input is the fallback).
+ */
+const MODEL_MANUAL_SENTINEL = '__manual__';
+
+type ModelFetchState = 'idle' | 'loading' | 'done' | 'error';
 
 /**
  * Schema-driven LLM provider config form.
@@ -65,6 +87,7 @@ const FLOAT_PATTERN = new RegExp('^-?\\d+(\\.\\d+)?$');
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatProgressSpinnerModule,
   ],
 })
 export class AiProfileSchemaFormComponent implements OnInit {
@@ -72,17 +95,30 @@ export class AiProfileSchemaFormComponent implements OnInit {
   readonly config = input<LLMModelConfigResponse | LLMModelConfigWithSource | null>(null);
   readonly existingNames = input<string[]>([]);
   readonly providers = input.required<ProviderSchemaEntry[]>();
+  readonly controller = input<Controller | null>(null);
 
   form!: FormGroup;
 
   readonly selectedProvider = signal<string>('');
   readonly showAdvanced = signal(false);
 
+  // Live model catalog fetch. Request-scoped per the contract: the list is
+  // tied to the typed API key, never cached, and dropped on provider switch.
+  readonly modelFetchState = signal<ModelFetchState>('idle');
+  readonly fetchedModels = signal<ProviderModel[]>([]);
+  readonly modelFetchError = signal('');
+  readonly manualModelMode = signal(false);
+
+  // Exposed for the template: select option that leaves the fetched list
+  // and returns to typing the model name by hand.
+  readonly modelManualSentinel = MODEL_MANUAL_SENTINEL;
+
   // Only the text model type is supported today (server-side constraint);
   // the config form has no model type selector.
   private static readonly SUPPORTED_MODEL_TYPE = 'text';
 
   private readonly fb = inject(FormBuilder);
+  private readonly aiProfilesService = inject(AiProfilesService);
   private readonly cd = inject(ChangeDetectorRef);
   private readonly dialogRef = inject(MatDialogRef);
 
@@ -104,8 +140,12 @@ export class AiProfileSchemaFormComponent implements OnInit {
     return options;
   });
 
-  readonly basicFields = computed(() => this.capabilityFilteredFields(this.providerDef()).filter((field) => !field.advanced));
-  readonly advancedFields = computed(() => this.capabilityFilteredFields(this.providerDef()).filter((field) => !!field.advanced));
+  readonly basicFields = computed(() =>
+    this.orderedForPresentation(this.capabilityFilteredFields(this.providerDef())).filter((field) => !field.advanced)
+  );
+  readonly advancedFields = computed(() =>
+    this.orderedForPresentation(this.capabilityFilteredFields(this.providerDef())).filter((field) => !!field.advanced)
+  );
   readonly hasAdvancedFields = computed(() => this.capabilityFilteredFields(this.providerDef()).some((field) => !!field.advanced));
 
   /** True when editing a config whose provider is not in the schema list. */
@@ -148,6 +188,24 @@ export class AiProfileSchemaFormComponent implements OnInit {
       const gate = FIELD_CAPABILITY_GATES[field.name];
       return !gate || def.capabilities?.[gate] !== false;
     });
+  }
+
+  /**
+   * Presentation order: hoist the connection fields (api key, base URL)
+   * ahead of the model field per FIELD_PRESENTATION_PRIORITY; unlisted
+   * fields keep the schema's declared order. A pure rendering concern -
+   * payload building iterates the unfiltered order, which is equivalent.
+   */
+  private orderedForPresentation(fields: ProviderConfigField[]): ProviderConfigField[] {
+    const prioritized = FIELD_PRESENTATION_PRIORITY.map((name) => fields.find((field) => field.name === name)).filter(
+      (field): field is ProviderConfigField => !!field
+    );
+    if (!prioritized.length) {
+      return fields;
+    }
+    const prioritizedNames = new Set(prioritized.map((field) => field.name));
+    const rest = fields.filter((field) => !prioritizedNames.has(field.name));
+    return [...prioritized, ...rest];
   }
 
   private buildConfigFields(def: ProviderSchemaEntry | null, sourceConfig: LLMModelConfigData | null): FormGroup {
@@ -208,6 +266,7 @@ export class AiProfileSchemaFormComponent implements OnInit {
     }
     this.selectedProvider.set(provider);
     this.showAdvanced.set(false);
+    this.resetModelFetch();
 
     // Values carried over only when re-selecting the config's own provider;
     // a switch to a different provider starts from the schema defaults.
@@ -219,6 +278,104 @@ export class AiProfileSchemaFormComponent implements OnInit {
 
   toggleAdvanced(): void {
     this.showAdvanced.update((visible) => !visible);
+  }
+
+  /* ==================== Live model catalog fetch ==================== */
+
+  /** Contract-anchored special case: the schema's "model" field supports a live catalog fetch. */
+  isModelField(field: ProviderConfigField): boolean {
+    return field.name === 'model';
+  }
+
+  /** Dropdown replaces the free-text input once a catalog is fetched (unless the user opted out). */
+  modelDropdownActive(): boolean {
+    return this.fetchedModels().length > 0 && !this.manualModelMode();
+  }
+
+  /** Current model value shown as an extra option when it is not part of the fetched catalog (edit mode). */
+  missingCurrentModelOption(): string | null {
+    if (!this.modelDropdownActive()) {
+      return null;
+    }
+    const current = String(this.form.get('configFields.model')?.value ?? '').trim();
+    if (!current || this.fetchedModels().some((model) => model.id === current)) {
+      return null;
+    }
+    return current;
+  }
+
+  fetchModels(): void {
+    const def = this.providerDef();
+    const controller = this.controller();
+    if (!def || !controller || this.modelFetchState() === 'loading') {
+      return;
+    }
+
+    const apiKey = String(this.form.get('configFields.api_key')?.value ?? '').trim();
+    if (!apiKey) {
+      this.modelFetchState.set('error');
+      this.modelFetchError.set('Enter your API key first, then fetch the model list.');
+      this.cd.markForCheck();
+      return;
+    }
+
+    const baseUrl = String(this.form.get('configFields.base_url')?.value ?? '').trim();
+
+    this.modelFetchState.set('loading');
+    this.modelFetchError.set('');
+    this.cd.markForCheck();
+
+    this.aiProfilesService
+      .getProviderModels(controller, {
+        provider: def.provider,
+        api_key: apiKey,
+        ...(baseUrl ? { base_url: baseUrl } : {}),
+      })
+      .subscribe({
+        next: (response) => {
+          const models = response?.models ?? [];
+          if (!models.length) {
+            this.modelFetchState.set('error');
+            this.modelFetchError.set('The provider returned no models. Enter the model name manually.');
+          } else {
+            this.fetchedModels.set(models);
+            this.manualModelMode.set(false);
+            this.modelFetchState.set('done');
+          }
+          this.cd.markForCheck();
+        },
+        error: (error) => {
+          // HttpController rewrites failures to ControllerError: the server's
+          // message lives on error.message (there is no error.error).
+          this.modelFetchState.set('error');
+          this.modelFetchError.set(
+            error?.message || 'Could not fetch the model list. Enter the model name manually.'
+          );
+          this.cd.markForCheck();
+        },
+      });
+  }
+
+  onModelSelect(value: string): void {
+    if (value === MODEL_MANUAL_SENTINEL) {
+      this.manualModelMode.set(true);
+      this.form.get('configFields.model')?.setValue('');
+      this.cd.markForCheck();
+      return;
+    }
+    // Auto-fill context_limit (K tokens) from the reported context window.
+    const entry = this.fetchedModels().find((model) => model.id === value);
+    const contextLimit = this.form.get('configFields.context_limit');
+    if (entry?.max_input_tokens && contextLimit) {
+      contextLimit.setValue(String(Math.floor(entry.max_input_tokens / 1000)));
+    }
+  }
+
+  private resetModelFetch(): void {
+    this.fetchedModels.set([]);
+    this.modelFetchState.set('idle');
+    this.modelFetchError.set('');
+    this.manualModelMode.set(false);
   }
 
   /* ==================== Display helpers ==================== */
@@ -318,14 +475,17 @@ export class AiProfileSchemaFormComponent implements OnInit {
     const raw = this.form.getRawValue();
     const config = this.config();
     const originalConfig = this.mode() === 'edit' && config ? config.config : null;
-    const providerChanged = this.mode() === 'edit' && originalConfig !== null && raw.provider !== originalConfig.provider;
+    // provider is not a form control (it drives form rebuilds via a signal),
+    // so it must be read from the signal - getRawValue() does not contain it.
+    const selectedProvider = this.selectedProvider();
+    const providerChanged = this.mode() === 'edit' && originalConfig !== null && selectedProvider !== originalConfig.provider;
 
     const configData: CreateLLMModelConfigRequest = {
       name: raw.name,
       // Keep the stored type on edit; new configs are pinned to the only
       // supported type.
       model_type: this.config()?.model_type ?? AiProfileSchemaFormComponent.SUPPORTED_MODEL_TYPE,
-      provider: raw.provider,
+      provider: selectedProvider,
       is_default: !!raw.is_default,
     };
 
